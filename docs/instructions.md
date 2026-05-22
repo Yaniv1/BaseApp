@@ -6,5 +6,5 @@ These instructions define how coding agents should work on BaseApp.
 2. Adhere to object oriented guidelines.
 3. Update the version after every code change.
 4. Update the readme base.md after every code change.
-5. Update the config/base.json file updates array to include a name and description of the change. New updates should be up the list. Also, keep only the latest 10 updates.
+5. Update the config/base.json file updates array to include a name and description of the change. The name structure has to be "[{APP_NAME}] {Feature} New updates should be up the list. Also, keep only the latest 10 updates.
 6. Update the config/base.json file app dict to include the latest version id.

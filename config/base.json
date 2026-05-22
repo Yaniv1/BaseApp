@@ -108,62 +108,62 @@
     "updates": [
 
         {
-            "name": "base-readme-refresh",
+            "name": "[BaseApp] Base Readme Refresh",
             "version": "26.05.22.02",
             "description": "Updated the BaseApp readme to document the COMMON evaluate/populate pipeline, HtmlDoc outputs, manifest-driven pullbase flow, hard pull mode, and current versioning rules."
         },
         {
-            "name": "pullbase-hard-mode",
+            "name": "[BaseApp] Pullbase Hard Mode",
             "version": "26.05.22.02",
             "description": "Added pullbase --hard mode to overwrite the full app tree from BaseApp, including app-specific files, while preserving the manifest-driven normal pull behavior."
         },
         {
-            "name": "pullbase-manifest-driven",
+            "name": "[BaseApp] Pullbase Manifest Driven",
             "version": "26.05.22.02",
             "description": "Moved the list of pullable base files into config/base_files.json so future BaseApp extensions can be propagated without modifying pullbase.py."
         },
         {
-            "name": "output-open-flag",
+            "name": "[BaseApp] Output Open Flag",
             "version": "26.05.22.02",
             "description": "Added per-output open support so stored artifacts can be opened automatically for browsing when an output entry sets open to true."
         },
         {
-            "name": "instantiate-common-app-name-only",
+            "name": "[BaseApp] Instantiate Common App Name Only",
             "version": "26.05.22.01",
             "description": "Updated instantiate behavior to modify only COMMON.APP_NAME in config/app.json so all dependent values resolve through config placeholders."
         },
         {
-            "name": "common-output-standardization",
+            "name": "[BaseApp] Common Output Standardization",
             "version": "26.05.21.08",
             "description": "Standardized COMMON values and output definitions for dynamic OUTPUT_PREFIX/OUTPUT_VERSION/OUTPUT_PATH resolution and template-based HTML outputs."
         },
         {
-            "name": "params-partial-overrides",
+            "name": "[BaseApp] Params Partial Overrides",
             "version": "26.05.21.08",
             "description": "Updated Params override behavior to recursively merge nested nodes so app-specific config files can partially override base settings."
         },
         {
-            "name": "params-evaluate-populate",
+            "name": "[BaseApp] Params Evaluate Populate",
             "version": "26.05.21.08",
             "description": "Added Params.evaluate and Params.populate to support COMMON-driven expression evaluation and wrapper-based placeholder expansion across config."
         },
         {
-            "name": "logger-main-htmldoc-refactor",
+            "name": "[BaseApp] Logger Main HtmlDoc Refactor",
             "version": "26.05.21.08",
             "description": "Removed direct HTML generation from logger/main and switched HTML output creation to HtmlDoc-based save flow."
         },
         {
-            "name": "htmldoc-template-engine",
+            "name": "[BaseApp] HtmlDoc Template Engine",
             "version": "26.05.21.08",
             "description": "Introduced HtmlDoc template rendering for dict/list/dataframe data with caller-provided template path and configurable wrappers."
         },
         {
-            "name": "html-title-app-version",
+            "name": "[BaseApp] Html Title App Version",
             "version": "26.05.21.07",
             "description": "Included app version in config/results/logs HTML titles and updated base documentation."
         },
         {
-            "name": "agent-instructions-doc",
+            "name": "[BaseApp] Agent Instructions Doc",
             "version": "26.05.21.06",
             "description": "Added docs/instructions.md and documented governance/versioning workflow in base docs."
         }

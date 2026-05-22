@@ -33,6 +33,37 @@ class Params:
             return value
         return None
 
+    def _as_plain_list(self, value):
+        """Return plain list for list values, otherwise None."""
+        if not isinstance(value, list):
+            return None
+        plain = []
+        for item in value:
+            if isinstance(item, Params):
+                plain.append(item.get_dict())
+            else:
+                plain.append(item)
+        return plain
+
+    def _merge_lists(self, base_list, override_list):
+        """Merge lists by prepending overrides and removing duplicates."""
+        merged = []
+        seen = set()
+
+        def add(item):
+            normalized = self._as_plain_dict(item) if self._as_plain_dict(item) is not None else item
+            key = json.dumps(normalized, sort_keys=True, default=str)
+            if key not in seen:
+                seen.add(key)
+                merged.append(normalized)
+
+        for item in override_list:
+            add(item)
+        for item in base_list:
+            add(item)
+
+        return merged
+
     def _merge_dicts(self, base_dict, override_dict):
         """Recursively merge override_dict into base_dict and return merged dict."""
         merged = dict(base_dict)
@@ -40,9 +71,13 @@ class Params:
             base_value = merged.get(key)
             base_child = self._as_plain_dict(base_value)
             override_child = self._as_plain_dict(override_value)
+            base_list = self._as_plain_list(base_value)
+            override_list = self._as_plain_list(override_value)
 
             if base_child is not None and override_child is not None:
                 merged[key] = self._merge_dicts(base_child, override_child)
+            elif base_list is not None and override_list is not None:
+                merged[key] = self._merge_lists(base_list, override_list)
             else:
                 merged[key] = override_value
         return merged
@@ -53,10 +88,15 @@ class Params:
             existing = getattr(self, key, None)
             existing_dict = self._as_plain_dict(existing)
             incoming_dict = self._as_plain_dict(value)
+            existing_list = self._as_plain_list(existing)
+            incoming_list = self._as_plain_list(value)
 
             if existing_dict is not None and incoming_dict is not None:
                 merged = self._merge_dicts(existing_dict, incoming_dict)
                 setattr(self, key, Params(merged))
+            elif existing_list is not None and incoming_list is not None:
+                merged_list = self._merge_lists(existing_list, incoming_list)
+                setattr(self, key, self._normalize_value(merged_list))
             else:
                 setattr(self, key, self._normalize_value(value))
 
