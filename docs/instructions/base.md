@@ -10,3 +10,4 @@ These instructions define how coding agents should work on BaseApp.
 5. Update the config/base.json file updates array to include a name and description of the change. The name structure has to be "[{APP_NAME}] {Feature} New updates should be up the list. Also, keep only the latest 10 updates.
 6. Update the config/base.json file app dict to include the latest version id.
 7. Update docs/version/app.txt to have the same value as the latest docs/version/base.txt so that future instantiations of new apps will start from the latest base version and then increment separately.
+8. When logging, utilize logger functionality - use message codes instead of text, if necessary add new message codes to messages/base.csv. report variable values using data and not in message.
