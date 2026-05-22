@@ -1,0 +1,6 @@
+{
+    "COMMON": {
+        "APP_NAME": "MyApp",
+        "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}"        
+    }
+}

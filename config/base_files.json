@@ -1,0 +1,10 @@
+[
+    ["app/base.py",                              "app/base.py"],
+    ["config/base.json",                         "config/base.json"],
+    ["config/base_files.json",                   "config/base_files.json"],
+    ["pullbase.py",                              "pullbase.py"],
+    ["utils/baseutils.py",                       "utils/baseutils.py"],
+    ["docs/readme/base.md",                      "docs/readme/base.md"],
+    ["docs/templates/dataset_table.html",        "docs/templates/dataset_table.html"],
+    ["config/requirements.txt",                  "config/requirements.txt"]
+]

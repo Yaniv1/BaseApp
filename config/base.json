@@ -1,0 +1,172 @@
+{
+    "COMMON": {
+        "CONFIG_WRAPPERS": ["{$", "$}"],
+        "APP_NAME": "BaseApp",
+        "VERSION": "26.05.22.02",
+        "DATE_FORMAT": "%Y%m%d",
+        "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
+        "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
+        "RUN_ID": "str(uuid.uuid4().hex[:6]).upper()",
+        "HTML_TEMPLATE": "../docs/templates/dataset_table.html",
+        "HTML_WRAPPERS": ["{$", "$}"],        
+        "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}",
+        "OUTPUT_VERSION": "dt.datetime.utcnow().strftime('%Y%m%d')",
+        "OUTPUT_PATH": "{$OUTPUT_PREFIX$}/{$OUTPUT_VERSION$}"
+    },
+    
+    "app": {
+        "name": "{$APP_NAME$}",
+        "version": "{$VERSION$}",       
+        "dirs":{
+            "data": "{$OUTPUT_PATH$}",
+            "config": "config",
+            "utils": "utils",
+            "templates": "docs/templates"
+        },
+        "verbose": true
+    },
+
+    "log":{
+        "path": "{$OUTPUT_PATH$}/logs",
+        "verbose": "INFO",
+        "types": {
+            "0": "NONE",
+            "1": "INFO",
+            "2": "GOOD",
+            "3": "WARN",
+            "4": "ERROR"
+        },
+        "colors": {
+            "INFO": "blue",
+            "GOOD": "green",
+            "WARN": "yellow",
+            "ERROR": "red"
+        },
+        "max_items": 5
+    },
+
+    
+
+    "input": {
+        "path": "input",
+        "version": null,
+        "format": "csv"
+    },
+
+    
+    "output": {
+        "results": {
+            "store": true,
+            "source": "results",
+            "path": "{$OUTPUT_PATH$}/results",
+            "file": "results.json",
+            "format": "json"
+        },
+        "config": {
+            "store": true,
+            "source": "config",
+            "path": "{$OUTPUT_PATH$}/config",
+            "file": "config.json",
+            "format": "json"
+        },
+        "results_html": {
+            "store": true,
+            "source": "results",
+            "path": "{$OUTPUT_PATH$}/results",
+            "file": "results.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "open": false
+        },
+        "config_html": {
+            "store": true,
+            "source": "config",
+            "path": "{$OUTPUT_PATH$}/config",
+            "file": "config.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "open": false
+        },
+
+        "log_html": {
+            "store": true,
+            "source": "logs",
+            "path": "{$OUTPUT_PATH$}/html_logs",
+            "file": "{$START_TIME$}.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "open": false
+        }
+    },
+
+    "updates": [
+
+        {
+            "name": "base-readme-refresh",
+            "version": "26.05.22.02",
+            "description": "Updated the BaseApp readme to document the COMMON evaluate/populate pipeline, HtmlDoc outputs, manifest-driven pullbase flow, hard pull mode, and current versioning rules."
+        },
+        {
+            "name": "pullbase-hard-mode",
+            "version": "26.05.22.02",
+            "description": "Added pullbase --hard mode to overwrite the full app tree from BaseApp, including app-specific files, while preserving the manifest-driven normal pull behavior."
+        },
+        {
+            "name": "pullbase-manifest-driven",
+            "version": "26.05.22.02",
+            "description": "Moved the list of pullable base files into config/base_files.json so future BaseApp extensions can be propagated without modifying pullbase.py."
+        },
+        {
+            "name": "output-open-flag",
+            "version": "26.05.22.02",
+            "description": "Added per-output open support so stored artifacts can be opened automatically for browsing when an output entry sets open to true."
+        },
+        {
+            "name": "instantiate-common-app-name-only",
+            "version": "26.05.22.01",
+            "description": "Updated instantiate behavior to modify only COMMON.APP_NAME in config/app.json so all dependent values resolve through config placeholders."
+        },
+        {
+            "name": "common-output-standardization",
+            "version": "26.05.21.08",
+            "description": "Standardized COMMON values and output definitions for dynamic OUTPUT_PREFIX/OUTPUT_VERSION/OUTPUT_PATH resolution and template-based HTML outputs."
+        },
+        {
+            "name": "params-partial-overrides",
+            "version": "26.05.21.08",
+            "description": "Updated Params override behavior to recursively merge nested nodes so app-specific config files can partially override base settings."
+        },
+        {
+            "name": "params-evaluate-populate",
+            "version": "26.05.21.08",
+            "description": "Added Params.evaluate and Params.populate to support COMMON-driven expression evaluation and wrapper-based placeholder expansion across config."
+        },
+        {
+            "name": "logger-main-htmldoc-refactor",
+            "version": "26.05.21.08",
+            "description": "Removed direct HTML generation from logger/main and switched HTML output creation to HtmlDoc-based save flow."
+        },
+        {
+            "name": "htmldoc-template-engine",
+            "version": "26.05.21.08",
+            "description": "Introduced HtmlDoc template rendering for dict/list/dataframe data with caller-provided template path and configurable wrappers."
+        },
+        {
+            "name": "html-title-app-version",
+            "version": "26.05.21.07",
+            "description": "Included app version in config/results/logs HTML titles and updated base documentation."
+        },
+        {
+            "name": "agent-instructions-doc",
+            "version": "26.05.21.06",
+            "description": "Added docs/instructions.md and documented governance/versioning workflow in base docs."
+        }
+    ]
+
+}
