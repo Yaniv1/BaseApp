@@ -1,0 +1,25 @@
+code,type,text
+BASE001,INFO,App initialized
+BASE002,INFO,Run identifier assigned
+BASE003,INFO,Stored output artifact
+BASE004,INFO,Opened output for browsing
+BASEW05,WARN,Could not open output
+BASE999,GOOD,App completed
+INST001,INFO,Instantiate started
+INST002,INFO,Loaded manifest entries
+INST003,INFO,Completed pull sync during instantiate
+INST004,INFO,Completed once sync during instantiate
+INST005,INFO,Created app instruction file
+INST006,INFO,App instruction file already exists
+INSTE07,ERROR,Invalid instantiate target
+INST999,GOOD,Instantiate completed successfully
+INST009,ERROR,Instantiate failed
+PULL001,INFO,Pullbase started
+PULLE02,ERROR,Source not found
+PULL003,INFO,Hard pull copied files
+PULL004,INFO,Loaded pull entries
+PULLE05,ERROR,Failed to load manifests
+PULL006,INFO,Pull copied files
+PULLW07,WARN,Missing source files detected
+PULW08,WARN,Missing source file
+PULL999,GOOD,Pullbase completed successfully

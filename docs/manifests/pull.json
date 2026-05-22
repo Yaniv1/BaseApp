@@ -1,0 +1,44 @@
+{
+    "pull": [
+        {
+            "source": "app/base.py"
+        },
+        {
+            "source": "config/base.json"
+        },
+        {
+            "source": "docs/manifests"
+        },
+        {
+            "source": "scripts/pullbase.py"
+        },
+        {
+            "source": "utils/baseutils.py"
+        },
+        {
+            "source": "docs/instructions/base.md"
+        },        
+        {
+            "source": "docs/readme/base.md"
+        },
+        {
+            "source": "docs/templates"
+        },
+        {
+            "source": "docs/messages/base.csv"
+        },
+        {
+            "source": "docs/messages/logger.csv"
+        },
+        {
+            "source": "config/requirements.txt"
+        },
+        {
+            "source": "docs/version/base.txt"
+        },
+        {
+            "source": "scripts"
+        }
+    ]
+        
+}

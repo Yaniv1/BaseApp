@@ -290,15 +290,38 @@ class HtmlDoc:
         return output_path
     
 
+def load_message_dict(paths):
+    """Load and concatenate message dictionary CSV files, deduplicating by code (first wins)."""
+    dfs = []
+    for path in paths:
+        path_str = os.path.abspath(str(path))
+        if os.path.isfile(path_str):
+            try:
+                df = pd.read_csv(path_str, dtype=str).fillna("")
+                if "code" in df.columns and "text" in df.columns:
+                    cols = [c for c in ["code", "type", "text"] if c in df.columns]
+                    dfs.append(df[cols])
+            except Exception:
+                pass
+    if not dfs:
+        return pd.DataFrame(columns=["code", "type", "text"])
+    combined = pd.concat(dfs, ignore_index=True)
+    if "type" not in combined.columns:
+        combined["type"] = ""
+    return combined.drop_duplicates(subset=["code"], keep="first").reset_index(drop=True)
+
+
 class Logger:
     """Simple logger that stores messages with timestamps."""
-    def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False, log_types=None, type_colors=None):
+    def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False, log_types=None, type_colors=None, message_dict=None):
         self.log_types = self._normalize_log_types(log_types) or {0: "NONE", 1: "INFO", 2: "GOOD", 3: "WARN", 4: "ERROR"}
         self.log_type_keys = {v: k for k, v in self.log_types.items()}
         self.type_colors = self._normalize_type_colors(type_colors) or {}
         self.color_reset = "\033[0m"
         self.start_time = start_time or dt.datetime.utcnow()
         self.logs = []
+        self.log_columns = ["timestamp", "type_key", "type", "elapsed_sec", "message_code", "message", "data"]
+        self.message_dict = message_dict if message_dict is not None else pd.DataFrame(columns=["code", "text"])
         self.log_path = log_path
         self.max_items = max_items
         self.log_folders = {
@@ -308,8 +331,8 @@ class Logger:
         self.verbose_key = self._resolve_verbose_key(verbose)
         os.makedirs(os.path.dirname(log_path), exist_ok=True) if log_path else None
         self._print_color_demo_once()
-        self.log(f"Initialized logger at {self.start_time.isoformat()}")
-        self.log(f"{log_path=}")
+        self.log(message_code="LOG001", data={"start_time": self.start_time.isoformat()})
+        self.log(message_code="LOG002", data={"log_path": log_path})
 
         n_deleted = 0
         if max_items:
@@ -319,10 +342,13 @@ class Logger:
                     deleted_in_folder = self._cleanup_folder(folder, max_items=max_items, extensions=[ext])
                     n_deleted += deleted_in_folder
                     if deleted_in_folder > 0:
-                        self.log(f"Removed {deleted_in_folder} old .{ext} log files from {folder}.")
+                        self.log(
+                            message_code="LOG003",
+                            data={"deleted_count": deleted_in_folder, "extension": ext, "folder": folder},
+                        )
                 
         if max_items:
-            self.log(f"Initialized logger with max_items={max_items}")
+            self.log(message_code="LOG004", data={"max_items": max_items})
             
 
     def _cleanup_folder(self, folder_path, max_items=None, extensions=None):
@@ -491,9 +517,53 @@ class Logger:
             self._cleanup_folder(html_folder, max_items=self.max_items, extensions=["html"])
         return html_path
 
-    def log(self, message, message_type="INFO"):
+    def _lookup_entry(self, code):
+        """Look up message text and type from the message dictionary by code."""
+        if self.message_dict.empty:
+            return "", ""
+        match = self.message_dict.loc[self.message_dict["code"] == str(code)]
+        if match.empty:
+            return "", ""
+        row = match.iloc[0]
+        text = str(row.get("text", ""))
+        type_val = str(row.get("type", "")) if "type" in self.message_dict.columns else ""
+        return text, type_val
+
+    def _normalize_data(self, data):
+        """Normalize optional per-event data payload into dict or None."""
+        if data is None:
+            return None
+        if isinstance(data, Params):
+            data = data.get_dict()
+        if not isinstance(data, dict):
+            raise ValueError("data must be a dict when provided")
+        if len(data) == 0:
+            return None
+        return data
+
+    def _write_csv(self):
+        """Persist all logs with a stable schema including a single data column."""
+        if not self.log_path:
+            return
+
+        rows = []
+        for event in self.logs:
+            row = {column: event.get(column, None) for column in self.log_columns}
+            rows.append(row)
+
+        pd.DataFrame(rows, columns=self.log_columns).to_csv(self.log_path, mode='w', header=True, index=False)
+
+    def log(self, message="", message_type=None, data=None, message_code=None):
         """ store a message with the current timestamp."""
-        message_key = self._resolve_message_key(message_type)
+        looked_up_text = ""
+        looked_up_type = ""
+        if message_code:
+            looked_up_text, looked_up_type = self._lookup_entry(message_code)
+
+        resolved_message = message if message else looked_up_text
+        resolved_type = message_type if message_type is not None else (looked_up_type if looked_up_type else "INFO")
+
+        message_key = self._resolve_message_key(resolved_type)
         message_type = self.log_types[message_key]
 
         now = dt.datetime.utcnow()
@@ -502,13 +572,15 @@ class Logger:
                  "type_key": message_key,
                  "type": message_type.rjust(5),
                  "elapsed_sec": f"{elapsed_time:06.3f}",
-                 "message": message}
+                 "message_code": message_code,
+                 "message": resolved_message,
+                 "data": self._normalize_data(data)}
+
         self.logs.append(event)
         if self._should_print(message_key):
             console_line = ' | '.join([str(v) for v in list(event.values())])
             print(self._format_console_row(message_type, console_line))
-        if self.log_path:
-            pd.DataFrame([event]).to_csv(self.log_path, mode='a', header=not os.path.exists(self.log_path), index=False)
+        self._write_csv()
        
 
 
@@ -587,13 +659,21 @@ class Main:
         self.results.app_title = f"{self.config.app.name} v{self.config.app.version}"
         self.results.html_template = self.config.COMMON.HTML_TEMPLATE
 
+        messages_dir = os.path.join(self.base_dir, "docs", "messages")
+        message_dict = load_message_dict([
+            os.path.join(messages_dir, "logger.csv"),
+            os.path.join(messages_dir, "base.csv"),
+            os.path.join(messages_dir, "app.csv"),
+        ])
         logger_dict = {
             "log_path": None,
             "start_time": self.results.start_time,
             "max_items": getattr(self.config.log, "max_items", None),
             "verbose": getattr(self.config.log, "verbose", False),
             "log_types": getattr(self.config.log, "types", None),
-            "type_colors": getattr(self.config.log, "colors", None)}
+            "type_colors": getattr(self.config.log, "colors", None),
+            "message_dict": message_dict,
+        }
         
         if getattr(self.config, "log", None) is not None:
             if getattr(self.config.log, "path", None) is not None:
@@ -606,8 +686,12 @@ class Main:
                 self.results.log_path = None
 
         self.logger = Logger(**logger_dict)
-        self.logger.log(f"{self.__class__.__name__} initialized: {self}")
-        self.logger.log(f"run_id={self.results.run_id}")
+        self.logger.log(
+            f"{self.__class__.__name__} initialized",
+            message_code="BASE001",
+            data={"instance": str(self)},
+        )
+        self.logger.log(message_code="BASE002", data={"run_id": self.results.run_id})
 
         self.store_outputs()
 
@@ -635,7 +719,10 @@ class Main:
                                'format':output_dict.get("format", "json")}                
                 save_kwargs.update(output_dict.get("kwargs", {}))
                 saved_path = save(**save_kwargs)
-                self.logger.log(f"Stored {output_key} to {full_output_path}")
+                self.logger.log(
+                    message_code="BASE003",
+                    data={"output_key": output_key, "path": full_output_path},
+                )
 
                 open_output = output_dict.get("open", False)
                 
@@ -648,16 +735,27 @@ class Main:
                 os.startfile(saved_path)
             else:
                 webbrowser.open(f"file://{os.path.abspath(saved_path).replace(os.sep, '/')}")
-            self.logger.log(f"Opened {output_key} for browsing: {saved_path}")
+            self.logger.log(
+                message_code="BASE004",
+                data={"output_key": output_key, "path": saved_path},
+            )
         except Exception as ex:
-            self.logger.log(f"Could not open {output_key}: {ex}", message_type="WARN")
+            self.logger.log(
+                message_code="BASEW05",
+                message_type="WARN",
+                data={"output_key": output_key, "error": str(ex)},
+            )
         
     
     def close(self):
         """Finalize the run by logging the total elapsed time and saving results."""
         self.results.end_time = dt.datetime.utcnow()
         self.results.elapsed_seconds = (self.results.end_time - self.results.start_time).total_seconds()
-        self.logger.log(f"{self.__class__.__name__} completed in {self.results.elapsed_seconds:.2f} seconds")
+        self.logger.log(
+            f"{self.__class__.__name__} completed",
+            message_code="BASE999",
+            data={"elapsed_seconds": round(self.results.elapsed_seconds, 2)},
+        )
         self.logs = self.logger.logs
         self.store_outputs()
 

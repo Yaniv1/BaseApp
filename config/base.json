@@ -2,7 +2,7 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.05.22.02",
+        "VERSION": "26.05.22.14",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -106,66 +106,60 @@
     },
 
     "updates": [
-
         {
-            "name": "[BaseApp] Base Readme Refresh",
-            "version": "26.05.22.02",
-            "description": "Updated the BaseApp readme to document the COMMON evaluate/populate pipeline, HtmlDoc outputs, manifest-driven pullbase flow, hard pull mode, and current versioning rules."
+            "name": "[BaseApp] Logger Data Column",
+            "version": "26.05.22.14",
+            "description": "Updated Logger.log signature to use data payload and store caller key:value metadata in a single CSV data column instead of dynamic parsed columns."
         },
         {
-            "name": "[BaseApp] Pullbase Hard Mode",
-            "version": "26.05.22.02",
-            "description": "Added pullbase --hard mode to overwrite the full app tree from BaseApp, including app-specific files, while preserving the manifest-driven normal pull behavior."
+            "name": "[BaseApp] Logger Dynamic Fields",
+            "version": "26.05.22.13",
+            "description": "Added Logger.log fields support so caller-supplied key:value data is mapped to dynamic CSV columns and populated only on relevant rows."
         },
         {
-            "name": "[BaseApp] Pullbase Manifest Driven",
-            "version": "26.05.22.02",
-            "description": "Moved the list of pullable base files into config/base_files.json so future BaseApp extensions can be propagated without modifying pullbase.py."
+            "name": "[BaseApp] Pullbase Local App Logs",
+            "version": "26.05.22.12",
+            "description": "Updated pullbase logging to use local app identity and output path C:/data/{local_app}/{date}/basepulls/{local_app}_{timestamp}.(csv|html)."
         },
         {
-            "name": "[BaseApp] Output Open Flag",
-            "version": "26.05.22.02",
-            "description": "Added per-output open support so stored artifacts can be opened automatically for browsing when an output entry sets open to true."
+            "name": "[BaseApp] Instantiate Base Config Only",
+            "version": "26.05.22.11",
+            "description": "Updated instantiate runtime config loading to use only base.json (no app.json override) for path and logging resolution."
         },
         {
-            "name": "[BaseApp] Instantiate Common App Name Only",
-            "version": "26.05.22.01",
-            "description": "Updated instantiate behavior to modify only COMMON.APP_NAME in config/app.json so all dependent values resolve through config placeholders."
+            "name": "[BaseApp] Instantiate Fixed Log Path",
+            "version": "26.05.22.10",
+            "description": "Updated instantiate logging output to C:/data/BaseApp/instantiations/{date}/{target_app}_{timestamp}.csv and matching HTML path."
         },
         {
-            "name": "[BaseApp] Common Output Standardization",
-            "version": "26.05.21.08",
-            "description": "Standardized COMMON values and output definitions for dynamic OUTPUT_PREFIX/OUTPUT_VERSION/OUTPUT_PATH resolution and template-based HTML outputs."
+            "name": "[BaseApp] Instantiate Pullbase Logging",
+            "version": "26.05.22.09",
+            "description": "Added CSV+HTML logging to instantiate (base logs_path/instantiations, {target_app}_{timestamp}) and pullbase (app logs_path/basepulls, {base_app}_{timestamp})."
         },
         {
-            "name": "[BaseApp] Params Partial Overrides",
-            "version": "26.05.21.08",
-            "description": "Updated Params override behavior to recursively merge nested nodes so app-specific config files can partially override base settings."
+            "name": "[BaseApp] Manifest Folder Source Sync",
+            "version": "26.05.22.08",
+            "description": "Added support for manifest entries whose source is a folder; instantiate and pullbase now sync all files recursively with optional target folder mapping."
         },
         {
-            "name": "[BaseApp] Params Evaluate Populate",
-            "version": "26.05.21.08",
-            "description": "Added Params.evaluate and Params.populate to support COMMON-driven expression evaluation and wrapper-based placeholder expansion across config."
+            "name": "[BaseApp] Key Driven Manifest Folder",
+            "version": "26.05.22.07",
+            "description": "Updated instantiate and pullbase to consume all JSON files from docs/manifests and apply behavior by key: instantiate uses once+pull, pullbase uses pull."
         },
         {
-            "name": "[BaseApp] Logger Main HtmlDoc Refactor",
-            "version": "26.05.21.08",
-            "description": "Removed direct HTML generation from logger/main and switched HTML output creation to HtmlDoc-based save flow."
+            "name": "[BaseApp] Manifest Source Target Schema",
+            "version": "26.05.22.06",
+            "description": "Updated instantiate and pullbase manifest parsing to use section lists of items with required source and optional target defaulting to source."
         },
         {
-            "name": "[BaseApp] HtmlDoc Template Engine",
-            "version": "26.05.21.08",
-            "description": "Introduced HtmlDoc template rendering for dict/list/dataframe data with caller-provided template path and configurable wrappers."
+            "name": "[BaseApp] Scripts And Manifest Dict",
+            "version": "26.05.22.05",
+            "description": "Moved instantiate and pullbase into scripts/ and updated manifests to dict format with pull and once sections under docs/manifests."
         },
         {
-            "name": "[BaseApp] Html Title App Version",
-            "version": "26.05.21.07",
-            "description": "Included app version in config/results/logs HTML titles and updated base documentation."
-        },
-        {
-            "name": "[BaseApp] Agent Instructions Doc",
-            "version": "26.05.21.06",
-            "description": "Added docs/instructions.md and documented governance/versioning workflow in base docs."
+            "name": "[BaseApp] Manifest Location Refactor",
+            "version": "26.05.22.04",
+            "description": "Moved instantiate and pull manifests to docs/manifests (pull.json and once.json) and updated instantiate.py and pullbase.py to consume the new paths."
         }
     ]
 

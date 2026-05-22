@@ -18,22 +18,29 @@ BaseApp/
   config/
     base.json
     app.json
-    base_files.json
     requirements.txt
   docs/
-    instructions.md
-    version.txt
+    manifests/
+      pull.json
+      once.json
+    instructions/
+      base.md
+      app.md
     readme/
       base.md
       app.md
     templates/
       dataset_table.html
+    version/
+      app.txt
+      base.txt
+  scripts/
+    instantiate.py
+    pullbase.py
   utils/
     baseutils.py
     apputils.py
     datautils.py
-  instantiate.py
-  pullbase.py
 ```
 
 ## Core Runtime Features
@@ -125,6 +132,8 @@ Default template: `docs/templates/dataset_table.html`
 - Console colors driven by `log.colors` in config
 - Each run writes a timestamped CSV log and an HTML log
 - `max_items` cleanup enforced on both `.csv` and `.html` log folders
+- `Logger.log(..., data={...})` supports per-entry key/value payloads stored in
+  a single `data` CSV column; rows without payload keep `data` empty
 
 ### 6. Auto-open outputs
 
@@ -168,50 +177,73 @@ pip install -r config/requirements.txt
 
 ## Instantiate a New App
 
-Script: `instantiate.py`
+Script: `scripts/instantiate.py`
 
 Usage from `BaseApp` root:
 
 ```powershell
-python instantiate.py ../MyNewApp
+python scripts/instantiate.py ../MyNewApp
 ```
 
 Behavior:
 
-- Copies the full BaseApp tree to the target path.
+- Reads all `.json` files under `docs/manifests`.
+- Applies entries under `pull` by copying on every instantiate run.
 - Overwrites core/base files on repeat runs.
-- Creates app-dedicated placeholder files only if they do not already exist:
-  - `app/app.py`
-  - `config/app.json`
-  - `utils/apputils.py`
-  - `docs/readme/app.md`
+- Applies entries under `once` only when destination files do not already
+  exist, including `docs/version/app.txt`.
+- Creates `docs/instructions/{APP_NAME}.md` only if it does not already exist.
 - When `config/app.json` is created, it sets only `COMMON.APP_NAME` to the
   target folder name. All dependent values (paths, filenames, etc.) resolve
   automatically through the placeholder pipeline at runtime.
+- Writes instantiate logs under
+  `C:/data/BaseApp/instantiations/{date}/{target_app}_{timestamp}.csv` and
+  renders a matching HTML file at
+  `C:/data/BaseApp/instantiations/{date}/{target_app}_{timestamp}.html`.
 
 ## Pull Base Updates into an Instantiated App
 
-Script in the instantiated app root: `pullbase.py`
+Script in the instantiated app: `scripts/pullbase.py`
 
 ```powershell
-python pullbase.py                      # normal: manifest-driven
-python pullbase.py --hard               # hard: overwrite everything
-python pullbase.py --source ../BaseApp  # explicit source path
+python scripts/pullbase.py                      # normal: manifest-driven
+python scripts/pullbase.py --hard               # hard: overwrite everything
+python scripts/pullbase.py --source ../../BaseApp  # explicit source path
 ```
 
 ### Normal mode
 
-Reads `config/base_files.json` from BaseApp, caches it locally, then copies
-only the listed files. To add a new base file to future pulls, add it to
-`config/base_files.json` in BaseApp — no change to `pullbase.py` is needed.
+Syncs BaseApp `docs/manifests` to local `docs/manifests`, then applies all
+entries under the `pull` key from all manifest files in that folder.
+To add or adjust pull behavior, update manifest files in `docs/manifests`.
+- Writes pullbase logs under
+  `C:/data/{local_app}/{date}/basepulls/{local_app}_{timestamp}.csv` and
+  renders a matching HTML file at
+  `C:/data/{local_app}/{date}/basepulls/{local_app}_{timestamp}.html`.
 
-Current manifest (`config/base_files.json`):
+Manifest behavior is key-driven, not filename-driven.
+
+Each section is a list of objects:
+
+- `source` (required)
+- `target` (optional, defaults to `source`)
+
+If `source` points to a folder, all files under that folder are synced
+recursively. For folder entries, `target` is treated as the destination folder
+root (or defaults to the same relative folder path).
+
+Current manifest (`docs/manifests/pull.json`):
+
+The following are current `pull` sources:
 
 - `app/base.py`
 - `config/base.json`
-- `config/base_files.json`
-- `pullbase.py`
+- `docs/manifests/pull.json`
+- `scripts/pullbase.py`
 - `utils/baseutils.py`
+- `docs/instructions/base.md`
+- `docs/instructions/app.md`
+- `docs/version/base.txt`
 - `docs/readme/base.md`
 - `docs/templates/dataset_table.html`
 - `config/requirements.txt`
@@ -224,12 +256,12 @@ Use this to fully reset an app to the base.
 
 ## Builder Workflow (Recommended)
 
-1. Instantiate once: `python instantiate.py ../MyNewApp`
+1. Instantiate once: `python scripts/instantiate.py ../MyNewApp`
 2. Edit only app-dedicated files: `app/app.py`, `config/app.json`,
    `utils/apputils.py`, `docs/readme/app.md`
 3. In `config/app.json` override only `COMMON.APP_NAME` (and any other keys
    that differ from base); let the placeholder pipeline derive everything else.
-4. Pull base updates periodically: `python pullbase.py`
+4. Pull base updates periodically: `python scripts/pullbase.py`
 5. Re-run and review generated JSON/HTML artifacts.
 
 ## Notes
@@ -240,7 +272,10 @@ Use this to fully reset an app to the base.
 ## Versioning
 
 BaseApp version is tracked in `COMMON.VERSION` inside `config/base.json` and
-mirrored in `docs/version.txt`.
+mirrored in `docs/version/base.txt`.
+
+App-specific version is tracked in `docs/version/app.txt` and is created once
+during instantiation so it remains app-owned during future base pulls.
 
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
@@ -248,4 +283,7 @@ mirrored in `docs/version.txt`.
 
 ## Agent Guidance
 
-Agent-specific development instructions are stored in `docs/instructions.md`.
+Agent-specific development instructions are stored in:
+
+- `docs/instructions/base.md` for base app rules
+- `docs/instructions/app.md` for generic variant-app rules

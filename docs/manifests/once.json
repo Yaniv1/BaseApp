@@ -1,0 +1,23 @@
+{
+    "once": [        
+        {
+            "source": "config/app.json"
+        },
+        {
+            "source": "app/app.py"
+        },
+        {
+            "source": "utils/apputils.py"
+        },
+        {
+            "source": "docs/readme/app.md"
+        },
+        {
+            "source": "docs/version/app.txt"
+        },
+        {
+            "source": "docs/messages/app.csv"
+        }    
+    ]    
+    
+}
