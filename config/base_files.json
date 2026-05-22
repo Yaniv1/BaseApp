@@ -4,7 +4,8 @@
     ["config/base_files.json",                   "config/base_files.json"],
     ["pullbase.py",                              "pullbase.py"],
     ["utils/baseutils.py",                       "utils/baseutils.py"],
-    ["docs/instructions.md",                     "docs/instructions.md"],
+    ["docs/instructions/base.md",                "docs/instructions/base.md"],
+    ["docs/instructions/app.md",                 "docs/instructions/app.md"],
     ["docs/readme/base.md",                      "docs/readme/base.md"],
     ["docs/templates/dataset_table.html",        "docs/templates/dataset_table.html"],
     ["config/requirements.txt",                  "config/requirements.txt"]
