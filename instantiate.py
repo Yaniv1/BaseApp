@@ -9,6 +9,7 @@ Rules:
   - config/app.json
   - utils/apputils.py
   - docs/readme/app.md
+    - docs/instructions/{APP_NAME}.md
 """
 
 from __future__ import annotations
@@ -76,6 +77,29 @@ def populate_app_config(app_config_path: Path, target_value: str):
         json.dump(data, f, indent=4)
 
 
+def ensure_app_instruction_file(target_root: Path, app_name: str) -> bool:
+    """Create docs/instructions/{APP_NAME}.md for app-specific guidance if missing."""
+    app_instructions_path = target_root / "docs" / "instructions" / f"{app_name}.md"
+    if app_instructions_path.exists():
+        return False
+
+    app_instructions_path.parent.mkdir(parents=True, exist_ok=True)
+    app_instructions_path.write_text(
+        "\n".join(
+            [
+                f"# {app_name} Instructions",
+                "## App specific instructions",
+                "",
+                "Use this file for instructions that apply only to this app variant.",
+                "The app designer owns and maintains this file.",
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    return True
+
+
 def instantiate(source_root: Path, target_root: Path, target_value: str):
     """Instantiate BaseApp tree into target_root with placeholder protections."""
     target_root.mkdir(parents=True, exist_ok=True)
@@ -98,6 +122,11 @@ def instantiate(source_root: Path, target_root: Path, target_value: str):
 
         copy_file(source_root, target_root, rel_path)
         copied_core += 1
+
+    if ensure_app_instruction_file(target_root, target_value):
+        created_placeholders += 1
+    else:
+        kept_placeholders += 1
 
     return {
         "copied_core": copied_core,
