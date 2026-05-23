@@ -10,6 +10,38 @@ import uuid
 import pprint
 import re
 import webbrowser
+import time
+from functools import wraps
+
+
+def trackit(func):
+    """Track function execution and return result with extensible metrics."""
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        started = time.perf_counter()
+        function_result = func(*args, **kwargs)
+        duration_seconds = round(time.perf_counter() - started, 6)
+        return {
+            "function": func.__name__,
+            "result": function_result,
+            "metrics": {
+                "duration_seconds": duration_seconds,
+            },
+        }
+
+    return wrapper
+
+def dict_merge(base, override):
+    """Recursively merge override dict into base dict and return merged result."""
+    merged = dict(base)
+    for key, override_value in override.items():
+        base_value = merged.get(key)
+        if isinstance(base_value, dict) and isinstance(override_value, dict):
+            merged[key] = dict_merge(base_value, override_value)
+        else:
+            merged[key] = override_value
+    return merged
 
 class Params:
     """Simple container that exposes dictionary values as attributes."""
@@ -194,6 +226,49 @@ def get_config(config_path="../config/base.json", overrides={}):
     config.update(overrides)
     return config
 
+
+class Config:
+    """Load, merge, evaluate, and populate runtime configuration."""
+
+    def __init__(self, args=None, base_config_path="../config/base.json", overrides=None):
+
+        self.args = args or []
+        self.base_config_path = os.path.abspath(base_config_path)
+        self.base_dir = os.path.abspath(os.path.join(os.path.dirname(self.base_config_path), ".."))
+
+        self.overrides = {
+            a.split("=")[0].strip("-"): tryeval(a.split("=")[1])
+            for a in self.args
+            if "=" in a
+        }
+        if isinstance(overrides, dict):
+            self.overrides.update(overrides)
+
+        self.config = Params(get_config(config_path=self.base_config_path, overrides=self.overrides))
+        self.config.base_dir = self.base_dir
+        config_dir = os.path.dirname(self.base_config_path)
+        base_config_name = os.path.basename(self.base_config_path).lower()
+        for file_name in sorted(os.listdir(config_dir)):
+            file_path = os.path.join(config_dir, file_name)
+            if not os.path.isfile(file_path):
+                continue
+            if not file_name.lower().endswith(".json"):
+                continue
+            if file_name.lower() == base_config_name:
+                continue
+
+            with open(file_path, "r") as f:
+                app_config = json.load(f)
+            if isinstance(app_config, dict):
+                self.config.set(**app_config)
+
+        self.config = self.config \
+                        .evaluate(common_nodes=["COMMON"]) \
+                        .populate(common_nodes=["COMMON"], 
+                                  wrappers=self.config.COMMON.CONFIG_WRAPPERS)
+
+    
+
 def tryeval(val):
     """Try to evaluate a string value, falling back to the original value on failure."""
     try:
@@ -290,14 +365,20 @@ class HtmlDoc:
         return output_path
     
 
-def load_message_dict(paths):
+def load_message_lookup(paths):
     """Load and concatenate message dictionary CSV files, deduplicating by code (first wins)."""
-    dfs = []
+    files = [os.path.abspath(str(path)) for path in paths if os.path.isfile(os.path.abspath(str(path))) and path.lower().endswith(".csv")]
     for path in paths:
-        path_str = os.path.abspath(str(path))
-        if os.path.isfile(path_str):
+        if os.path.isdir(path):
+            for file_name in sorted(os.listdir(path)):
+                file_path = os.path.join(path, file_name)
+                if os.path.isfile(file_path) and file_name.lower().endswith(".csv"):
+                    files.append(os.path.abspath(str(file_path)))
+    dfs = []
+    for file_path in files:
+        if os.path.isfile(file_path):
             try:
-                df = pd.read_csv(path_str, dtype=str).fillna("")
+                df = pd.read_csv(file_path, dtype=str).fillna("")
                 if "code" in df.columns and "text" in df.columns:
                     cols = [c for c in ["code", "type", "text"] if c in df.columns]
                     dfs.append(df[cols])
@@ -313,7 +394,9 @@ def load_message_dict(paths):
 
 class Logger:
     """Simple logger that stores messages with timestamps."""
-    def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False, log_types=None, type_colors=None, message_dict=None):
+    def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False, 
+                 log_types=None, 
+                 type_colors=None, message_lookup=None):
         self.log_types = self._normalize_log_types(log_types) or {0: "NONE", 1: "INFO", 2: "GOOD", 3: "WARN", 4: "ERROR"}
         self.log_type_keys = {v: k for k, v in self.log_types.items()}
         self.type_colors = self._normalize_type_colors(type_colors) or {}
@@ -321,7 +404,7 @@ class Logger:
         self.start_time = start_time or dt.datetime.utcnow()
         self.logs = []
         self.log_columns = ["timestamp", "type_key", "type", "elapsed_sec", "message_code", "message", "data"]
-        self.message_dict = message_dict if message_dict is not None else pd.DataFrame(columns=["code", "text"])
+        self.message_lookup = message_lookup if message_lookup is not None else pd.DataFrame(columns=["code", "type", "text"])
         self.log_path = log_path
         self.max_items = max_items
         self.log_folders = {
@@ -519,14 +602,14 @@ class Logger:
 
     def _lookup_entry(self, code):
         """Look up message text and type from the message dictionary by code."""
-        if self.message_dict.empty:
+        if self.message_lookup.empty:
             return "", ""
-        match = self.message_dict.loc[self.message_dict["code"] == str(code)]
+        match = self.message_lookup.loc[self.message_lookup["code"] == str(code)]
         if match.empty:
             return "", ""
         row = match.iloc[0]
         text = str(row.get("text", ""))
-        type_val = str(row.get("type", "")) if "type" in self.message_dict.columns else ""
+        type_val = str(row.get("type", "")) if "type" in self.message_lookup.columns else ""
         return text, type_val
 
     def _normalize_data(self, data):
@@ -617,75 +700,73 @@ def save(data, path, format="json", **kwargs):
     return None
 
 
+def create_logger(settings):
+    """Create logger instance using configured paths, verbosity, and message dictionaries."""
+    
+    message_lookup = load_message_lookup([settings.get('messages_dir')])
+
+    logger_dict = {
+        "log_path": None,
+        "start_time": settings.get("start_time", dt.datetime.utcnow()),
+        "max_items": settings.get("max_items", None),
+        "verbose": settings.get("verbose", False),
+        "log_types": settings.get("types", None),
+        "type_colors": settings.get("colors", None),
+        "message_lookup": message_lookup,
+    }
+
+    if isinstance(settings.get('start_time'), str):
+        try:
+            logger_dict["start_time"] = dt.datetime.strptime(settings.get('start_time'), "%Y-%m-%dT%H:%M:%S")
+        except Exception:
+            logger_dict["start_time"] = dt.datetime.utcnow()
+
+    if settings.get("path", None) is not None:
+        log_path = settings.get("path")
+        os.makedirs(log_path, exist_ok=True)
+        log_path = "/".join([
+            log_path,
+            f"{logger_dict.get('start_time').strftime('%Y-%m-%dT%H-%M-%SZ')}.csv",
+        ])
+        logger_dict["log_path"] = log_path
+    else:
+        logger_dict["log_path"] = None
+
+    logger = Logger(**logger_dict)
+    logger.log(message_code="LOG005", data=logger_dict)
+    return logger
+
 class Main:
     """Main class for running the data loading and label mapping pipeline."""
     
-    def __init__(self, args=[], base_config_path="../config/base.json"):
-        """Run data loading and label mapping pipeline using CLI-style overrides."""
+    def __init__(self, config=None, logger=None, results=None):
+        """Run data loading pipeline with optional injected runtime dependencies."""
 
-        self.results = Params()
-                
-        overrides = { a.split("=")[0].strip('-'):tryeval(a.split("=")[1]) for a in args if "=" in a }
-
-        base_config_path = os.path.abspath(base_config_path)
-        self.base_dir = os.path.abspath(os.path.join(os.path.dirname(base_config_path), ".."))
-        self.config = Params(get_config(config_path=base_config_path, overrides=overrides))
-
-        # Apply additional app config files on top of base config.
-        config_dir = os.path.dirname(base_config_path)
-        base_config_name = os.path.basename(base_config_path).lower()
-        for file_name in sorted(os.listdir(config_dir)):
-            file_path = os.path.join(config_dir, file_name)
-            if not os.path.isfile(file_path):
-                continue
-            if not file_name.lower().endswith(".json"):
-                continue
-            if file_name.lower() == base_config_name:
-                continue
-
-            with open(file_path, "r") as f:
-                app_config = json.load(f)
-            if isinstance(app_config, dict):
-                self.config.set(**app_config)      
-
-        self.config = self.config \
-                        .evaluate(common_nodes=["COMMON"]) \
-                        .populate(common_nodes=["COMMON"], wrappers=self.config.COMMON.CONFIG_WRAPPERS)
-                
         
-        self.results.start_time = dt.datetime.strptime(self.config.COMMON.START_TIME, self.config.COMMON.DATETIME_FORMAT) if self.config.COMMON.START_TIME else dt.datetime.utcnow()
-        self.results.run_id = self.config.COMMON.RUN_ID or str(uuid.uuid4().hex[:6]).upper()
-        self.results.signature = f"run_id={self.results.run_id} start_time={self.results.start_time}"
-        self.results.app_title = f"{self.config.app.name} v{self.config.app.version}"
-        self.results.html_template = self.config.COMMON.HTML_TEMPLATE
+        if config is not None:
+            self.base_dir = config.base_dir
+            self.config = config
+            self.results = results if results is not None else self.create_results()
+            logger_settings = self.config.log.get_dict() if hasattr(self.config, "log") else {}
+            logger_settings["start_time"] = self.results.start_time
+            self.logger = logger if logger is not None else create_logger(logger_settings)
 
-        messages_dir = os.path.join(self.base_dir, "docs", "messages")
-        message_dict = load_message_dict([
-            os.path.join(messages_dir, "logger.csv"),
-            os.path.join(messages_dir, "base.csv"),
-            os.path.join(messages_dir, "app.csv"),
-        ])
-        logger_dict = {
-            "log_path": None,
-            "start_time": self.results.start_time,
-            "max_items": getattr(self.config.log, "max_items", None),
-            "verbose": getattr(self.config.log, "verbose", False),
-            "log_types": getattr(self.config.log, "types", None),
-            "type_colors": getattr(self.config.log, "colors", None),
-            "message_dict": message_dict,
-        }
-        
-        if getattr(self.config, "log", None) is not None:
-            if getattr(self.config.log, "path", None) is not None:
-                log_path = self.config.log.path
-                
-                os.makedirs(log_path, exist_ok=True)
-                self.results.log_path = '/'.join([log_path, f"{self.results.start_time.strftime('%Y-%m-%dT%H-%M-%SZ')}.csv"])
-                logger_dict["log_path"] = self.results.log_path
-            else:
-                self.results.log_path = None
+        else:
+            self.base_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(base_config_path)), ".."))
+            self.config = config if isinstance(config, Params) else Params(config)
+            self.results = results if results is not None else Params()
+            if not hasattr(self.results, "start_time"):
+                self.results.start_time = dt.datetime.utcnow()
+            if not hasattr(self.results, "run_id"):
+                self.results.run_id = self.config.COMMON.RUN_ID or str(uuid.uuid4().hex[:6]).upper()
+            if not hasattr(self.results, "signature"):
+                self.results.signature = f"run_id={self.results.run_id} start_time={self.results.start_time}"
+            if not hasattr(self.results, "app_title"):
+                self.results.app_title = f"{self.config.app.name} v{self.config.app.version}"
+            if not hasattr(self.results, "html_template"):
+                self.results.html_template = self.config.COMMON.HTML_TEMPLATE
+            self.logger = logger if logger is not None else Logger(start_time=self.results.start_time)
 
-        self.logger = Logger(**logger_dict)
         self.logger.log(
             f"{self.__class__.__name__} initialized",
             message_code="BASE001",
@@ -695,9 +776,28 @@ class Main:
 
         self.store_outputs()
 
-    def store_outputs(self):
+    def create_results(self):
+        """Create initialized run metadata derived from current config."""
+        results = Params()
+        results.start_time = (
+            dt.datetime.strptime(self.config.COMMON.START_TIME, self.config.COMMON.DATETIME_FORMAT)
+            if self.config.COMMON.START_TIME
+            else dt.datetime.utcnow()
+        )
+        results.run_id = self.config.COMMON.RUN_ID or str(uuid.uuid4().hex[:6]).upper()
+        results.signature = f"run_id={results.run_id} start_time={results.start_time}"
+        results.app_title = f"{self.config.app.name} v{self.config.app.version}"
+        results.html_template = self.config.COMMON.HTML_TEMPLATE
+        return results
+
+    
+    
+    def store_outputs(self, outputs=[]):
 
         for output_key, output_dict in self.config.output.get_dict().items():
+            if outputs and output_key not in outputs:
+                continue
+
             store = output_dict.get("store", True)
             if not store:
                 continue

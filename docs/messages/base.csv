@@ -3,6 +3,7 @@ BASE001,INFO,App initialized
 BASE002,INFO,Run identifier assigned
 BASE003,INFO,Stored output artifact
 BASE004,INFO,Opened output for browsing
+BASE005,INFO,Measured function runtime
 BASEW05,WARN,Could not open output
 BASE999,GOOD,App completed
 INST001,INFO,Instantiate started

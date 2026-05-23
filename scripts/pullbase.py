@@ -22,7 +22,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from utils.baseutils import Logger, Params, get_config, load_message_dict
+from utils.baseutils import Logger, Params, get_config, load_message_lookup
 
 MANIFESTS_DIR_REL = Path("docs/manifests")
 
@@ -199,11 +199,8 @@ def create_pullbase_logger(local_root: Path, local_app_name: str, timestamp: str
     log_file = log_dir / f"{local_app_name}_{timestamp}.csv"
     template = resolve_template_path(local_root, local_config)
 
-    messages_dir = local_root / "docs" / "messages"
-    message_dict = load_message_dict([
-        messages_dir / "logger.csv",
-        messages_dir / "base.csv",
-    ])
+    messages_dir = os.path.abspath(getattr(local_config.log, "messages_dir", "../docs/messages"))
+    message_lookup = load_message_lookup([messages_dir])
     logger = Logger(
         log_path=str(log_file),
         start_time=dt.datetime.utcnow(),
@@ -211,7 +208,7 @@ def create_pullbase_logger(local_root: Path, local_app_name: str, timestamp: str
         verbose=getattr(local_config.log, "verbose", "INFO"),
         log_types=getattr(local_config.log, "types", None),
         type_colors=getattr(local_config.log, "colors", None),
-        message_dict=message_dict,
+        message_lookup=message_lookup,
     )
     return logger, template
 
@@ -251,9 +248,10 @@ def main() -> int:
             message_code="PULL001",
             data={"source": str(source_root), "local": str(local_root), "hard": args.hard},
         )
-    except Exception:
+    except Exception as exc:
         logger = None
         template = None
+        print(f"Pullbase logging disabled: {exc}")
 
     if not source_root.exists() or not source_root.is_dir():
         if logger:

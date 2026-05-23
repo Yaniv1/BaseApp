@@ -141,6 +141,20 @@ Any output entry with `"open": true` is opened in the default associated
 application (browser for HTML, etc.) immediately after being saved.
 On Windows `os.startfile` is used; on other platforms `webbrowser.open`.
 
+### 7. Runtime tracking decorator
+
+`utils/baseutils.py` now includes a reusable `trackit` decorator used on
+`execute()` in `app/base.py`.
+It tracks execution with `time.perf_counter()` and returns a structured dict:
+
+- `function`
+- `result`
+- `metrics` (currently includes `duration_seconds`, and supports additional
+  metrics later)
+
+The caller (`run()`) is responsible for logging this tracking output via
+message code `BASE005`.
+
 ## Configuration
 
 Primary base config: `config/base.json`
@@ -200,6 +214,9 @@ Behavior:
   `C:/data/BaseApp/instantiations/{date}/{target_app}_{timestamp}.csv` and
   renders a matching HTML file at
   `C:/data/BaseApp/instantiations/{date}/{target_app}_{timestamp}.html`.
+- Instantiate now resolves `log.messages_dir` relative to `config/`, so
+  message code text/type values from `docs/messages/*.csv` are available in
+  logs.
 
 ## Pull Base Updates into an Instantiated App
 
@@ -220,6 +237,8 @@ To add or adjust pull behavior, update manifest files in `docs/manifests`.
   `C:/data/{local_app}/{date}/basepulls/{local_app}_{timestamp}.csv` and
   renders a matching HTML file at
   `C:/data/{local_app}/{date}/basepulls/{local_app}_{timestamp}.html`.
+- If pullbase cannot initialize logging, it now prints an explicit
+  "Pullbase logging disabled: ..." message so the failure reason is visible.
 
 Manifest behavior is key-driven, not filename-driven.
 
@@ -280,6 +299,7 @@ during instantiation so it remains app-owned during future base pulls.
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
 - Changelog: `updates` array in `base.json`, newest entry first.
+- Latest: `26.05.22.15` adds `timeit` runtime logging on `run()`.
 
 ## Agent Guidance
 

@@ -2,7 +2,7 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.05.22.14",
+        "VERSION": "26.05.22.15",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -27,7 +27,9 @@
     },
 
     "log":{
+        "start_time": "{$START_TIME$}",
         "path": "{$OUTPUT_PATH$}/logs",
+        "messages_dir": "../docs/messages",
         "verbose": "INFO",
         "types": {
             "0": "NONE",
@@ -106,6 +108,26 @@
     },
 
     "updates": [
+        {
+            "name": "[BaseApp] Script Message Lookup Paths",
+            "version": "26.05.22.15",
+            "description": "Fixed instantiate and pullbase messages_dir resolution to load message CSVs from config-relative docs/messages so message code text/type lookup works."
+        },
+        {
+            "name": "[BaseApp] Pullbase Logger Init Fallback",
+            "version": "26.05.22.15",
+            "description": "Added explicit console output when pullbase logger initialization fails, preventing silent logging disablement."
+        },
+        {
+            "name": "[BaseApp] Trackit Runtime Orchestration",
+            "version": "26.05.22.15",
+            "description": "Introduced Config runtime loader, renamed decorator to trackit, and updated run() to initialize config/logger then log execute tracking output with function, result, and metrics.duration_seconds."
+        },
+        {
+            "name": "[BaseApp] Run Timeit Decorator",
+            "version": "26.05.22.15",
+            "description": "Added a reusable timeit decorator and applied it to run() so total runtime is logged with message code BASE005."
+        },
         {
             "name": "[BaseApp] Logger Data Column",
             "version": "26.05.22.14",

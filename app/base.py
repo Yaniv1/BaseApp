@@ -17,16 +17,28 @@ from utils.apputils import *
 class App(Main):
     """Concrete application entrypoint."""
 
-    def __init__(self, args=None):
-        super().__init__(args=args or [])
+    def __init__(self, config=None, logger=None, results=None):
+        super().__init__(config=config, logger=logger, results=results)
 
 
-def run(argv=None):
-    """Run the app and return process exit code."""
-    app = App((argv or sys.argv)[1:])
+@trackit
+def execute(app):
+    """Execute app lifecycle and return process exit code."""
     app.close()
-    return 0
+    return app.results
 
+
+def run(args=sys.argv[1:]):
+    """Run the app with explicit config/logger initialization and tracked execution."""
+    config = Config(args=args, base_config_path="../config/base.json").config
+    logger = create_logger(config.log.get_dict() if config.log else {})
+
+    app = App(config=config, logger=logger)
+    tracking = execute(app)
+    data = {'function': tracking.get('function')} | tracking.get('metrics', {})
+    logger.log(message_code="BASE005", data=data)
+    app.store_outputs(outputs=["log_html"])
+    return tracking
 
 if __name__ == "__main__":
     raise SystemExit(run())

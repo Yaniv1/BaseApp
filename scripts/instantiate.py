@@ -15,13 +15,14 @@ import datetime as dt
 import json
 import shutil
 import sys
+import os
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.append(str(PROJECT_ROOT))
 
-from utils.baseutils import Logger, Params, get_config, load_message_dict
+from utils.baseutils import Logger, Params, get_config, load_message_lookup
 
 
 MANIFESTS_DIR_REL = Path("docs/manifests")
@@ -155,11 +156,8 @@ def create_instantiate_logger(source_root: Path, target_app: str, timestamp: str
     log_file = log_dir / f"{target_app}_{timestamp}.csv"
     template = resolve_template_path(source_root, config)
 
-    messages_dir = source_root / "docs" / "messages"
-    message_dict = load_message_dict([
-        messages_dir / "logger.csv",
-        messages_dir / "base.csv",
-    ])
+    messages_dir = os.path.abspath(getattr(config.log, "messages_dir", "../docs/messages"))
+    message_lookup = load_message_lookup([messages_dir])
     logger = Logger(
         log_path=str(log_file),
         start_time=dt.datetime.utcnow(),
@@ -167,7 +165,7 @@ def create_instantiate_logger(source_root: Path, target_app: str, timestamp: str
         verbose=getattr(config.log, "verbose", "INFO"),
         log_types=getattr(config.log, "types", None),
         type_colors=getattr(config.log, "colors", None),
-        message_dict=message_dict,
+        message_lookup=message_lookup,
     )
     return logger, template
 
