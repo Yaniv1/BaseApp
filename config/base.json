@@ -2,7 +2,7 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.05.22.15",
+        "VERSION": "26.05.22.16",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -48,11 +48,13 @@
     },
 
     
-
     "input": {
-        "path": "input",
-        "version": null,
-        "format": "csv"
+        "messages": {
+            "load": true,
+            "path": "../docs/messages",
+            "target": "messages",
+            "format": "csv"
+        }
     },
 
     
@@ -108,6 +110,11 @@
     },
 
     "updates": [
+        {
+            "name": "[BaseApp] Generic Input Data Loader",
+            "version": "26.05.22.16",
+            "description": "Added load_data flow to process all config.input entries where load=true, storing each dataset under results.{target} with file and folder path support."
+        },
         {
             "name": "[BaseApp] Script Message Lookup Paths",
             "version": "26.05.22.15",

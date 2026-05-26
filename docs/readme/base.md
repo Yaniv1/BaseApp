@@ -155,6 +155,17 @@ It tracks execution with `time.perf_counter()` and returns a structured dict:
 The caller (`run()`) is responsible for logging this tracking output via
 message code `BASE005`.
 
+### 8. Generic input loading (`config.input`)
+
+`Main.load_data()` iterates every node under `config.input`.
+
+- If `load` is `true`, the node is loaded.
+- Loaded data is stored under `results` using the node's `target` value.
+- If `path` is a file, that file is loaded.
+- If `path` is a folder, all files in the folder tree are loaded recursively.
+- Relative and absolute paths are supported; paths are normalized to absolute
+  paths before load.
+
 ## Configuration
 
 Primary base config: `config/base.json`
@@ -164,7 +175,7 @@ Top-level nodes:
 - `COMMON` — source of truth for all shared values; drives evaluate + populate
 - `app` — name, version, dirs
 - `log` — path, verbose, types, colors, max_items
-- `input` — path, version, format
+- `input` — load, path, target, format
 - `output` — declarative output entries (see above)
 - `updates` — changelog (newest first)
 
@@ -299,7 +310,8 @@ during instantiation so it remains app-owned during future base pulls.
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
 - Changelog: `updates` array in `base.json`, newest entry first.
-- Latest: `26.05.22.15` adds `timeit` runtime logging on `run()`.
+- Latest: `26.05.22.16` adds generic `config.input` loading into
+  `results.{target}` with folder recursion and absolute path resolution.
 
 ## Agent Guidance
 

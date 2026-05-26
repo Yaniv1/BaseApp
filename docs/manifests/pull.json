@@ -19,6 +19,9 @@
             "source": "docs/instructions/base.md"
         },        
         {
+            "source": "docs/instructions/app.md"
+        }, 
+        {
             "source": "docs/readme/base.md"
         },
         {

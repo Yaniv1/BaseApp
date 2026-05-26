@@ -12,7 +12,7 @@ import re
 import webbrowser
 import time
 from functools import wraps
-
+import concurrent.futures
 
 def trackit(func):
     """Track function execution and return result with extensible metrics."""
@@ -736,6 +736,100 @@ def create_logger(settings):
     logger.log(message_code="LOG005", data=logger_dict)
     return logger
 
+
+class DataLoader:
+    """Example data loader class that can be extended for specific datasets."""
+    def __init__(self, source, logger, data={}):
+        self.source = Params(source)
+        self.logger = logger
+        self.data = data
+
+        resolved_format = str(self.source.format).lower().strip()
+        if not resolved_format:
+            resolved_format = os.path.splitext(str(self.source.path))[1].lower().lstrip(".")
+        self.format = resolved_format
+
+        path_value = getattr(self.source, "path", None)
+        
+        path_str = str(path_value)
+
+        if os.path.isabs(path_str):
+            pass
+        else:
+            path_str = os.path.abspath(path_str)
+        self.path = path_str
+
+        if os.path.isfile(path_str):
+            self.files = [path_str]
+        elif os.path.isdir(path_str):
+            self.files = [os.path.join(f, i) for f, g, h in sorted(os.walk(path_str)) for i in h if os.path.isfile(os.path.join(f, i)) and i.lower().endswith(self.format)]
+        else:
+            self.files = []
+        
+        if self.logger:
+            self.logger.log(
+                message_code="BASE009",
+                data={"source": self.source.get_dict(), "path": self.path, "format": self.format, "file_count": len(self.files)},
+            )
+
+    def _load_file(self, file_path):
+        """Load a single file based on the resolved format, returning the appropriate data structure."""       
+
+        data = None
+        try:
+            if self.format == "csv":
+                data = pd.read_csv(file_path)
+            elif self.format == "json":
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            elif self.format in {"txt", "text", "md", "log"}:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = f.read()
+
+
+        except Exception as e:
+            if self.logger:
+                self.logger.log(
+                    message_code="BASEW10",
+                    message_type="WARN",
+                    data={"file_path": file_path, "error": str(e)},
+                )
+
+        return data
+
+    def load(self):
+        """Load all files under the resolved path and return a dictionary of results."""
+        
+        loaded = 0
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+
+            
+            futures = {executor.submit(self._load_file, file_path): file_path for file_path in self.files if (relative := os.path.relpath(file_path, self.path).replace("\\", "/")) not in self.data}
+            for future in concurrent.futures.as_completed(futures):
+                file_path = futures[future]
+                relative = os.path.relpath(file_path, self.path).replace("\\", "/")
+                self.data[relative] = future.result()
+                loaded += 1
+                
+                if self.logger:
+                    self.logger.log(
+                        message_code="BASE010",
+                        data={"file_path": file_path, "items": len(self.data[relative]) if hasattr(self.data[relative], "__len__") else None, "loaded%": round(loaded / len(self.files) * 100,2) if self.files else 0},
+                    )
+
+            rows = sum(len(v) if hasattr(v, "__len__") else 0 for v in self.data.values())
+
+        if self.logger:
+            self.logger.log(
+                message_code="BASE012",
+                data={"source": self.path, "loaded": loaded, "items": len(self.data) if hasattr(self.data, "__len__") else None, "rows": rows},
+            )
+        
+        return self.data
+   
+
+
 class Main:
     """Main class for running the data loading and label mapping pipeline."""
     
@@ -774,8 +868,6 @@ class Main:
         )
         self.logger.log(message_code="BASE002", data={"run_id": self.results.run_id})
 
-        self.store_outputs()
-
     def create_results(self):
         """Create initialized run metadata derived from current config."""
         results = Params()
@@ -790,7 +882,27 @@ class Main:
         results.html_template = self.config.COMMON.HTML_TEMPLATE
         return results
 
-    
+    def load_data(self):
+        """Load all enabled config.input entries and store results under configured targets."""
+        input_node = getattr(self.config, "input", None)
+        if input_node is None:
+            return
+
+        loaded_targets = []
+        for input_key, input_settings in input_node.get_dict().items():
+            if not isinstance(input_settings, dict):
+                continue
+
+            if not bool(input_settings.get("load", False)):
+                continue
+
+            target_name = input_settings.get("target", input_key)
+
+            setattr(self.results, target_name, 
+                    DataLoader(source=input_settings, 
+                               logger=self.logger, 
+                               data=getattr(self.results, target_name, {})).load())
+       
     
     def store_outputs(self, outputs=[]):
 

@@ -24,6 +24,7 @@ class App(Main):
 @trackit
 def execute(app):
     """Execute app lifecycle and return process exit code."""
+    app.load_data()
     app.close()
     return app.results
 
