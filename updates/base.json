@@ -1,0 +1,109 @@
+{
+    "updates": [
+        {
+            "name": "[BaseApp] Unified Input File Map Loading",
+            "version": "26.05.26.01",
+            "description": "Refactored DataLoader to build a key:path map first and run one concurrent loading flow for single files and folders alike, using basenames for direct file inputs and relative paths for folder inputs."
+        },
+        {
+            "name": "[BaseApp] Single File Input Basename Keys",
+            "version": "26.05.26.01",
+            "description": "Updated single-file config.input loading to keep results keyed by file basename, for example updates.base.json, instead of using the dummy '.' key or returning the payload directly."
+        },
+        {
+            "name": "[BaseApp] Single File Input Shape Fix",
+            "version": "26.05.26.01",
+            "description": "Kept updates/base.json as a config.input source and removed the dummy '.' key from single-file loads by keying file results explicitly instead."
+        },
+        {
+            "name": "[BaseApp] Recursive JSON Field Materialization",
+            "version": "26.05.26.01",
+            "description": "Updated output serialization to recursively parse JSON-like string fields (including DataFrame rows) into native objects and added parse diagnostics (BASE011/BASEW11)."
+        },
+        {
+            "name": "[BaseApp] Message Codes And Project-Dir Pathing",
+            "version": "26.05.26.01",
+            "description": "Switched default message dictionary paths to docs/message_codes and aligned relative path resolution to the app/project directory for logger message lookup and config.input DataLoader sources."
+        },
+        {
+            "name": "[BaseApp] Generic Input Data Loader",
+            "version": "26.05.22.16",
+            "description": "Added load_data flow to process all config.input entries where load=true, storing each dataset under results.{target} with file and folder path support."
+        },
+        {
+            "name": "[BaseApp] Script Message Lookup Paths",
+            "version": "26.05.22.15",
+            "description": "Fixed instantiate and pullbase messages_dir resolution to load message CSVs from config-relative docs/messages so message code text/type lookup works."
+        },
+        {
+            "name": "[BaseApp] Pullbase Logger Init Fallback",
+            "version": "26.05.22.15",
+            "description": "Added explicit console output when pullbase logger initialization fails, preventing silent logging disablement."
+        },
+        {
+            "name": "[BaseApp] Trackit Runtime Orchestration",
+            "version": "26.05.22.15",
+            "description": "Introduced Config runtime loader, renamed decorator to trackit, and updated run() to initialize config/logger then log execute tracking output with function, result, and metrics.duration_seconds."
+        },
+        {
+            "name": "[BaseApp] Run Timeit Decorator",
+            "version": "26.05.22.15",
+            "description": "Added a reusable timeit decorator and applied it to run() so total runtime is logged with message code BASE005."
+        },
+        {
+            "name": "[BaseApp] Logger Data Column",
+            "version": "26.05.22.14",
+            "description": "Updated Logger.log signature to use data payload and store caller key:value metadata in a single CSV data column instead of dynamic parsed columns."
+        },
+        {
+            "name": "[BaseApp] Logger Dynamic Fields",
+            "version": "26.05.22.13",
+            "description": "Added Logger.log fields support so caller-supplied key:value data is mapped to dynamic CSV columns and populated only on relevant rows."
+        },
+        {
+            "name": "[BaseApp] Pullbase Local App Logs",
+            "version": "26.05.22.12",
+            "description": "Updated pullbase logging to use local app identity and output path C:/data/{local_app}/{date}/basepulls/{local_app}_{timestamp}.(csv|html)."
+        },
+        {
+            "name": "[BaseApp] Instantiate Base Config Only",
+            "version": "26.05.22.11",
+            "description": "Updated instantiate runtime config loading to use only base.json (no app.json override) for path and logging resolution."
+        },
+        {
+            "name": "[BaseApp] Instantiate Fixed Log Path",
+            "version": "26.05.22.10",
+            "description": "Updated instantiate logging output to C:/data/BaseApp/instantiations/{date}/{target_app}_{timestamp}.csv and matching HTML path."
+        },
+        {
+            "name": "[BaseApp] Instantiate Pullbase Logging",
+            "version": "26.05.22.09",
+            "description": "Added CSV+HTML logging to instantiate (base logs_path/instantiations, {target_app}_{timestamp}) and pullbase (app logs_path/basepulls, {base_app}_{timestamp})."
+        },
+        {
+            "name": "[BaseApp] Manifest Folder Source Sync",
+            "version": "26.05.22.08",
+            "description": "Added support for manifest entries whose source is a folder; instantiate and pullbase now sync all files recursively with optional target folder mapping."
+        },
+        {
+            "name": "[BaseApp] Key Driven Manifest Folder",
+            "version": "26.05.22.07",
+            "description": "Updated instantiate and pullbase to consume all JSON files from docs/manifests and apply behavior by key: instantiate uses once+pull, pullbase uses pull."
+        },
+        {
+            "name": "[BaseApp] Manifest Source Target Schema",
+            "version": "26.05.22.06",
+            "description": "Updated instantiate and pullbase manifest parsing to use section lists of items with required source and optional target defaulting to source."
+        },
+        {
+            "name": "[BaseApp] Scripts And Manifest Dict",
+            "version": "26.05.22.05",
+            "description": "Moved instantiate and pullbase into scripts/ and updated manifests to dict format with pull and once sections under docs/manifests."
+        },
+        {
+            "name": "[BaseApp] Manifest Location Refactor",
+            "version": "26.05.22.04",
+            "description": "Moved instantiate and pull manifests to docs/manifests (pull.json and once.json) and updated instantiate.py and pullbase.py to consume the new paths."
+        }
+    ]
+}
