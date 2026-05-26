@@ -7,6 +7,9 @@
             "source": "config/base.json"
         },
         {
+            "source": "updates/base.json"
+        },
+        {
             "source": "docs/manifests"
         },
         {

@@ -19,6 +19,8 @@ BaseApp/
     base.json
     app.json
     requirements.txt
+  updates/
+    base.json
   docs/
     message_codes/
       base.csv
@@ -163,16 +165,36 @@ message code `BASE005`.
 
 `Main.load_data()` iterates every node under `config.input`.
 
+BaseApp defaults include `message_codes` and `updates` as input sources.
+
 - If `load` is `true`, the node is loaded.
 - Loaded data is stored under `results` using the node's `target` value.
-- If `path` is a file, that file is loaded.
+- Input loading builds a file-key map first, then uses the same concurrent load
+  path for any number of files.
+- If `path` is a file, its basename is used as the key.
 - If `path` is a folder, all files in the folder tree are loaded recursively.
+- Folder loads are keyed by relative file path under the target.
 - Relative and absolute paths are supported.
 - Relative paths are resolved from the app/project root directory.
+
+### 9. Output JSON materialization and parse diagnostics
+
+`store_outputs()` now converts nested output structures into JSON-safe primitives
+and materializes JSON-like string fields into native objects.
+
+- Applies recursively across dict/list/object values.
+- Applies to DataFrame rows before serialization.
+- Converts stringified JSON objects/arrays (for example `ExtendedProps`,
+  `ResourceProps`, `Tags`) into dict/list values.
+- Logs parse summary with `BASE011` (attempted/parsed/failed counts).
+- Logs parse failures with `BASEW11` including error and value sample.
 
 ## Configuration
 
 Primary base config: `config/base.json`
+
+BaseApp changelog entries are stored in `updates/base.json` and merged into the
+runtime config as `updates`.
 
 Top-level nodes:
 
@@ -181,7 +203,7 @@ Top-level nodes:
 - `log` — path, verbose, types, colors, max_items
 - `input` — load, path, target, format
 - `output` — declarative output entries (see above)
-- `updates` — changelog (newest first)
+- `updates` — changelog loaded from `updates/base.json` (newest first)
 
 ### Layering rule
 
@@ -272,6 +294,7 @@ The following are current `pull` sources:
 
 - `app/base.py`
 - `config/base.json`
+- `updates/base.json`
 - `docs/manifests/pull.json`
 - `scripts/pullbase.py`
 - `utils/baseutils.py`
@@ -313,9 +336,11 @@ during instantiation so it remains app-owned during future base pulls.
 
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
-- Changelog: `updates` array in `base.json`, newest entry first.
-- Latest: `26.05.26.01` aligns message dictionary and input path resolution to
-  the app/project root and standardizes defaults on `docs/message_codes`.
+- Changelog: `updates` array in `updates/base.json`, newest entry first.
+- Latest: `26.05.26.01` includes project-root pathing for
+  `docs/message_codes`, generic `config.input` loading, and recursive
+  JSON-like field materialization in output serialization with parse
+  diagnostics (`BASE011`/`BASEW11`).
 
 ## Agent Guidance
 

@@ -7,8 +7,10 @@ BASE005,INFO,Measured function runtime
 BASEW05,WARN,Could not open output
 BASE009,INFO,Resolved input files
 BASE010,INFO,Loaded input file
+BASE011,INFO,JSON text parse summary
 BASE012,INFO,File loading completed
 BASEW10,WARN,Failed to load input file
+BASEW11,WARN,Failed to parse JSON text field
 BASE999,GOOD,App completed
 INST001,INFO,Instantiate started
 INST002,INFO,Loaded manifest entries

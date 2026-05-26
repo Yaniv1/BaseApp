@@ -28,17 +28,19 @@ class DataLoader:
         self.path = path_str
 
         if os.path.isfile(path_str):
-            self.files = [path_str]
+            self.file_map = {os.path.basename(path_str): path_str}
         elif os.path.isdir(path_str):
-            self.files = [
-                os.path.join(root, name)
+            self.file_map = {
+                os.path.relpath(os.path.join(root, name), self.path).replace("\\", "/"): os.path.join(root, name)
                 for root, _, names in sorted(os.walk(path_str))
                 for name in names
                 if os.path.isfile(os.path.join(root, name))
                 and (not self.format or name.lower().endswith(self.format))
-            ]
+            }
         else:
-            self.files = []
+            self.file_map = {}
+
+        self.files = list(self.file_map.values())
 
         if self.logger:
             self.logger.log(
@@ -80,14 +82,14 @@ class DataLoader:
         loaded = 0
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = {
-                executor.submit(self._load_file, file_path): file_path
-                for file_path in self.files
-                if (relative := os.path.relpath(file_path, self.path).replace("\\", "/")) not in self.data
+                executor.submit(self._load_file, file_path): key
+                for key, file_path in self.file_map.items()
+                if key not in self.data
             }
             for future in concurrent.futures.as_completed(futures):
-                file_path = futures[future]
-                relative = os.path.relpath(file_path, self.path).replace("\\", "/")
-                self.data[relative] = future.result()
+                key = futures[future]
+                file_path = self.file_map[key]
+                self.data[key] = future.result()
                 loaded += 1
 
                 if self.logger:
@@ -95,7 +97,7 @@ class DataLoader:
                         message_code="BASE010",
                         data={
                             "file_path": file_path,
-                            "items": len(self.data[relative]) if hasattr(self.data[relative], "__len__") else None,
+                            "items": len(self.data[key]) if hasattr(self.data[key], "__len__") else None,
                             "loaded%": round(loaded / len(self.files) * 100, 2) if self.files else 0,
                         },
                     )

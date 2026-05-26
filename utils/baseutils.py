@@ -12,6 +12,7 @@ import re
 import webbrowser
 import time
 from functools import wraps
+import math
 
 try:
     from .datautils import DataLoader
@@ -269,6 +270,7 @@ class Config:
                 app_config = json.load(f)
             if isinstance(app_config, dict):
                 self.config.set(**app_config)
+       
 
         self.config = self.config \
                         .evaluate(common_nodes=["COMMON"]) \
@@ -680,10 +682,48 @@ class Logger:
 def save(data, path, format="json", **kwargs):
     """Save data to a file in the specified format, supporting json, csv, and html."""
 
+    def to_json_compatible(value):
+        """Convert NaN-like and non-primitive values into JSON-compatible equivalents."""
+        if isinstance(value, Params):
+            value = value.get_dict()
+
+        if isinstance(value, dict):
+            return {k: to_json_compatible(v) for k, v in value.items()}
+
+        if isinstance(value, (list, tuple)):
+            return [to_json_compatible(v) for v in value]
+
+        if isinstance(value, pd.DataFrame):
+            return to_json_compatible(value.to_dict(orient="records"))
+
+        if isinstance(value, np.ndarray):
+            return [to_json_compatible(v) for v in value.tolist()]
+
+        if value is pd.NA:
+            return None
+
+        if isinstance(value, np.floating):
+            numeric = float(value)
+            if math.isnan(numeric) or math.isinf(numeric):
+                return None
+            return numeric
+
+        if isinstance(value, np.integer):
+            return int(value)
+
+        if isinstance(value, np.bool_):
+            return bool(value)
+
+        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+            return None
+
+        return value
+
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if format == "json":
-        kwargs1 = {"indent": 4, "default": str}
+        kwargs1 = {"indent": 4, "default": str, "allow_nan": False}
         kwargs1.update(kwargs)
+        data = to_json_compatible(data)
         with open(path, "w") as f:
             json.dump(data, f, **kwargs1)
     elif format == "csv":
@@ -752,7 +792,21 @@ def create_logger(settings):
     logger.log(message_code="LOG005", data=logger_dict)
     return logger
 
-   
+
+def add_to_dict(DICT={}, **params):
+    """Convert keyword arguments into a plain dictionary."""
+    DICT.update(params)
+    return DICT
+
+def try_except(default=None, logger=None, func=print, args=[], kwargs={}):
+    try:
+        return func(*args, **kwargs)
+    except Exception as e:
+        if logger:
+            logger.log(message_code="ERR001", data={"error": str(e)})
+        return default
+
+
 
 
 class Main:
@@ -829,6 +883,51 @@ class Main:
                                 logger=self.logger, 
                                 data=getattr(self.results, target_name, {}),
                                 base_dir=self.base_dir).load())
+
+    def _to_raw_data(self, value, max_items=None):
+        """Convert Params/objects into plain dict/list primitives with optional item limits."""
+
+        if isinstance(value, str):
+            v = value.strip()
+            if (v.startswith("{") and v.endswith("}")) or (v.startswith("[") and v.endswith("]")):
+                self._json_parse_stats["attempted"] += 1
+                try:
+                    parsed = json.loads(v)
+                    self._json_parse_stats["parsed"] += 1
+                    return self._to_raw_data(parsed, max_items=max_items)
+                except Exception as ex:
+                    self._json_parse_stats["failed"] += 1
+                    if self.logger:
+                        self.logger.log(
+                            message_code="BASEW11",
+                            message_type="WARN",
+                            data={"error": str(ex), "sample": v[:200]},
+                        )
+                    return value
+            return value
+
+        if isinstance(value, Params):
+            value = value.get_dict()
+
+        if isinstance(value, pd.DataFrame):
+            rows = value.to_dict(orient="records")
+            rows = rows if max_items is None else rows[:max_items]
+            return [self._to_raw_data(row, max_items=max_items) for row in rows]
+
+        if isinstance(value, dict):
+            items = value.items() if max_items is None else list(value.items())[:max_items]
+            return {k: self._to_raw_data(v, max_items=max_items) for k, v in items}
+
+        if isinstance(value, (list, tuple)):
+            items = value if max_items is None else value[:max_items]
+            return [self._to_raw_data(v, max_items=max_items) for v in items]
+
+        if hasattr(value, "__dict__") and not isinstance(value, (str, int, float, bool, bytes)):
+            attrs = vars(value)
+            items = attrs.items() if max_items is None else list(attrs.items())[:max_items]
+            return {k: self._to_raw_data(v, max_items=max_items) for k, v in items}
+
+        return value
        
     
     def store_outputs(self, outputs=[]):
@@ -842,6 +941,14 @@ class Main:
                 continue
 
             data = getattr(self, output_dict.get("source", output_key), None)
+            self._json_parse_stats = {"attempted": 0, "parsed": 0, "failed": 0}
+            data = self._to_raw_data(data, max_items=output_dict.get("max_items", None))
+
+            if self._json_parse_stats["attempted"] > 0:
+                self.logger.log(
+                    message_code="BASE011",
+                    data={"output_key": output_key} | self._json_parse_stats,
+                )
 
             if output_dict.get('format', '').lower() == 'html':
                 data = HtmlDoc(data=data, 
