@@ -4,14 +4,16 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.05.22.16
-- App template version: A26.05.22.03
+- Base version: 26.05.26.01
+- App template version: A26.05.26.01
 
-## Highlights (26.05.22.16)
+## Highlights (26.05.26.01)
 
-- Added generic input loading flow to process every configured node under `config.input` where `load=true`.
-- Loaded input data is stored in results using each node's `target` value.
-- Input `path` supports both single files and folders (folder loads all files recursively).
+- Added unified input loading for file and folder sources under `config.input`.
+- Moved BaseApp changelog entries into `updates/base.json` while keeping them loadable as input data.
+- Added `config.process` support with `DataFrameConverter` for sequential result transformations.
+- Added recursive JSON field materialization for stored outputs.
+- Improved HTML rendering with item/type columns and content-width nested tables.
 
 ## Core Scripts
 
