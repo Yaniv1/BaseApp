@@ -16,6 +16,9 @@
             "source": "utils/baseutils.py"
         },
         {
+            "source": "utils/datautils.py"
+        },
+        {
             "source": "docs/instructions/base.md"
         },        
         {
@@ -28,10 +31,10 @@
             "source": "docs/templates"
         },
         {
-            "source": "docs/messages/base.csv"
+            "source": "docs/message_codes/base.csv"
         },
         {
-            "source": "docs/messages/logger.csv"
+            "source": "docs/message_codes/logger.csv"
         },
         {
             "source": "config/requirements.txt"

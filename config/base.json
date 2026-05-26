@@ -2,7 +2,7 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.05.22.16",
+        "VERSION": "26.05.26.01",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -29,7 +29,7 @@
     "log":{
         "start_time": "{$START_TIME$}",
         "path": "{$OUTPUT_PATH$}/logs",
-        "messages_dir": "../docs/messages",
+        "messages_dir": "docs/message_codes",
         "verbose": "INFO",
         "types": {
             "0": "NONE",
@@ -49,10 +49,10 @@
 
     
     "input": {
-        "messages": {
+        "message_codes": {
             "load": true,
-            "path": "../docs/messages",
-            "target": "messages",
+            "path": "docs/message_codes",
+            "target": "message_codes",
             "format": "csv"
         }
     },
@@ -110,6 +110,11 @@
     },
 
     "updates": [
+        {
+            "name": "[BaseApp] Message Codes And Project-Dir Pathing",
+            "version": "26.05.26.01",
+            "description": "Switched default message dictionary paths to docs/message_codes and aligned relative path resolution to the app/project directory for logger message lookup and config.input DataLoader sources."
+        },
         {
             "name": "[BaseApp] Generic Input Data Loader",
             "version": "26.05.22.16",

@@ -156,8 +156,11 @@ def create_instantiate_logger(source_root: Path, target_app: str, timestamp: str
     log_file = log_dir / f"{target_app}_{timestamp}.csv"
     template = resolve_template_path(source_root, config)
 
-    messages_dir = os.path.abspath(getattr(config.log, "messages_dir", "../docs/messages"))
-    message_lookup = load_message_lookup([messages_dir])
+    messages_dir_value = getattr(config.log, "messages_dir", "../docs/message_codes")
+    messages_dir_path = Path(str(messages_dir_value))
+    if not messages_dir_path.is_absolute():
+        messages_dir_path = (source_root / messages_dir_path).resolve()
+    message_lookup = load_message_lookup([str(messages_dir_path)])
     logger = Logger(
         log_path=str(log_file),
         start_time=dt.datetime.utcnow(),

@@ -199,8 +199,11 @@ def create_pullbase_logger(local_root: Path, local_app_name: str, timestamp: str
     log_file = log_dir / f"{local_app_name}_{timestamp}.csv"
     template = resolve_template_path(local_root, local_config)
 
-    messages_dir = os.path.abspath(getattr(local_config.log, "messages_dir", "../docs/messages"))
-    message_lookup = load_message_lookup([messages_dir])
+    messages_dir_value = getattr(local_config.log, "messages_dir", "../docs/message_codes")
+    messages_dir_path = Path(str(messages_dir_value))
+    if not messages_dir_path.is_absolute():
+        messages_dir_path = (local_root / messages_dir_path).resolve()
+    message_lookup = load_message_lookup([str(messages_dir_path)])
     logger = Logger(
         log_path=str(log_file),
         start_time=dt.datetime.utcnow(),

@@ -32,7 +32,9 @@ def execute(app):
 def run(args=sys.argv[1:]):
     """Run the app with explicit config/logger initialization and tracked execution."""
     config = Config(args=args, base_config_path="../config/base.json").config
-    logger = create_logger(config.log.get_dict() if config.log else {})
+    logger_settings = config.log.get_dict() if config.log else {}
+    logger_settings["base_dir"] = config.base_dir
+    logger = create_logger(logger_settings)
 
     app = App(config=config, logger=logger)
     tracking = execute(app)

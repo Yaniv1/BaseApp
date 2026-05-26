@@ -16,7 +16,7 @@
             "source": "docs/version/app.txt"
         },
         {
-            "source": "docs/messages/app.csv"
+            "source": "docs/message_codes/app.csv"
         }    
     ]    
     

@@ -1,34 +1,116 @@
 import pandas as pd
 import json
 import os
-import datetime as dt 
-import sys
-import numpy as np
-import importlib
-import re
+import concurrent.futures
 
 
-class DataSet:
-    """Dataset class for loading data from files and directories into a normalized DataFrame."""
-    def __init__(self, input_path, method=pd.read_csv, format=dict):
-        """Load one file or all files under a directory into a path-to-data mapping."""
+class DataLoader:
+    """Load files from a source file/folder using configurable format and optional logging."""
 
-        data = {}
-        if os.path.isdir(input_path):
-            
-            for f,g,h in os.walk(input_path):
-                data.update({os.path.join(f, file).replace('\\','/'): method(os.path.join(f, file)) for file in h })
+    def __init__(self, source, logger=None, data=None, base_dir=None):
+        self.source = source if isinstance(source, dict) else vars(source)
+        self.logger = logger
+        self.data = data if isinstance(data, dict) else {}
+        self.base_dir = str(base_dir) if base_dir else os.getcwd()
 
-        elif os.path.isfile(input_path):
-            data = {input_path: method(input_path)}
-        
-        self.data_dict = data
+        source_path = self.source.get("path", "")
+        source_format = self.source.get("format", "")
 
-        """Convert a path-to-data mapping into a normalized DataFrame."""
-        data_keys = [d.replace('\\','/') for d in data.keys()]
-        prefix = input_path.replace('\\','/')
-        data_df = pd.DataFrame({'path':data_keys, 'data':data.values()})
-        data_df['prefix'] = prefix
-        data_df['suffix'] = data_df['path'].apply(lambda x: x.split(prefix)[-1])
+        resolved_format = str(source_format).lower().strip()
+        if not resolved_format:
+            resolved_format = os.path.splitext(str(source_path))[1].lower().lstrip(".")
+        self.format = resolved_format
 
-        self.data_df = data_df
+        if os.path.isabs(str(source_path)):
+            path_str = os.path.abspath(str(source_path))
+        else:
+            path_str = os.path.abspath(os.path.join(self.base_dir, str(source_path)))
+        self.path = path_str
+
+        if os.path.isfile(path_str):
+            self.files = [path_str]
+        elif os.path.isdir(path_str):
+            self.files = [
+                os.path.join(root, name)
+                for root, _, names in sorted(os.walk(path_str))
+                for name in names
+                if os.path.isfile(os.path.join(root, name))
+                and (not self.format or name.lower().endswith(self.format))
+            ]
+        else:
+            self.files = []
+
+        if self.logger:
+            self.logger.log(
+                message_code="BASE009",
+                data={
+                    "source": self.source,
+                    "path": self.path,
+                    "format": self.format,
+                    "file_count": len(self.files),
+                },
+            )
+
+    def _load_file(self, file_path):
+        """Load a single file by configured format."""
+        data = None
+        try:
+            if self.format == "csv":
+                data = pd.read_csv(file_path)
+            elif self.format == "json":
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            elif self.format in {"txt", "text", "md", "log"}:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = f.read()
+            else:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = f.read()
+        except Exception as e:
+            if self.logger:
+                self.logger.log(
+                    message_code="BASEW10",
+                    message_type="WARN",
+                    data={"file_path": file_path, "error": str(e)},
+                )
+        return data
+
+    def load(self):
+        """Load configured files and return relative-path keyed results."""
+        loaded = 0
+        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+            futures = {
+                executor.submit(self._load_file, file_path): file_path
+                for file_path in self.files
+                if (relative := os.path.relpath(file_path, self.path).replace("\\", "/")) not in self.data
+            }
+            for future in concurrent.futures.as_completed(futures):
+                file_path = futures[future]
+                relative = os.path.relpath(file_path, self.path).replace("\\", "/")
+                self.data[relative] = future.result()
+                loaded += 1
+
+                if self.logger:
+                    self.logger.log(
+                        message_code="BASE010",
+                        data={
+                            "file_path": file_path,
+                            "items": len(self.data[relative]) if hasattr(self.data[relative], "__len__") else None,
+                            "loaded%": round(loaded / len(self.files) * 100, 2) if self.files else 0,
+                        },
+                    )
+
+            rows = sum(len(v) if hasattr(v, "__len__") else 0 for v in self.data.values())
+
+        if self.logger:
+            self.logger.log(
+                message_code="BASE012",
+                data={
+                    "source": self.path,
+                    "loaded": loaded,
+                    "items": len(self.data) if hasattr(self.data, "__len__") else None,
+                    "rows": rows,
+                },
+            )
+
+        return self.data

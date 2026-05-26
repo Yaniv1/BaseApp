@@ -12,7 +12,15 @@ import re
 import webbrowser
 import time
 from functools import wraps
-import concurrent.futures
+
+try:
+    from .datautils import DataLoader
+except ImportError:
+    try:
+        from utils.datautils import DataLoader
+    except ImportError:
+        from datautils import DataLoader
+
 
 def trackit(func):
     """Track function execution and return result with extensible metrics."""
@@ -367,7 +375,9 @@ class HtmlDoc:
 
 def load_message_lookup(paths):
     """Load and concatenate message dictionary CSV files, deduplicating by code (first wins)."""
+    
     files = [os.path.abspath(str(path)) for path in paths if os.path.isfile(os.path.abspath(str(path))) and path.lower().endswith(".csv")]
+    
     for path in paths:
         if os.path.isdir(path):
             for file_name in sorted(os.listdir(path)):
@@ -702,8 +712,14 @@ def save(data, path, format="json", **kwargs):
 
 def create_logger(settings):
     """Create logger instance using configured paths, verbosity, and message dictionaries."""
-    
-    message_lookup = load_message_lookup([settings.get('messages_dir')])
+
+    messages_dir = settings.get("messages_dir")
+    if messages_dir and not os.path.isabs(str(messages_dir)):
+        base_dir = settings.get("base_dir")
+        anchor_dir = base_dir or os.getcwd()
+        messages_dir = os.path.abspath(os.path.join(str(anchor_dir), str(messages_dir)))
+
+    message_lookup = load_message_lookup([messages_dir] if messages_dir else [])
 
     logger_dict = {
         "log_path": None,
@@ -736,97 +752,6 @@ def create_logger(settings):
     logger.log(message_code="LOG005", data=logger_dict)
     return logger
 
-
-class DataLoader:
-    """Example data loader class that can be extended for specific datasets."""
-    def __init__(self, source, logger, data={}):
-        self.source = Params(source)
-        self.logger = logger
-        self.data = data
-
-        resolved_format = str(self.source.format).lower().strip()
-        if not resolved_format:
-            resolved_format = os.path.splitext(str(self.source.path))[1].lower().lstrip(".")
-        self.format = resolved_format
-
-        path_value = getattr(self.source, "path", None)
-        
-        path_str = str(path_value)
-
-        if os.path.isabs(path_str):
-            pass
-        else:
-            path_str = os.path.abspath(path_str)
-        self.path = path_str
-
-        if os.path.isfile(path_str):
-            self.files = [path_str]
-        elif os.path.isdir(path_str):
-            self.files = [os.path.join(f, i) for f, g, h in sorted(os.walk(path_str)) for i in h if os.path.isfile(os.path.join(f, i)) and i.lower().endswith(self.format)]
-        else:
-            self.files = []
-        
-        if self.logger:
-            self.logger.log(
-                message_code="BASE009",
-                data={"source": self.source.get_dict(), "path": self.path, "format": self.format, "file_count": len(self.files)},
-            )
-
-    def _load_file(self, file_path):
-        """Load a single file based on the resolved format, returning the appropriate data structure."""       
-
-        data = None
-        try:
-            if self.format == "csv":
-                data = pd.read_csv(file_path)
-            elif self.format == "json":
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-            elif self.format in {"txt", "text", "md", "log"}:
-                with open(file_path, "r", encoding="utf-8") as f:
-                    data = f.read()
-
-
-        except Exception as e:
-            if self.logger:
-                self.logger.log(
-                    message_code="BASEW10",
-                    message_type="WARN",
-                    data={"file_path": file_path, "error": str(e)},
-                )
-
-        return data
-
-    def load(self):
-        """Load all files under the resolved path and return a dictionary of results."""
-        
-        loaded = 0
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
-
-            
-            futures = {executor.submit(self._load_file, file_path): file_path for file_path in self.files if (relative := os.path.relpath(file_path, self.path).replace("\\", "/")) not in self.data}
-            for future in concurrent.futures.as_completed(futures):
-                file_path = futures[future]
-                relative = os.path.relpath(file_path, self.path).replace("\\", "/")
-                self.data[relative] = future.result()
-                loaded += 1
-                
-                if self.logger:
-                    self.logger.log(
-                        message_code="BASE010",
-                        data={"file_path": file_path, "items": len(self.data[relative]) if hasattr(self.data[relative], "__len__") else None, "loaded%": round(loaded / len(self.files) * 100,2) if self.files else 0},
-                    )
-
-            rows = sum(len(v) if hasattr(v, "__len__") else 0 for v in self.data.values())
-
-        if self.logger:
-            self.logger.log(
-                message_code="BASE012",
-                data={"source": self.path, "loaded": loaded, "items": len(self.data) if hasattr(self.data, "__len__") else None, "rows": rows},
-            )
-        
-        return self.data
    
 
 
@@ -842,11 +767,12 @@ class Main:
             self.config = config
             self.results = results if results is not None else self.create_results()
             logger_settings = self.config.log.get_dict() if hasattr(self.config, "log") else {}
+            logger_settings["base_dir"] = self.base_dir
             logger_settings["start_time"] = self.results.start_time
             self.logger = logger if logger is not None else create_logger(logger_settings)
 
         else:
-            self.base_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(base_config_path)), ".."))
+            self.base_dir = os.getcwd()
             self.config = config if isinstance(config, Params) else Params(config)
             self.results = results if results is not None else Params()
             if not hasattr(self.results, "start_time"):
@@ -899,9 +825,10 @@ class Main:
             target_name = input_settings.get("target", input_key)
 
             setattr(self.results, target_name, 
-                    DataLoader(source=input_settings, 
-                               logger=self.logger, 
-                               data=getattr(self.results, target_name, {})).load())
+                    DataLoader( source=input_settings, 
+                                logger=self.logger, 
+                                data=getattr(self.results, target_name, {}),
+                                base_dir=self.base_dir).load())
        
     
     def store_outputs(self, outputs=[]):

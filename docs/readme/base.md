@@ -20,6 +20,10 @@ BaseApp/
     app.json
     requirements.txt
   docs/
+    message_codes/
+      base.csv
+      app.csv
+      logger.csv
     manifests/
       pull.json
       once.json
@@ -163,8 +167,8 @@ message code `BASE005`.
 - Loaded data is stored under `results` using the node's `target` value.
 - If `path` is a file, that file is loaded.
 - If `path` is a folder, all files in the folder tree are loaded recursively.
-- Relative and absolute paths are supported; paths are normalized to absolute
-  paths before load.
+- Relative and absolute paths are supported.
+- Relative paths are resolved from the app/project root directory.
 
 ## Configuration
 
@@ -225,9 +229,9 @@ Behavior:
   `C:/data/BaseApp/instantiations/{date}/{target_app}_{timestamp}.csv` and
   renders a matching HTML file at
   `C:/data/BaseApp/instantiations/{date}/{target_app}_{timestamp}.html`.
-- Instantiate now resolves `log.messages_dir` relative to `config/`, so
-  message code text/type values from `docs/messages/*.csv` are available in
-  logs.
+- Instantiate resolves `log.messages_dir` from the app/project root, so
+  message code text/type values from `docs/message_codes/*.csv` are available
+  in logs.
 
 ## Pull Base Updates into an Instantiated App
 
@@ -310,8 +314,8 @@ during instantiation so it remains app-owned during future base pulls.
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
 - Changelog: `updates` array in `base.json`, newest entry first.
-- Latest: `26.05.22.16` adds generic `config.input` loading into
-  `results.{target}` with folder recursion and absolute path resolution.
+- Latest: `26.05.26.01` aligns message dictionary and input path resolution to
+  the app/project root and standardizes defaults on `docs/message_codes`.
 
 ## Agent Guidance
 
