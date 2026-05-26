@@ -1,7 +1,107 @@
 import pandas as pd
+import numpy as np
 import json
 import os
 import concurrent.futures
+import datetime as dt
+from typing import Any, Dict, List, Optional
+
+
+class DataFrameConverter:
+    """
+    Securely applies transformation rules to a pandas DataFrame.
+
+    Supports:
+        - Column-level transformations
+        - Row-level transformations
+        - Full DataFrame expressions
+        - Optional filtering
+        - Safe support for datetime via `dt`, numpy via `np`, and pandas via `pd`
+    """
+
+    SAFE_GLOBALS = {
+        "__builtins__": {},
+        "np": np,
+        "pd": pd,
+        "dt": dt,
+        "json": json,
+        "abs": abs,
+        "min": min,
+        "max": max,
+        "sum": sum,
+        "len": len,
+        "round": round,
+        "float": float,
+        "int": int,
+        "str": str,
+    }
+
+    def __init__(
+        self,
+        conversions: Optional[List[Dict]] = None,
+        verbose: bool = False,
+        context: Optional[Dict[str, Any]] = None,
+        log_func=print,
+    ):
+        self.conversions = conversions or []
+        self.verbose = verbose
+        self.context = context or {}
+        self.log_func = log_func or print
+
+    def _safe_eval(self, expr: str, local_vars: Dict[str, Any]):
+        """Safely evaluate an expression with restricted globals."""
+        try:
+            eval_locals = dict(self.context)
+            eval_locals.update(local_vars)
+            return eval(expr, self.SAFE_GLOBALS, eval_locals)
+        except Exception as e:
+            raise ValueError(f"Conversion expression failed: {expr}\n{str(e)}")
+
+    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Apply conversion list to DataFrame."""
+        df = df.copy()
+
+        for conv in self.conversions:
+            target = conv.get("target")
+            source = conv.get("source", target)
+            op = conv.get("op")
+            scope = conv.get("scope", "col")
+            filt = conv.get("filter")
+
+            if not op:
+                continue
+            if scope in {"col", "row"} and not target:
+                continue
+
+            if self.verbose:
+                self.log_func(f"Applying conversion -> {target or '<df>'} | scope={scope}")
+
+            if filt:
+                df = df[df[source].isin(filt)]
+
+            if scope == "col":
+                if source not in df.columns:
+                    continue
+                df[target] = df[source].apply(
+                    lambda v: self._safe_eval(op, {"v": v, "df": df})
+                )
+
+            elif scope == "row":
+                df[target] = df.apply(
+                    lambda row: self._safe_eval(
+                        op,
+                        {
+                            "row": row,
+                            "df": df,
+                        },
+                    ),
+                    axis=1,
+                )
+
+            elif scope == "df":
+                df = self._safe_eval(op, {"df": df})
+
+        return df
 
 
 class DataLoader:

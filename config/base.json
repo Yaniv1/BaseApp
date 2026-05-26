@@ -63,6 +63,24 @@
         }
     },
 
+    "process": {
+        "message_codes_df": {
+            "run": true,
+            "source": "message_codes",
+            "context": {
+                "message_codes": "message_codes"
+            },
+            "conversions": [
+                
+                {                    
+                    "scope": "df",
+                    "op": "pd.concat([frame.assign(source_file=name) for name, frame in message_codes.items()], ignore_index=True)"
+                }
+            ],
+            "target": "message_codes_df"
+        }
+    },
+
     
     "output": {
         "results": {

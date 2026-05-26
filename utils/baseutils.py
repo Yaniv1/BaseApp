@@ -15,12 +15,12 @@ from functools import wraps
 import math
 
 try:
-    from .datautils import DataLoader
+    from .datautils import DataFrameConverter, DataLoader
 except ImportError:
     try:
-        from utils.datautils import DataLoader
+        from utils.datautils import DataFrameConverter, DataLoader
     except ImportError:
-        from datautils import DataLoader
+        from datautils import DataFrameConverter, DataLoader
 
 
 def trackit(func):
@@ -318,12 +318,25 @@ class HtmlDoc:
             return f"<table class=\"nested\"><thead><tr>{thead}</tr></thead><tbody>{tbody}</tbody></table>"
         return html.escape(str(plain))
 
+    def _value_type_label(self, value):
+        plain = self._to_plain(value)
+        if isinstance(plain, dict):
+            return f"dict[{len(plain)}]"
+        if isinstance(plain, list):
+            return f"list[{len(plain)}]"
+        if plain is None:
+            return "NoneType"
+        return type(plain).__name__
+
     def _table_parts(self, dataset):
         plain = self._to_plain(dataset)
 
         if isinstance(plain, dict):
-            headers = ["key", "value"]
-            rows = [f"<tr><td>{html.escape(str(k))}</td><td>{self._render_cell(v)}</td></tr>" for k, v in plain.items()]
+            headers = ["item", "key", "type", "value"]
+            rows = [
+                f"<tr><td>{idx}</td><td>{html.escape(str(k))}</td><td>{html.escape(self._value_type_label(v))}</td><td>{self._render_cell(v)}</td></tr>"
+                for idx, (k, v) in enumerate(plain.items())
+            ]
             return headers, rows
 
         if isinstance(plain, list):
@@ -333,17 +346,18 @@ class HtmlDoc:
                     for key in item.keys():
                         if key not in columns:
                             columns.append(key)
+                headers = ["item"] + columns
                 rows = []
-                for item in plain:
+                for idx, item in enumerate(plain):
                     cells = [f"<td>{self._render_cell(item.get(col, ''))}</td>" for col in columns]
-                    rows.append(f"<tr>{''.join(cells)}</tr>")
-                return columns, rows
+                    rows.append(f"<tr><td>{idx}</td>{''.join(cells)}</tr>")
+                return headers, rows
 
-            headers = ["index", "value"]
+            headers = ["item", "value"]
             rows = [f"<tr><td>{idx}</td><td>{self._render_cell(v)}</td></tr>" for idx, v in enumerate(plain)]
             return headers, rows
 
-        return ["value"], [f"<tr><td>{html.escape(str(plain))}</td></tr>"]
+        return ["item", "value"], [f"<tr><td>0</td><td>{html.escape(str(plain))}</td></tr>"]
 
     def load_template(self):
         with open(self.template, "r", encoding="utf-8") as f:
@@ -883,6 +897,37 @@ class Main:
                                 logger=self.logger, 
                                 data=getattr(self.results, target_name, {}),
                                 base_dir=self.base_dir).load())
+
+    def process_data(self):
+        """Run configured processing steps against loaded results data."""
+        process_node = getattr(self.config, "process", None)
+        if process_node is None:
+            return
+
+        for step_id, step_settings in process_node.get_dict().items():
+            if not isinstance(step_settings, dict):
+                continue
+            if step_settings.get("run", False) is not True:
+                continue
+
+            source_name = step_settings.get("source")
+            source_value = getattr(self.results, source_name, None) if source_name else None
+
+            context = {}
+            for alias, result_name in step_settings.get("context", {}).items():
+                context[alias] = getattr(self.results, result_name, None)
+            context["source_data"] = source_value
+
+            source_df = source_value.copy() if isinstance(source_value, pd.DataFrame) else pd.DataFrame()
+
+            result = DataFrameConverter(
+                conversions=step_settings.get("conversions", []),
+                verbose=bool(step_settings.get("verbose", False)),
+                context=context,
+                log_func=(lambda msg, code=None, data=None: self.logger.log(message=msg, message_code=code, data=data))
+            ).apply(source_df)
+
+            setattr(self.results, step_settings.get("target", step_id), result)
 
     def _to_raw_data(self, value, max_items=None):
         """Convert Params/objects into plain dict/list primitives with optional item limits."""

@@ -128,6 +128,10 @@ All HTML output goes through `HtmlDoc(data, template, title, wrappers)`.
 - `template` — path to an HTML template file (configurable via `HTML_TEMPLATE`)
 - Tokens in the template: `{$title$}`, `{$title_colspan$}`, `{$thead$}`, `{$tbody$}`
 - Nested dicts and lists render recursively as inner tables
+- Every rendered table includes a leading item enumeration column
+- Dict tables include a `type` column after `key`
+- Array values show item counts in the `type` column and dict values show key counts
+- Nested tables size to their content instead of stretching to the full parent width
 - Arrays of dicts render as proper tabular rows (keys → columns, items → rows)
 
 Default template: `docs/templates/dataset_table.html`
@@ -177,7 +181,30 @@ BaseApp defaults include `message_codes` and `updates` as input sources.
 - Relative and absolute paths are supported.
 - Relative paths are resolved from the app/project root directory.
 
-### 9. Output JSON materialization and parse diagnostics
+### 9. Config-driven processing (`config.process`)
+
+`Main.process_data()` runs after `load_data()` and before outputs are stored.
+
+- Each key under `config.process` is a step id.
+- `source` points to an item already loaded into `results`.
+- `context` maps aliases to other `results` items that should be exposed to
+  conversion expressions.
+- The selected source is also exposed to expressions as `source_data`.
+- Only DataFrame sources are used directly as the working DataFrame; other
+  source shapes stay explicit so conversions can decide how to transform them.
+- `conversions` is applied sequentially through `DataFrameConverter`.
+- `DataFrameConverter` supports an injectable logging function and defaults to
+  `print` when verbose logging is enabled.
+- `df`-scope conversions do not need their own `target`; the step-level
+  `target` controls where the final processed DataFrame is stored.
+- Process outputs are stored back on `results` using the step id unless a
+  `target` override is provided.
+
+BaseApp includes an example step, `message_codes_df`, which concatenates all
+loaded message code CSVs from the `message_codes` context mapping into a single
+DataFrame and adds a `source_file` column.
+
+### 10. Output JSON materialization and parse diagnostics
 
 `store_outputs()` now converts nested output structures into JSON-safe primitives
 and materializes JSON-like string fields into native objects.
@@ -202,6 +229,7 @@ Top-level nodes:
 - `app` — name, version, dirs
 - `log` — path, verbose, types, colors, max_items
 - `input` — load, path, target, format
+- `process` — sequential DataFrame conversion steps over `results` data
 - `output` — declarative output entries (see above)
 - `updates` — changelog loaded from `updates/base.json` (newest first)
 

@@ -25,6 +25,7 @@ class App(Main):
 def execute(app):
     """Execute app lifecycle and return process exit code."""
     app.load_data()
+    app.process_data()
     app.close()
     return app.results
 
