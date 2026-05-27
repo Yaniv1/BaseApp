@@ -19,6 +19,13 @@ BaseApp/
     base.json
     app.json
     requirements.txt
+  test/
+    config/
+      app.json
+      base.json
+    tests/
+      app/
+      base/
   updates/
     base.json
   docs/
@@ -26,6 +33,7 @@ BaseApp/
       base.csv
       app.csv
       logger.csv
+      test.csv
     manifests/
       pull.json
       once.json
@@ -47,6 +55,7 @@ BaseApp/
     baseutils.py
     apputils.py
     datautils.py
+    testutils.py
 ```
 
 ## Core Runtime Features
@@ -228,6 +237,41 @@ and materializes JSON-like string fields into native objects.
 - Logs parse summary with `BASE011` (attempted/parsed/failed counts).
 - Logs parse failures with `BASEW11` including error and value sample.
 
+### 11. Built-in testing framework
+
+BaseApp now includes a config-driven testing framework that runs alongside the
+normal application lifecycle.
+
+- `test/config/base.json` defines test phases, dedicated logger settings, and test outputs.
+- `TestManager` in `utils/testutils.py` coordinates three phases:
+  `prep`, `live`, and `post`.
+- Prep tests run before `execute(app)`.
+- Live tests run on a dedicated background thread and schedule themselves by
+  `frequency_seconds` while the app is executing.
+- Post tests run during shutdown after elapsed time has been computed.
+- Test config is built from the integrated runtime config, so app-level COMMON
+  overrides such as `APP_NAME` and `OUTPUT_PATH` flow into test outputs.
+- The app remains test-agnostic and exposes lightweight runtime state through
+  the main logger `data_map`; tests read that monitor state or inspect stored
+  outputs instead of reaching directly into app internals.
+- Test definitions can target functions, classes, or class methods via dotted
+  import paths.
+- Each test writes to a dedicated test result logger configured with `PASS`,
+  `WARN`, and `FAIL` message types.
+- Detailed test results persist under `results.prep`, `results.live`, and
+  `results.post`.
+- Aggregate summaries persist under `results.summary` and `results.report`,
+  including explicit `failures` lists and `n_failures` counts.
+- Failed test records also include traceback metadata such as failing callable,
+  file, line, function, and formatted traceback text.
+
+Default test artifacts are written as:
+
+- `{$OUTPUT_PATH$}/tests/results/{START_TIME}.json`
+- `{$OUTPUT_PATH$}/tests/results/test_results.html`
+- `{$OUTPUT_PATH$}/tests/summary/summary.html`
+- `{$OUTPUT_PATH$}/tests/logs/test_log.html`
+
 ## Configuration
 
 Primary base config: `config/base.json`
@@ -244,6 +288,12 @@ Top-level nodes:
 - `process` — sequential DataFrame conversion steps over `results` data
 - `output` — declarative output entries (see above)
 - `updates` — changelog loaded from `updates/base.json` (newest first)
+
+Testing config is maintained separately in `test/config/base.json` and is
+flattened into a runtime test config using:
+
+- `COMMON` from the integrated app config
+- the value dictionary under `testing` from `test/config/base.json`
 
 ### Layering rule
 
@@ -338,11 +388,13 @@ The following are current `pull` sources:
 - `docs/manifests/pull.json`
 - `scripts/pullbase.py`
 - `utils/baseutils.py`
+- `utils/testutils.py`
 - `docs/instructions/base.md`
 - `docs/instructions/app.md`
 - `docs/version/base.txt`
 - `docs/readme/base.md`
 - `docs/templates/dataset_table.html`
+- `docs/message_codes/test.csv`
 - `config/requirements.txt`
 
 ### Hard mode (`--hard`)
@@ -377,9 +429,10 @@ during instantiation so it remains app-owned during future base pulls.
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
 - Changelog: `updates` array in `updates/base.json`, newest entry first.
-- Latest: `26.05.26.02` adds split output support for single-layer and
-  multi-layer dict outputs, including dotted source resolution and per-key
-  artifact storage for json, csv, and html outputs.
+- Latest: `26.05.26.03` adds a built-in testing framework with config-driven
+  prep/live/post phases, a dedicated PASS/WARN/FAIL logger, runtime-config-
+  derived test config, logger-backed monitoring through `data_map`, and
+  persisted test result artifacts with explicit failures and traceback context.
 
 ## Agent Guidance
 

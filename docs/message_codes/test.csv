@@ -1,0 +1,8 @@
+code,type,text
+TST001,INFO,Test information
+TST002,INFO,Test phase message
+TST003,PASS,Test passed
+TST004,WARN,Test warning
+TST005,FAIL,Test failed
+TST006,INFO,Live test scheduler message
+TST007,INFO,Live test scheduler message

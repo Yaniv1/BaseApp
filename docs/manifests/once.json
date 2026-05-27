@@ -20,6 +20,9 @@
         },
         {
             "source": "updates"
+        },
+        {
+            "source": "test"
         }
     ]    
     

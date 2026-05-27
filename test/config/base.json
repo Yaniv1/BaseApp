@@ -1,0 +1,142 @@
+{    
+    "testing": {
+        "settings": {
+            "enabled": true,
+            "fail_fast": false,
+            "fail_on": ["FAIL"],
+            "monitor": {
+                "buffer_path": null
+            }
+        },
+        "test_logger": {
+            "path": "{$OUTPUT_PATH$}/test_results",
+            "messages_dir": "docs/message_codes",
+            "verbose": "PASS",
+            "types": {
+                "0": "NONE",
+                "1": "INFO",
+                "2": "PASS",
+                "3": "WARN",
+                "4": "FAIL"
+            },
+            "colors": {
+                "PASS": "green",
+                "WARN": "yellow",
+                "FAIL": "red"
+            },
+            "max_items": 10
+        },
+        "prep": [
+            {
+                "id": "prep_config_ready",
+                "name": "Prep config readiness",
+                "callable": "utils.testutils.evaluate_checks",
+                "inputs": {
+                    "message": "Validated required runtime configuration",
+                    "checks": [
+                        {
+                            "name": "app_name_present",
+                            "operator": "truthy",
+                            "actual": {"ref": "config.COMMON.APP_NAME"}
+                        },
+                        {
+                            "name": "output_path_present",
+                            "operator": "truthy",
+                            "actual": {"ref": "config.COMMON.OUTPUT_PATH"}
+                        },
+                        {
+                            "name": "test_logger_path_present",
+                            "operator": "truthy",
+                            "actual": {"ref": "config.test_logger.path"}
+                        }
+                    ]
+                }
+            }
+        ],
+        "live": [
+            {
+                "id": "live_monitor_activity",
+                "name": "Live monitor activity",
+                "callable": "utils.testutils.monitor_activity",
+                "frequency_seconds": 1,
+                "max_runs": 1,
+                "inputs": {
+                    "message": "Observed monitor publications while the app was running",
+                    "min_history": 1
+                }
+            }
+        ],
+        "post": [
+            {
+                "id": "post_runtime_artifacts",
+                "name": "Post runtime artifacts",
+                "callable": "utils.testutils.evaluate_checks",
+                "inputs": {
+                    "message": "Validated runtime outputs and lifecycle values",
+                    "checks": [
+                        {
+                            "name": "end_time_present",
+                            "operator": "exists",
+                            "actual": {"ref": "monitor.results.end_time"}
+                        },
+                        {
+                            "name": "elapsed_seconds_non_negative",
+                            "operator": "ge",
+                            "actual": {"ref": "monitor.results.elapsed_seconds"},
+                            "expected": 0
+                        },
+                        {
+                            "name": "message_codes_loaded",
+                            "operator": "exists",
+                            "actual": {"ref": "monitor.results.message_codes_loaded"}
+                        }
+                    ]
+                }
+            }
+        ],
+        "output": {
+            "results": {
+                "store": true,
+                "source": "results",
+                "path": "{$OUTPUT_PATH$}/tests/results",
+                "file": "{$START_TIME$}.json",
+                "format": "json"
+            },
+            "results_html": {
+                "store": true,
+                "split": false,
+                "source": "results",
+                "path": "{$OUTPUT_PATH$}/tests/results",
+                "file": "test_results.html",
+                "format": "html",
+                "kwargs": {
+                    "template": "{$HTML_TEMPLATE$}"
+                },
+                "open": false
+            },
+            "summary_html": {
+                "store": true,
+                "split": false,
+                "source": "results.summary",
+                "path": "{$OUTPUT_PATH$}/tests/summary",
+                "file": "summary.html",
+                "format": "html",
+                "kwargs": {
+                    "template": "{$HTML_TEMPLATE$}"
+                },
+                "open": false
+            },
+            "test_log_html": {
+                "store": true,
+                "source": "test_logger.logs",
+                "path": "{$OUTPUT_PATH$}/tests/logs",
+                "file": "test_log.html",
+                "format": "html",
+                "kwargs": {
+                    "template": "{$HTML_TEMPLATE$}"
+                },
+                "open": false
+            }
+        }
+    }
+}

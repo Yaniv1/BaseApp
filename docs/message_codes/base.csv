@@ -9,6 +9,14 @@ BASE009,INFO,Resolved input files
 BASE010,INFO,Loaded input file
 BASE011,INFO,JSON text parse summary
 BASE012,INFO,File loading completed
+BASE013,INFO,Initialized test manager
+BASE014,INFO,Starting test phase
+BASE015,INFO,Started live test scheduler
+BASE016,INFO,Stopped live test scheduler
+BASE017,INFO,Completed test phase
+BASE018,INFO,Updated app monitor state
+BASE019,INFO,Recorded test monitor request
+BASEE13,ERROR,Application run failed
 BASEW10,WARN,Failed to load input file
 BASEW11,WARN,Failed to parse JSON text field
 BASE999,GOOD,App completed

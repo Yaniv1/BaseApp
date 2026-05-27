@@ -4,8 +4,17 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.05.26.02
-- App template version: A26.05.26.02
+- Base version: 26.05.26.03
+- App template version: A26.05.26.03
+
+## Highlights (26.05.26.03)
+
+- Added a built-in test framework with config-driven prep, live, and post phases.
+- Added a dedicated PASS/WARN/FAIL test logger and persisted test results/log artifacts.
+- Derived test config from the integrated runtime config so app-specific COMMON overrides flow into test outputs.
+- Switched monitoring to the main logger `data_map`, allowing the app to publish lightweight runtime state without direct test coupling.
+- Added richer test reporting with explicit failure ids, failure counts, and traceback context.
+- Fixed app exit handling so the process returns an integer code instead of a structured object.
 
 ## Highlights (26.05.26.02)
 

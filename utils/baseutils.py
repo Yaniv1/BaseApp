@@ -1,4 +1,5 @@
 import pandas as pd
+import copy
 import json
 import os
 import datetime as dt 
@@ -11,6 +12,7 @@ import pprint
 import re
 import webbrowser
 import time
+import threading
 from functools import wraps
 import math
 
@@ -447,12 +449,15 @@ class Logger:
     def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False, 
                  log_types=None, 
                  type_colors=None, message_lookup=None):
+        
+        self._lock = threading.RLock()
         self.log_types = self._normalize_log_types(log_types) or {0: "NONE", 1: "INFO", 2: "GOOD", 3: "WARN", 4: "ERROR"}
         self.log_type_keys = {v: k for k, v in self.log_types.items()}
         self.type_colors = self._normalize_type_colors(type_colors) or {}
         self.color_reset = "\033[0m"
         self.start_time = start_time or dt.datetime.utcnow()
         self.logs = []
+        self.data_map = {}
         self.log_columns = ["timestamp", "type_key", "type", "elapsed_sec", "message_code", "message", "data"]
         self.message_lookup = message_lookup if message_lookup is not None else pd.DataFrame(columns=["code", "type", "text"])
         self.log_path = log_path
@@ -686,7 +691,29 @@ class Logger:
 
         pd.DataFrame(rows, columns=self.log_columns).to_csv(self.log_path, mode='w', header=True, index=False)
 
-    def log(self, message="", message_type=None, data=None, message_code=None):
+
+    def update_data_map(self, data=None):
+        """Merge one payload into the live snapshot map and return the updated snapshot."""
+        normalized = self._normalize_data(data)
+        with self._lock:
+            if normalized is not None:
+                self.data_map = dict_merge(self.data_map, normalized)
+            return copy.deepcopy(self.data_map)
+
+    def get_data_map_snapshot(self):
+        """Return a deep copy of the current aggregated data snapshot."""
+        with self._lock:
+            return copy.deepcopy(self.data_map)
+
+    def resolve_data(self, path=None, default=None):
+        """Resolve one value from the aggregated data snapshot using dotted paths."""
+        snapshot = self.get_data_map_snapshot()
+        if not path:
+            return snapshot
+        value = resolve_dotted(snapshot, path)
+        return default if value is None else value
+
+    def log(self, message="", message_type=None, data=None, message_code=None, entry=True):
         """ store a message with the current timestamp."""
         looked_up_text = ""
         looked_up_type = ""
@@ -698,23 +725,30 @@ class Logger:
 
         message_key = self._resolve_message_key(resolved_type)
         message_type = self.log_types[message_key]
+        normalized_data = self._normalize_data(data)
 
-        now = dt.datetime.utcnow()
-        elapsed_time = (now - self.start_time).total_seconds()
-        event = {"timestamp": now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
-                 "type_key": message_key,
-                 "type": message_type.rjust(5),
-                 "elapsed_sec": f"{elapsed_time:06.3f}",
-                 "message_code": message_code,
-                 "message": resolved_message,
-                 "data": self._normalize_data(data)}
+        with self._lock:
+            if normalized_data is not None:
+                self.data_map = dict_merge(self.data_map, normalized_data)
 
-        self.logs.append(event)
-        if self._should_print(message_key):
-            console_line = ' | '.join([str(v) for v in list(event.values())])
-            print(self._format_console_row(message_type, console_line))
-        self._write_csv()
-       
+            if entry:
+                now = dt.datetime.utcnow()
+                elapsed_time = (now - self.start_time).total_seconds()
+                event = {"timestamp": now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
+                        "type_key": message_key,
+                        "type": message_type.rjust(5),
+                        "elapsed_sec": f"{elapsed_time:06.3f}",
+                        "message_code": message_code,
+                        "message": resolved_message,
+                        "data": normalized_data}
+
+                self.logs.append(event)
+
+            if entry and self._should_print(message_key):
+                console_line = ' | '.join([str(v) for v in list(event.values())])
+                print(self._format_console_row(message_type, console_line))
+            self._write_csv()
+      
 
 
 def save(data, path, format="json", **kwargs):
@@ -799,7 +833,9 @@ def create_logger(settings):
 
     message_lookup = load_message_lookup([messages_dir] if messages_dir else [])
 
+    logger_name = settings.get("name", "logger")
     logger_dict = {
+
         "log_path": None,
         "start_time": settings.get("start_time", dt.datetime.utcnow()),
         "max_items": settings.get("max_items", None),
@@ -844,7 +880,15 @@ def try_except(default=None, logger=None, func=print, args=[], kwargs={}):
             logger.log(message_code="ERR001", data={"error": str(e)})
         return default
 
-
+def as_list(value):
+    """Convert a value into a list if it is not already a list."""
+    if isinstance(value, list):
+        return value
+    if value is None:
+        return []
+    if isinstance(value, tuple):
+        return list(value)
+    return [value]
 
 
 class Main:
@@ -861,7 +905,9 @@ class Main:
             logger_settings = self.config.log.get_dict() if hasattr(self.config, "log") else {}
             logger_settings["base_dir"] = self.base_dir
             logger_settings["start_time"] = self.results.start_time
-            self.logger = logger if logger is not None else create_logger(logger_settings)
+
+            self.logger_name = logger_settings.get("name", "logger")
+            setattr(self, self.logger_name, logger if logger is not None else create_logger(logger_settings))
 
         else:
             self.base_dir = os.getcwd()
@@ -877,7 +923,7 @@ class Main:
                 self.results.app_title = f"{self.config.app.name} v{self.config.app.version}"
             if not hasattr(self.results, "html_template"):
                 self.results.html_template = self.config.COMMON.HTML_TEMPLATE
-            self.logger = logger if logger is not None else Logger(start_time=self.results.start_time)
+            setattr(self, 'logger', logger if logger is not None else Logger(start_time=self.results.start_time))
 
         self.logger.log(
             f"{self.__class__.__name__} initialized",
@@ -885,7 +931,7 @@ class Main:
             data={"instance": str(self)},
         )
         self.logger.log(message_code="BASE002", data={"run_id": self.results.run_id})
-
+        
     def create_results(self):
         """Create initialized run metadata derived from current config."""
         results = Params()
@@ -906,7 +952,6 @@ class Main:
         if input_node is None:
             return
 
-        loaded_targets = []
         for input_key, input_settings in input_node.get_dict().items():
             if not isinstance(input_settings, dict):
                 continue
@@ -921,6 +966,22 @@ class Main:
                                 logger=self.logger, 
                                 data=getattr(self.results, target_name, {}),
                                 base_dir=self.base_dir).load())
+
+            # Publish lightweight runtime state into the logger data map for external monitoring.
+            self.logger.log(
+                data={
+                    "results": {
+                        f"{target_name}_loaded": True,
+                    }
+                },
+                entry=False,
+            )
+            
+            getattr(self, self.logger_name).log(
+                message_code="BASE003",
+                message=f"Loaded input '{input_key}' into results.{target_name}",        
+                data={"num_of_results": len(self.results.get_dict().keys())},
+            )
 
     def process_data(self):
         """Run configured processing steps against loaded results data."""
@@ -966,8 +1027,8 @@ class Main:
                     return self._to_raw_data(parsed, max_items=max_items)
                 except Exception as ex:
                     self._json_parse_stats["failed"] += 1
-                    if self.logger:
-                        self.logger.log(
+                    if hasattr(self,self.logger_name):
+                        getattr(self, self.logger_name).log(
                             message_code="BASEW11",
                             message_type="WARN",
                             data={"error": str(ex), "sample": v[:200]},
@@ -1071,9 +1132,9 @@ class Main:
         self._save_output_artifact(output_key, output_dict, data, item_keys=item_keys)
        
     
-    def store_outputs(self, outputs=[]):
+    def store_outputs(self, output_config='config.output', outputs=[]):
 
-        for output_key, output_dict in self.config.output.get_dict().items():
+        for output_key, output_dict in resolve_dotted(self, output_config).get_dict().items():
             if outputs and output_key not in outputs:
                 continue
 
@@ -1105,12 +1166,12 @@ class Main:
                 os.startfile(saved_path)
             else:
                 webbrowser.open(f"file://{os.path.abspath(saved_path).replace(os.sep, '/')}")
-            self.logger.log(
+            getattr(self, self.logger_name).log(
                 message_code="BASE004",
                 data={"output_key": output_key, "path": saved_path},
             )
         except Exception as ex:
-            self.logger.log(
+            getattr(self, self.logger_name).log(
                 message_code="BASEW05",
                 message_type="WARN",
                 data={"output_key": output_key, "error": str(ex)},
@@ -1118,15 +1179,29 @@ class Main:
         
     
     def close(self):
-        """Finalize the run by logging the total elapsed time and saving results."""
+        """Finalize the run state and prepare runtime artifacts for saving."""
         self.results.end_time = dt.datetime.utcnow()
         self.results.elapsed_seconds = (self.results.end_time - self.results.start_time).total_seconds()
+        self.logger.log(
+            data={
+                "results": {
+                    "end_time": self.results.end_time,
+                    "elapsed_seconds": self.results.elapsed_seconds,
+                }
+            },
+            entry=False,
+        )
         self.logger.log(
             f"{self.__class__.__name__} completed",
             message_code="BASE999",
             data={"elapsed_seconds": round(self.results.elapsed_seconds, 2)},
         )
         self.logs = self.logger.logs
-        self.store_outputs()
 
+    def run(self):
+        """Run the full data loading and processing pipeline, then store outputs."""
+        self.load_data()
+        self.process_data()
+        self.close()
+        self.store_outputs()
         

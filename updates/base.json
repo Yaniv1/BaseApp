@@ -1,5 +1,15 @@
 [ 
     {
+        "name": "[BaseApp] Logger-Backed Test Monitoring",
+        "version": "26.05.26.03",
+        "description": "Updated the test framework to derive test config from the integrated runtime config, use the main logger data_map as the monitoring channel, publish lightweight runtime state from the app for post-run checks, and persist explicit failing test ids, failure counts, and traceback context in test results."
+    },
+    {
+        "name": "[BaseApp] Built-In Test Framework",
+        "version": "26.05.26.03",
+        "description": "Added a config-driven test framework with prep, live, and post phases, a dedicated PASS/NOTE/FAIL test logger, a thread-safe runtime monitor, and persisted test artifacts under the standard output pipeline."
+    },
+    {
         "name": "[BaseApp] Split Output Artifacts",
         "version": "26.05.26.02",
         "description": "Added output split support for single-layer and multi-layer dict outputs, including dotted source resolution and per-key artifact storage using either nested folders plus file or format-based leaf filenames."
