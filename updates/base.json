@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] Split Output Artifacts",
+        "version": "26.05.26.02",
+        "description": "Added output split support for single-layer and multi-layer dict outputs, including dotted source resolution and per-key artifact storage using either nested folders plus file or format-based leaf filenames."
+    },
+    {
         "name": "[BaseApp] Nested HTML Table Widths",
         "version": "26.05.26.01",
         "description": "Updated the dataset_table template so nested tables render at content width for better readability of small complex values while the top-level output table remains full width."

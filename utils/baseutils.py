@@ -287,6 +287,30 @@ def tryeval(val):
         return val
 
 
+def resolve_dotted(value, path):
+    """Resolve object, Params, and dict values by dotted path syntax."""
+    if not path:
+        return value
+
+    parts = str(path).split(".", 1)
+    head = parts[0]
+    tail = parts[1] if len(parts) > 1 else None
+
+    if isinstance(value, Params):
+        next_value = getattr(value, head, None)
+    elif isinstance(value, dict):
+        next_value = value.get(head)
+    else:
+        next_value = getattr(value, head, None)
+
+    if next_value is None:
+        return None
+    if tail is None:
+        return next_value
+
+    return resolve_dotted(next_value, tail)
+
+
 class HtmlDoc:
     """Render DataFrame/dict/list datasets into HTML documents via template files."""
 
@@ -741,10 +765,10 @@ def save(data, path, format="json", **kwargs):
         with open(path, "w") as f:
             json.dump(data, f, **kwargs1)
     elif format == "csv":
+        kwargs1 = {"index": False}
+        kwargs1.update(kwargs)
         if isinstance(data, pd.DataFrame):
-            kwargs1 = {"index": False}
-            kwargs1.update(kwargs)
-            data.to_csv(path, index=False, **kwargs1)
+            data.to_csv(path, **kwargs1)
         elif isinstance(data, list) and all(isinstance(item, dict) for item in data):
             pd.DataFrame(data).to_csv(path, **kwargs1)
         else:
@@ -973,6 +997,78 @@ class Main:
             return {k: self._to_raw_data(v, max_items=max_items) for k, v in items}
 
         return value
+
+    def _split_output_path(self, output_dict, item_keys):
+        """Build the output path for one split artifact item."""
+        output_path = output_dict.get("path")
+        output_file = output_dict.get("file")
+        output_format = output_dict.get("format", "json")
+        key_parts = [str(key) for key in item_keys]
+
+        if output_file:
+            return os.path.join(output_path, *key_parts, output_file)
+
+        leaf_name = key_parts[-1] if key_parts else "output"
+        parent_parts = key_parts[:-1]
+        return os.path.join(output_path, *parent_parts, f"{leaf_name}.{output_format}")
+
+    def _save_output_artifact(self, output_key, output_dict, data, item_keys=None):
+        """Save one output payload and emit the normal output logs."""
+        if data is None:
+            return
+
+        output_path = output_dict.get("path")
+        os.makedirs(output_path, exist_ok=True)
+
+        item_keys = list(item_keys or [])
+
+        if not item_keys:
+            output_file = output_dict.get("file", f"{output_key}.json")
+            full_output_path = os.path.join(output_path, output_file)
+        else:
+            full_output_path = self._split_output_path(output_dict, item_keys)
+
+        artifact_data = data
+        if output_dict.get('format', '').lower() == 'html':
+            title_suffix = output_key.capitalize() if not item_keys else f"{output_key.capitalize()} {' / '.join([str(k) for k in item_keys])}"
+            artifact_data = HtmlDoc(
+                data=data,
+                template=output_dict.get("kwargs", {}).get("template", self.results.html_template),
+                title=f"{self.results.app_title} {self.results.signature} {title_suffix}")
+
+        save_kwargs = {
+            'data': artifact_data,
+            'path': full_output_path,
+            'format': output_dict.get("format", "json")
+        }
+        save_kwargs.update(output_dict.get("kwargs", {}))
+        saved_path = save(**save_kwargs)
+
+        log_data = {"output_key": output_key, "path": full_output_path}
+        if item_keys:
+            log_data["item_key"] = "/".join([str(k) for k in item_keys])
+        self.logger.log(message_code="BASE003", data=log_data)
+
+        if output_dict.get("open", False) and saved_path:
+            open_key = output_key if not item_keys else f"{output_key}:{'/'.join([str(k) for k in item_keys])}"
+            self.open_output(saved_path, open_key)
+
+    def _store_split_outputs(self, output_key, output_dict, data, split_depth, item_keys=None):
+        """Recursively store split outputs across one or more dict layers."""
+        item_keys = list(item_keys or [])
+
+        if split_depth > 0 and isinstance(data, dict):
+            for child_key, child_value in data.items():
+                self._store_split_outputs(
+                    output_key,
+                    output_dict,
+                    child_value,
+                    split_depth - 1,
+                    item_keys=item_keys + [child_key],
+                )
+            return
+
+        self._save_output_artifact(output_key, output_dict, data, item_keys=item_keys)
        
     
     def store_outputs(self, outputs=[]):
@@ -985,7 +1081,7 @@ class Main:
             if not store:
                 continue
 
-            data = getattr(self, output_dict.get("source", output_key), None)
+            data = resolve_dotted(self, output_dict.get("source", output_key))
             self._json_parse_stats = {"attempted": 0, "parsed": 0, "failed": 0}
             data = self._to_raw_data(data, max_items=output_dict.get("max_items", None))
 
@@ -995,30 +1091,13 @@ class Main:
                     data={"output_key": output_key} | self._json_parse_stats,
                 )
 
-            if output_dict.get('format', '').lower() == 'html':
-                data = HtmlDoc(data=data, 
-                        template=output_dict.get("template", self.results.html_template),
-                        title=f"{self.results.app_title} {self.results.signature} {output_key.capitalize()}")
-            
-            if data is not None:
-                output_path = output_dict.get("path")                
-                os.makedirs(output_path, exist_ok=True)
-                output_file = output_dict.get("file", f"{output_key}.json")
-                full_output_path = os.path.join(output_path, output_file)
+            split_setting = output_dict.get("split", False)
+            split_depth = int(split_setting) if isinstance(split_setting, (int, float)) else (1 if split_setting else 0)
 
-                save_kwargs = {'data':data, 'path': full_output_path,
-                               'format':output_dict.get("format", "json")}                
-                save_kwargs.update(output_dict.get("kwargs", {}))
-                saved_path = save(**save_kwargs)
-                self.logger.log(
-                    message_code="BASE003",
-                    data={"output_key": output_key, "path": full_output_path},
-                )
-
-                open_output = output_dict.get("open", False)
-                
-                if open_output and saved_path:    
-                    self.open_output(saved_path, output_key)
+            if split_depth > 0 and isinstance(data, dict):
+                self._store_split_outputs(output_key, output_dict, data, split_depth)
+            else:
+                self._save_output_artifact(output_key, output_dict, data)
 
     def open_output(self, saved_path, output_key):
         try:

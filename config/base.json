@@ -2,7 +2,7 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.05.26.01",
+        "VERSION": "26.05.26.02",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -85,9 +85,18 @@
     "output": {
         "results": {
             "store": true,
+            "split": false,
             "source": "results",
             "path": "{$OUTPUT_PATH$}/results",
             "file": "results.json",
+            "format": "json",
+            "max_items": 100
+        },
+        "results_split": {
+            "store": true,
+            "split": true,
+            "source": "results",
+            "path": "{$OUTPUT_PATH$}/results",
             "format": "json",
             "max_items": 100
         },
@@ -103,6 +112,29 @@
             "source": "results",
             "path": "{$OUTPUT_PATH$}/results",
             "file": "results.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "open": false
+        },
+        "results_split_html": {
+            "store": true,
+            "split": 2,
+            "source": "results",
+            "path": "{$OUTPUT_PATH$}/results",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "open": false
+        },
+        
+        "message_codes_split_html": {
+            "store": true,
+            "split": 2,
+            "source": "results.message_codes",
+            "path": "{$OUTPUT_PATH$}/message_codes",
             "format": "html",
             "kwargs": {
                 "template": "{$HTML_TEMPLATE$}"

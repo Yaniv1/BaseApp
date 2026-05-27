@@ -114,11 +114,23 @@ Outputs are declared in the `output` node of `base.json`. Each entry controls:
 | `path` | output directory (supports `{$…$}` placeholders) |
 | `file` | output filename |
 | `format` | `json`, `csv`, or `html` |
+| `split` | `false`, `true`, or a depth integer for split artifact output |
 | `kwargs` | extra args passed to `save()` (e.g. `template`) |
 | `open` | `true` — auto-open the file after saving |
 
 Default outputs: `results.json`, `results.html`, `config.json`, `config.html`,
 `log_html`.
+
+When `split` is enabled and the output value is a dict:
+
+- `true` is treated as a split depth of `1`
+- numeric values like `2` split recursively across additional dict layers
+- with `file`: `{path}/{k1}/{k2}/.../{file}`
+- without `file`: `{path}/{k1}/{k2}/.../{last_key}.{format}`
+
+Output `source` also supports dotted path resolution such as `results.message_codes`.
+
+CSV split output expects each leaf value to be DataFrame-compatible.
 
 ### 4. HTML rendering via HtmlDoc
 
@@ -365,10 +377,9 @@ during instantiation so it remains app-owned during future base pulls.
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
 - Changelog: `updates` array in `updates/base.json`, newest entry first.
-- Latest: `26.05.26.01` includes project-root pathing for
-  `docs/message_codes`, generic `config.input` loading, and recursive
-  JSON-like field materialization in output serialization with parse
-  diagnostics (`BASE011`/`BASEW11`).
+- Latest: `26.05.26.02` adds split output support for single-layer and
+  multi-layer dict outputs, including dotted source resolution and per-key
+  artifact storage for json, csv, and html outputs.
 
 ## Agent Guidance
 
