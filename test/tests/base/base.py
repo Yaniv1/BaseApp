@@ -41,7 +41,8 @@ class ArchitectureAlignmentTest(AppManager):
         results=None,
         test_logger=None,
         message="Validated the codebase against docs/architecture and generated candidate temp architecture files",
-        artifact_rel_dir="tests/architecture",
+        artifact_rel_dir="tests/results/architecture",
+        candidate_rel_dir="tests/results/architecture_changes",
         architecture_html_file="combined_architecture.html",
         code_tree_html_file="code_tree.html",
         **kwargs,
@@ -55,6 +56,7 @@ class ArchitectureAlignmentTest(AppManager):
         self._result = self._execute(
             message=message,
             artifact_rel_dir=artifact_rel_dir,
+            candidate_rel_dir=candidate_rel_dir,
             architecture_html_file=architecture_html_file,
             code_tree_html_file=code_tree_html_file,
             **kwargs,
@@ -553,11 +555,13 @@ class ArchitectureAlignmentTest(AppManager):
 
         return candidate_docs
 
-    def _write_candidate_documents(self, missing_items, architecture):
+    def _write_candidate_documents(self, missing_items, architecture, candidate_rel_dir="tests/results/architecture_changes"):
         candidate_docs = self._build_candidate_documents(missing_items, architecture)
         candidate_paths = {}
+        candidate_dir = Path(self.config.COMMON.OUTPUT_PATH) / candidate_rel_dir
+        candidate_dir.mkdir(parents=True, exist_ok=True)
         for source_key, document in candidate_docs.items():
-            output_path = self.temp_dir / f"{source_key}.json"
+            output_path = candidate_dir / f"{source_key}.json"
             with open(output_path, "w", encoding="utf-8") as handle:
                 json.dump(document, handle, indent=4)
             candidate_paths[source_key] = self._normalize_rel(output_path.relative_to(self.base_dir))
@@ -826,7 +830,8 @@ class ArchitectureAlignmentTest(AppManager):
     def _execute(
         self,
         message="Validated the codebase against docs/architecture and generated candidate temp architecture files",
-        artifact_rel_dir="tests/architecture",
+        artifact_rel_dir="tests/results/architecture",
+        candidate_rel_dir="tests/results/architecture_changes",
         architecture_html_file="combined_architecture.html",
         code_tree_html_file="code_tree.html",
         **kwargs,
@@ -834,7 +839,7 @@ class ArchitectureAlignmentTest(AppManager):
         architecture = self._load_architecture()
         codebase = self._collect_codebase_items()
         comparison = self._compare_architecture_to_code(architecture, codebase)
-        candidate_paths = self._write_candidate_documents(comparison["missing_in_architecture"], architecture)
+        candidate_paths = self._write_candidate_documents(comparison["missing_in_architecture"], architecture, candidate_rel_dir=candidate_rel_dir)
         architecture_review = self._build_architecture_review(architecture, codebase, comparison, candidate_paths)
         code_tree_review = self._build_code_tree_review(codebase, architecture, comparison)
         artifact_paths = self._store_review_artifacts(
@@ -856,7 +861,8 @@ class ArchitectureAlignmentTest(AppManager):
             "candidate_paths": candidate_paths,
             "artifact_paths": artifact_paths,
         }
-        report_path = self.temp_dir / "report.json"
+        report_path = Path(self.config.COMMON.OUTPUT_PATH) / candidate_rel_dir / "report.json"
+        report_path.parent.mkdir(parents=True, exist_ok=True)
         with open(report_path, "w", encoding="utf-8") as handle:
             json.dump(report, handle, indent=4)
 

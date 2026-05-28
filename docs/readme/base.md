@@ -288,8 +288,10 @@ BaseApp also includes a prep-time architecture compliance test in
   then falls back to `name` matching.
 - Missing architecture items, missing code items, and feature id mismatches are
   logged as `WARN` results.
-- The test writes review artifacts to `{$OUTPUT_PATH$}/tests/architecture/`:
-  `combined_architecture.html`, `code_tree.html`, and `report.json`.
+- The test writes HTML review artifacts to `{$OUTPUT_PATH$}/tests/architecture/`:
+  `combined_architecture.html` and `code_tree.html`.
+- Suggested architecture change JSON files and the compliance report are written
+  to `{$OUTPUT_PATH$}/tests/results/architecture_changes/`.
 
 ## Configuration
 
@@ -461,10 +463,9 @@ during instantiation so it remains app-owned during future base pulls.
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
 - Changelog: `updates` array in `updates/base.json`, newest entry first.
-- Latest: `26.05.28.01` adds path-aware architecture inventories, a class-based
-  architecture compliance prep test with HTML review artifacts, class-target
-  test construction from normal input bindings, and a shebang on `app/app.py`
-  for direct interpreter execution.
+- Latest: `26.05.28.02` moves suggested architecture change JSON outputs into
+  the test results folder while keeping the architecture review HTML artifacts
+  under the dedicated review folder.
 
 ## Agent Guidance
 

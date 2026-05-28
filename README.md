@@ -4,8 +4,13 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.05.28.01
-- App template version: A26.05.28.01
+- Base version: 26.05.28.02
+- App template version: A26.05.28.02
+
+## Highlights (26.05.28.02)
+
+- Moved suggested architecture change JSON files and the compliance report into `{$OUTPUT_PATH$}/tests/results/architecture_changes`.
+- Kept the architecture review HTML artifacts in the dedicated review output folder.
 
 ## Highlights (26.05.28.01)
 

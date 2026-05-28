@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [5.3.1.1] [Architecture Compliance] Moved suggested architecture JSON outputs into the test results folder.",
+        "version": "26.05.28.02",
+        "description": "Updated the architecture compliance prep test so suggested architecture change JSON files and the report are saved under {$OUTPUT_PATH$}/tests/results/architecture_changes, while the HTML review artifacts remain in the architecture review folder."
+    },
+    {
         "name": "[BaseApp] [5.3.1.1] [Architecture Compliance] Added path-aware architecture metadata, a class-based architecture compliance prep test, generated HTML review artifacts, and updated the app entrypoint for direct Python execution.",
         "version": "26.05.28.01",
         "description": "Added path metadata to docs/architecture base and app inventories, moved architecture compliance validation into test/tests/base/base.py as an AppManager-backed class, updated the test runner to support class construction from normal test inputs, generated combined-architecture and code-tree HTML review artifacts, and added a shebang to app/app.py for direct interpreter resolution."
