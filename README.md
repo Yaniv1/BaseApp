@@ -4,8 +4,16 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.05.26.03
-- App template version: A26.05.26.03
+- Base version: 26.05.28.01
+- App template version: A26.05.28.01
+
+## Highlights (26.05.28.01)
+
+- Added path metadata to `docs/architecture/base.json` and `docs/architecture/app.json`.
+- Added a class-based architecture compliance prep test in `test/tests/base/base.py`.
+- Added combined-architecture and code-tree HTML review artifacts for architecture compliance runs.
+- Updated the test runner so class-based tests can construct from normal input bindings.
+- Added a shebang to `app/app.py` for direct interpreter execution.
 
 ## Highlights (26.05.26.03)
 

@@ -28,6 +28,7 @@ from utils.baseutils import Logger, Params, get_config, load_message_lookup
 MANIFESTS_DIR_REL = Path("docs/manifests")
 
 
+# Feature 3.1.1
 def load_manifest_entries(source_root: Path, behaviors: set[str]) -> dict[str, list[tuple[Path, Path]]]:
     """Load entries from all manifests in docs/manifests grouped by behavior key."""
     manifests_dir = source_root / MANIFESTS_DIR_REL
@@ -173,6 +174,7 @@ def create_instantiate_logger(source_root: Path, target_app: str, timestamp: str
     return logger, template
 
 
+# Feature 3.1.2
 def instantiate(source_root: Path, target_root: Path, target_value: str, logger: Logger | None = None):
     """Instantiate BaseApp into target_root with manifest-driven file copying."""
     target_root.mkdir(parents=True, exist_ok=True)
@@ -247,6 +249,7 @@ def parse_args():
     return parser.parse_args()
 
 
+# Feature 3.1.3
 def main():
     args = parse_args()
 

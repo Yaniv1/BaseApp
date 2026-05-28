@@ -1,3 +1,5 @@
+# Feature 6.1
+
 import pandas as pd
 import copy
 import json
@@ -25,8 +27,9 @@ except ImportError:
         from datautils import DataFrameConverter, DataLoader
 
 
+# Feature 6.1.1
 def trackit(func):
-    """Track function execution and return result with extensible metrics."""
+    """Feature ID: 6.1.1. Track function execution and return result with extensible metrics."""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -43,8 +46,9 @@ def trackit(func):
 
     return wrapper
 
+# Feature 6.1.2
 def dict_merge(base, override):
-    """Recursively merge override dict into base dict and return merged result."""
+    """Feature ID: 6.1.2. Recursively merge override dict into base dict and return merged result."""
     merged = dict(base)
     for key, override_value in override.items():
         base_value = merged.get(key)
@@ -54,8 +58,9 @@ def dict_merge(base, override):
             merged[key] = override_value
     return merged
 
+# Feature 6.1.3
 class Params:
-    """Simple container that exposes dictionary values as attributes."""
+    """Feature ID: 6.1.3. Simple container that exposes dictionary values as attributes."""
     def __init__(self, params={}):
         """Initialize the container from a parameter dictionary."""
         self.set(**params)
@@ -238,8 +243,9 @@ def get_config(config_path="../config/base.json", overrides={}):
     return config
 
 
+# Feature 6.1.4
 class Config:
-    """Load, merge, evaluate, and populate runtime configuration."""
+    """Feature ID: 6.1.4. Load, merge, evaluate, and populate runtime configuration."""
 
     def __init__(self, args=None, base_config_path="../config/base.json", overrides=None):
 
@@ -289,8 +295,9 @@ def tryeval(val):
         return val
 
 
+# Feature 6.1.5
 def resolve_dotted(value, path):
-    """Resolve object, Params, and dict values by dotted path syntax."""
+    """Feature ID: 6.1.5. Resolve object, Params, and dict values by dotted path syntax."""
     if not path:
         return value
 
@@ -313,8 +320,9 @@ def resolve_dotted(value, path):
     return resolve_dotted(next_value, tail)
 
 
+# Feature 6.1.6
 class HtmlDoc:
-    """Render DataFrame/dict/list datasets into HTML documents via template files."""
+    """Feature ID: 6.1.6. Render DataFrame/dict/list datasets into HTML documents via template files."""
 
     def __init__(self, data, template, title="Output", wrappers=("{$", "$}")):
         self.data = data
@@ -415,6 +423,7 @@ class HtmlDoc:
         return output_path
     
 
+# Feature 6.1.7
 def load_message_lookup(paths):
     """Load and concatenate message dictionary CSV files, deduplicating by code (first wins)."""
     
@@ -443,9 +452,9 @@ def load_message_lookup(paths):
         combined["type"] = ""
     return combined.drop_duplicates(subset=["code"], keep="first").reset_index(drop=True)
 
-
+# Feature 6.1.9
 class Logger:
-    """Simple logger that stores messages with timestamps."""
+    """Feature ID: 6.1.9. Simple logger that stores messages with timestamps."""
     def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False, 
                  log_types=None, 
                  type_colors=None, message_lookup=None):
@@ -713,24 +722,32 @@ class Logger:
         value = resolve_dotted(snapshot, path)
         return default if value is None else value
 
+    # Feature 6.1.9.18
     def log(self, message="", message_type=None, data=None, message_code=None, entry=True):
-        """ store a message with the current timestamp."""
+        """Feature ID: 6.1.9.18. Store a message or data with the current timestamp."""
+        
         looked_up_text = ""
         looked_up_type = ""
+
+        # Feature 6.1.9.18.1: Resolving message
         if message_code:
             looked_up_text, looked_up_type = self._lookup_entry(message_code)
 
         resolved_message = message if message else looked_up_text
         resolved_type = message_type if message_type is not None else (looked_up_type if looked_up_type else "INFO")
-
+        
         message_key = self._resolve_message_key(resolved_type)
         message_type = self.log_types[message_key]
-        normalized_data = self._normalize_data(data)
 
+                
         with self._lock:
+
+            # Feature 6.1.9.18.2: Storing data
+            normalized_data = self._normalize_data(data)
             if normalized_data is not None:
                 self.data_map = dict_merge(self.data_map, normalized_data)
-
+            
+            # Feature 6.1.9.18.3: Storing message
             if entry:
                 now = dt.datetime.utcnow()
                 elapsed_time = (now - self.start_time).total_seconds()
@@ -744,6 +761,7 @@ class Logger:
 
                 self.logs.append(event)
 
+            # Feature 6.1.9.18.4: Printing message to console
             if entry and self._should_print(message_key):
                 console_line = ' | '.join([str(v) for v in list(event.values())])
                 print(self._format_console_row(message_type, console_line))
@@ -751,8 +769,9 @@ class Logger:
       
 
 
+# Feature 6.1.10
 def save(data, path, format="json", **kwargs):
-    """Save data to a file in the specified format, supporting json, csv, and html."""
+    """Feature ID: 6.1.10. Save data to a file in the specified format, supporting json, csv, and html."""
 
     def to_json_compatible(value):
         """Convert NaN-like and non-primitive values into JSON-compatible equivalents."""
@@ -822,8 +841,9 @@ def save(data, path, format="json", **kwargs):
     return None
 
 
+# Feature 6.1.8
 def create_logger(settings):
-    """Create logger instance using configured paths, verbosity, and message dictionaries."""
+    """Feature ID: 6.1.8. Create logger instance using configured paths, verbosity, and message dictionaries."""
 
     messages_dir = settings.get("messages_dir")
     if messages_dir and not os.path.isabs(str(messages_dir)):
@@ -891,8 +911,9 @@ def as_list(value):
     return [value]
 
 
-class Main:
-    """Main class for running the data loading and label mapping pipeline."""
+# Feature 6.1.11
+class AppManager:
+    """Feature ID: 6.1.11. Main runtime lifecycle class that loads inputs, processes data, stores outputs, and finalizes run state."""
     
     def __init__(self, config=None, logger=None, results=None):
         """Run data loading pipeline with optional injected runtime dependencies."""
@@ -946,8 +967,9 @@ class Main:
         results.html_template = self.config.COMMON.HTML_TEMPLATE
         return results
 
+    # Feature 6.1.11.1
     def load_data(self):
-        """Load all enabled config.input entries and store results under configured targets."""
+        """Feature ID: 6.1.11.1. Load all enabled config.input entries and store results under configured targets."""
         input_node = getattr(self.config, "input", None)
         if input_node is None:
             return
@@ -983,8 +1005,9 @@ class Main:
                 data={"num_of_results": len(self.results.get_dict().keys())},
             )
 
+    # Feature 6.1.11.2
     def process_data(self):
-        """Run configured processing steps against loaded results data."""
+        """Feature ID: 6.1.11.2. Run configured processing steps against loaded results data."""
         process_node = getattr(self.config, "process", None)
         if process_node is None:
             return
@@ -1132,7 +1155,9 @@ class Main:
         self._save_output_artifact(output_key, output_dict, data, item_keys=item_keys)
        
     
+    # Feature 6.1.11.3
     def store_outputs(self, output_config='config.output', outputs=[]):
+        """Feature ID: 6.1.11.3. Persist configured outputs, including split artifacts and JSON materialization diagnostics."""
 
         for output_key, output_dict in resolve_dotted(self, output_config).get_dict().items():
             if outputs and output_key not in outputs:
@@ -1178,8 +1203,9 @@ class Main:
             )
         
     
+    # Feature 6.1.11.4
     def close(self):
-        """Finalize the run state and prepare runtime artifacts for saving."""
+        """Feature ID: 6.1.11.4. Finalize the run state and prepare runtime artifacts for saving."""
         self.results.end_time = dt.datetime.utcnow()
         self.results.elapsed_seconds = (self.results.end_time - self.results.start_time).total_seconds()
         self.logger.log(
@@ -1198,8 +1224,9 @@ class Main:
         )
         self.logs = self.logger.logs
 
+    # Feature 6.1.11.5
     def run(self):
-        """Run the full data loading and processing pipeline, then store outputs."""
+        """Feature ID: 6.1.11.5. Run the full data loading and processing pipeline, then store outputs."""
         self.load_data()
         self.process_data()
         self.close()

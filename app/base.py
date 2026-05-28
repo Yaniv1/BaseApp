@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Executable entrypoint for BaseApp."""
+"""Feature ID: 1.1. Executable entrypoint for BaseApp."""
 
 import os
 import sys
@@ -15,21 +15,24 @@ from utils.apputils import *
 from utils.testutils import TestManager, build_test_config
 
 
-class App(Main):
-    """Concrete application entrypoint."""
+# Feature 1.1.1
+class App(AppManager):
+    """Feature ID: 1.1.1. Concrete application entrypoint."""
 
     def __init__(self, config=None, logger=None, results=None):
         super().__init__(config=config, logger=logger, results=results)
 
 
+# Feature 1.1.2
 @trackit
 def execute(app):
-    """Execute app lifecycle and return process exit code."""
+    """Feature ID: 1.1.2. Execute app lifecycle and return process exit code."""
     return app.run()
 
 
+# Feature 1.1.3
 def run(args=sys.argv[1:]):
-    """Run the app with explicit config/logger initialization and tracked execution."""
+    """Feature ID: 1.1.3. Run the app with explicit config/logger initialization and tracked execution."""
     
     base_config_path = "../config/base.json"
     config = Config(

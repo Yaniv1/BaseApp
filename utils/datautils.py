@@ -7,9 +7,9 @@ import datetime as dt
 from typing import Any, Dict, List, Optional
 
 
+# Feature 6.2.1
 class DataFrameConverter:
-    """
-    Securely applies transformation rules to a pandas DataFrame.
+    """Feature ID: 6.2.1. Securely applies transformation rules to a pandas DataFrame.
 
     Supports:
         - Column-level transformations
@@ -104,8 +104,9 @@ class DataFrameConverter:
         return df
 
 
+# Feature 6.2.2
 class DataLoader:
-    """Load files from a source file/folder using configurable format and optional logging."""
+    """Feature ID: 6.2.2. Load files from a source file/folder using configurable format and optional logging."""
 
     def __init__(self, source, logger=None, data=None, base_dir=None):
         self.source = source if isinstance(source, dict) else vars(source)

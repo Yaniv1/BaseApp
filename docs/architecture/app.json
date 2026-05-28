@@ -1,0 +1,110 @@
+{
+    "features": {
+        "1": {
+            "features": {
+                "1.2": {
+                    "name": "app.app",
+                    "description": "Variant executable wrapper that delegates startup to the shared base runtime.",
+                    "type": "Folder.PyFile",
+                    "path": "app/app.py"
+                }
+            },
+            "path": "app"
+        },
+        "2": {
+            "features": {
+                "2.2": {
+                    "name": "config.app",
+                    "description": "Variant override configuration that changes only app-owned settings such as COMMON.APP_NAME.",
+                    "type": "Folder.JsonFile",
+                    "path": "config/app.json"
+                }
+            },
+            "path": "config"
+        },
+        "4": {
+            "features": {
+                "4.2": {
+                    "features": {
+                        "4.2.2": {
+                            "name": "docs.instructions.app",
+                            "description": "App-owned generic instruction file created during instantiation for variant-specific guidance.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "docs/instructions/app.md"
+                        }
+                    },
+                    "path": "docs/instructions"
+                },
+                "4.6": {
+                    "features": {
+                        "4.6.2": {
+                            "name": "docs.version.app",
+                            "description": "App version record that should be updated with each pull of base updates and app changes.",
+                            "type": "Folder.Folder.TxtFile",
+                            "path": "docs/version/app.txt"
+                        }
+                    },
+                    "path": "docs/version"
+                }
+            },
+            "path": "docs"
+        },
+        "5": {
+            "features": {
+                "5.1": {
+                    "features": {
+                        "5.1.2": {
+                            "name": "test.config.app",
+                            "description": "App testing configuration that extends the base config with variant-specific settings, checks, and outputs.",
+                            "type": "Folder.JsonFile",
+                            "path": "test/config/app.json"
+                        }
+                    },
+                    "path": "test/config"
+                },
+                "5.2": {
+                    "features": {
+                        "5.2.2": {
+                            "name": "test.tests.app",
+                            "description": "App-owned tests that extend the base tests with variant-specific checks.",
+                            "type": "Folder.Folder.PyFile",
+                            "features": {
+                                "5.2.2.1": {
+                                    "name": "test.tests.app.app",
+                                    "description": "File 'test/tests/app/app.py'.",
+                                    "type": "Folder.Folder.Folder.PyFile",
+                                    "path": "test/tests/app/app.py"
+                                }
+                            },
+                            "path": "test/tests/app"
+                        }
+                    },
+                    "path": "test/tests"
+                },
+                "5.3": {
+                    "features": {
+                        "5.3.2": {
+                            "name": "test.testutils",
+                            "description": "App-layer testing utilities that extend base testutils with variant-specific helpers.",
+                            "type": "Folder.PyFile",
+                            "path": "test/testutils.py"
+                        }
+                    },
+                    "path": "test"
+                }
+            },
+            "path": "test"
+        },
+        "6": {
+            "features": {
+                "6.4": {
+                    "name": "utils.apputils",
+                    "description": "App-layer utility module reserved for variant-specific helpers and currently re-exporting shared utilities.",
+                    "type": "Folder.PyFile",
+                    "path": "utils/apputils.py"
+                }
+            },
+            "path": "utils"
+        }
+    }
+}

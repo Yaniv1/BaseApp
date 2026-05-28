@@ -29,6 +29,9 @@ BaseApp/
   updates/
     base.json
   docs/
+    architecture/
+      base.json
+      app.json
     message_codes/
       base.csv
       app.csv
@@ -272,6 +275,22 @@ Default test artifacts are written as:
 - `{$OUTPUT_PATH$}/tests/summary/summary.html`
 - `{$OUTPUT_PATH$}/tests/logs/test_log.html`
 
+BaseApp also includes a prep-time architecture compliance test in
+`test/tests/base/base.py`.
+
+- It deep-merges `docs/architecture/base.json` first, then additional
+  architecture files such as `docs/architecture/app.json`.
+- Architecture items can now include a `path` field for exact matching.
+- Paths are relative to the app root and file members use `file::symbol`
+  syntax such as `utils/baseutils.py::dict_merge` and
+  `utils/baseutils.py::Logger.log`.
+- The test compares architecture items to code items by `path` when available,
+  then falls back to `name` matching.
+- Missing architecture items, missing code items, and feature id mismatches are
+  logged as `WARN` results.
+- The test writes review artifacts to `{$OUTPUT_PATH$}/tests/architecture/`:
+  `combined_architecture.html`, `code_tree.html`, and `report.json`.
+
 ## Configuration
 
 Primary base config: `config/base.json`
@@ -288,6 +307,12 @@ Top-level nodes:
 - `process` — sequential DataFrame conversion steps over `results` data
 - `output` — declarative output entries (see above)
 - `updates` — changelog loaded from `updates/base.json` (newest first)
+
+Architecture inventories are maintained under `docs/architecture`.
+
+- `docs/architecture/base.json` stores the reusable base feature inventory.
+- `docs/architecture/app.json` stores variant-app feature inventory and app-owned placeholders.
+- Complex feature nodes include `name`, `path`, `description`, `type`, and nested `features`.
 
 Testing config is maintained separately in `test/config/base.json` and is
 flattened into a runtime test config using:
@@ -385,17 +410,24 @@ The following are current `pull` sources:
 - `app/base.py`
 - `config/base.json`
 - `updates/base.json`
+- `docs/architecture/base.json`
 - `docs/manifests/pull.json`
 - `scripts/pullbase.py`
 - `utils/baseutils.py`
+- `utils/datautils.py`
 - `utils/testutils.py`
 - `docs/instructions/base.md`
 - `docs/instructions/app.md`
 - `docs/version/base.txt`
 - `docs/readme/base.md`
 - `docs/templates/dataset_table.html`
+- `docs/message_codes/base.csv`
+- `docs/message_codes/logger.csv`
 - `docs/message_codes/test.csv`
 - `config/requirements.txt`
+- `scripts`
+- `test/config/base.json`
+- `test/tests/base`
 
 ### Hard mode (`--hard`)
 
@@ -429,10 +461,10 @@ during instantiation so it remains app-owned during future base pulls.
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
 - Changelog: `updates` array in `updates/base.json`, newest entry first.
-- Latest: `26.05.26.03` adds a built-in testing framework with config-driven
-  prep/live/post phases, a dedicated PASS/WARN/FAIL logger, runtime-config-
-  derived test config, logger-backed monitoring through `data_map`, and
-  persisted test result artifacts with explicit failures and traceback context.
+- Latest: `26.05.28.01` adds path-aware architecture inventories, a class-based
+  architecture compliance prep test with HTML review artifacts, class-target
+  test construction from normal input bindings, and a shebang on `app/app.py`
+  for direct interpreter execution.
 
 ## Agent Guidance
 

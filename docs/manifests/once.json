@@ -19,6 +19,9 @@
             "source": "docs/message_codes/app.csv"
         },
         {
+            "source": "docs/architecture"
+        },
+        {
             "source": "updates"
         },
         {

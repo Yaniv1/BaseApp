@@ -28,6 +28,17 @@
         },
         "prep": [
             {
+                "id": "prep_architecture_alignment",
+                "name": "Prep architecture alignment",
+                "callable": "test.tests.base.base.ArchitectureAlignmentTest",
+                "inputs": {
+                    "message": "Validated the codebase against docs/architecture and generated candidate temp architecture files",
+                    "artifact_rel_dir": "tests/architecture",
+                    "architecture_html_file": "combined_architecture.html",
+                    "code_tree_html_file": "code_tree.html"
+                }
+            },
+            {
                 "id": "prep_config_ready",
                 "name": "Prep config readiness",
                 "callable": "utils.testutils.evaluate_checks",

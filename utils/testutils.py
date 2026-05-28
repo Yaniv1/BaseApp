@@ -1,17 +1,21 @@
-"""Testing framework utilities for prep, live, and post runtime validation."""
+"""Feature ID: 6.3. Testing framework utilities for prep, live, and post runtime validation."""
 
+import ast
 import datetime as dt
 import importlib
 import inspect
+import json
 import os
+import re
 import threading
 import time
 import traceback
-from .baseutils import Main, Params, create_logger, get_config, resolve_dotted, as_list
+from .baseutils import AppManager, Params, create_logger, get_config, resolve_dotted, as_list
 
 
-class TestManager(Main):
-    """Coordinate config-driven prep, live, and post runtime tests."""
+# Feature 6.3.1
+class TestManager(AppManager):
+    """Feature ID: 6.3.1. Coordinate config-driven prep, live, and post runtime tests."""
 
     def __init__(self, config=None, logger=None, results=None):
         seeded_results = results if results is not None else Params(
@@ -297,8 +301,8 @@ class TestManager(Main):
         callable_target = None
 
         try:
-            callable_target = self._resolve_callable_target(test_definition)
             bound_inputs = self._resolve_inputs(test_definition)
+            callable_target = self._resolve_callable_target(test_definition, bound_inputs=bound_inputs)
             call_output = self._invoke_target(callable_target, bound_inputs)
             result_lines = self._normalize_test_output(call_output, test_definition, phase, run_number)
         except Exception as ex:
@@ -367,7 +371,7 @@ class TestManager(Main):
             self._phase_index[phase] = int(self._phase_index.get(phase, 0)) + 1
             return self._phase_index[phase]
 
-    def _resolve_callable_target(self, test_definition):
+    def _resolve_callable_target(self, test_definition, bound_inputs=None):
         """Resolve function, class, or class method configured for a test definition."""
         target_path = test_definition.get("callable") or test_definition.get("target")
         if not target_path:
@@ -381,9 +385,28 @@ class TestManager(Main):
             parent = current
             current = getattr(current, attr)
 
+        resolved_constructor_inputs = self._resolve_mapping(test_definition.get("constructor_inputs", {}))
+        bound_inputs = bound_inputs or {}
+
+        def build_constructor_kwargs(callable_obj, extra_inputs=None):
+            kwargs = dict(resolved_constructor_inputs)
+            candidate_inputs = dict(extra_inputs or {})
+            for key, value in candidate_inputs.items():
+                kwargs.setdefault(key, value)
+
+            try:
+                signature = inspect.signature(callable_obj)
+            except Exception:
+                return kwargs
+
+            parameters = signature.parameters
+            if any(parameter.kind == inspect.Parameter.VAR_KEYWORD for parameter in parameters.values()):
+                return kwargs
+            return {name: value for name, value in kwargs.items() if name in parameters}
+
         if inspect.isclass(current):
-            constructor_inputs = self._resolve_mapping(test_definition.get("constructor_inputs", {}))
-            instance = current(**constructor_inputs) if constructor_inputs else current()
+            constructor_kwargs = build_constructor_kwargs(current.__init__, bound_inputs)
+            instance = current(**constructor_kwargs) if constructor_kwargs else current()
             if hasattr(instance, "run") and callable(getattr(instance, "run")):
                 return getattr(instance, "run")
             if callable(instance):
@@ -391,8 +414,8 @@ class TestManager(Main):
             raise ValueError(f"Configured class target '{target_path}' is not runnable")
 
         if inspect.isfunction(current) and inspect.isclass(parent):
-            constructor_inputs = self._resolve_mapping(test_definition.get("constructor_inputs", {}))
-            instance = parent(**constructor_inputs) if constructor_inputs else parent()
+            constructor_kwargs = build_constructor_kwargs(parent.__init__, bound_inputs)
+            instance = parent(**constructor_kwargs) if constructor_kwargs else parent()
             return getattr(instance, current.__name__)
 
         if callable(current):
@@ -673,8 +696,9 @@ class TestManager(Main):
         return self.results.report.get_dict()
 
 
+# Feature 6.3.2
 def build_test_config(runtime_config, test_config_path="../test/config/base.json"):
-    """Load a flattened test config derived from the integrated runtime config."""
+    """Feature ID: 6.3.2. Load a flattened test config derived from the integrated runtime config."""
     if runtime_config is None:
         raise ValueError("runtime_config is required for build_test_config")
 
@@ -691,8 +715,9 @@ def build_test_config(runtime_config, test_config_path="../test/config/base.json
     )
 
 
+# Feature 6.3.3
 def evaluate_checks(checks=None, **kwargs):
-    """Evaluate one or more config-driven criteria and return a structured result line."""
+    """Feature ID: 6.3.3. Evaluate one or more config-driven criteria and return a structured result line."""
     normalized_checks = []
     for check in checks or []:
         if hasattr(check, "get_dict"):
@@ -750,8 +775,9 @@ def evaluate_checks(checks=None, **kwargs):
     }
 
 
+# Feature 6.3.4
 def monitor_activity(monitor=None, monitor_logger=None, min_history=1, **kwargs):
-    """Check that the shared logger monitor has received at least the expected number of updates."""
+    """Feature ID: 6.3.4. Check that the shared logger monitor has received at least the expected number of updates."""
     active_monitor = monitor_logger if monitor_logger is not None else monitor
     snapshot = active_monitor.get_data_map_snapshot() if active_monitor is not None and hasattr(active_monitor, "get_data_map_snapshot") else {}
     history_count = len(getattr(active_monitor, "logs", [])) if active_monitor is not None else 0
@@ -777,3 +803,4 @@ def monitor_activity(monitor=None, monitor_logger=None, min_history=1, **kwargs)
         ],
         "data": {"history_count": history_count, "snapshot_keys": list(snapshot.keys())[:20]},
     }
+

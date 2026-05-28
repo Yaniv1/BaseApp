@@ -41,6 +41,7 @@ def iter_source_files(source_root: Path):
                 yield file_path.relative_to(source_root)
 
 
+# Feature 3.2.1
 def hard_pull(local_root: Path, source_root: Path) -> tuple[int, list[str]]:
     """Copy every file from source_root into local_root, overwriting all."""
     copied = 0
@@ -129,6 +130,7 @@ def load_pull_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
     return file_map
 
 
+# Feature 3.2.2
 def pull_base_files(local_root: Path, source_root: Path, file_map: list[tuple[str, str]]) -> tuple[int, list[str]]:
     """Copy base files listed in file_map from source into local root."""
     copied = 0
@@ -233,6 +235,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+# Feature 3.2.3
 def main() -> int:
     args = parse_args()
 
