@@ -228,12 +228,12 @@ class TestManager(AppManager):
                     summary["failures"].extend(result.get("failures", []))
                     summary["n_failures"] = len(summary["failures"])
                     if result.get("n_failures", 0) > 0:
-                        if self.fail_fast:
+                        if self.settings.fail_fast:
                             self._live_stop.set()
                     summary["tests_run"] += 1
 
                 self.results.summary.live.append(summary)
-                if self.fail_fast and summary["n_failures"] > 0:
+                if self.settings.fail_fast and summary["n_failures"] > 0:
                     break
 
             sleep_seconds = self._next_live_sleep(now)
