@@ -3,5 +3,26 @@
         "APP_NAME": "MyApp",
         "VERSION": "A26.05.26.03",
         "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}"        
+    },
+
+    "APP": {
+        
+    },
+
+    "LOG":{
+    },
+
+    "INPUT": {
+        
+    },
+
+    "PROCESS": {
+        
+    },
+    
+    "OUTPUT": {
+        
     }
+
 }
+

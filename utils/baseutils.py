@@ -921,56 +921,62 @@ class AppManager:
         
         if config is not None:
             self.base_dir = config.base_dir
-            self.config = config
-            self.results = results if results is not None else self.create_results()
-            logger_settings = self.config.log.get_dict() if hasattr(self.config, "log") else {}
+            self.CONFIG = config
+            self.config = self.CONFIG
+            self.RESULTS = results if results is not None else self.create_results()
+            self.results = self.RESULTS
+            logger_settings = self.CONFIG.LOG.get_dict() if hasattr(self.CONFIG, "LOG") else {}
             logger_settings["base_dir"] = self.base_dir
-            logger_settings["start_time"] = self.results.start_time
+            logger_settings["start_time"] = self.RESULTS.start_time
 
             self.logger_name = logger_settings.get("name", "logger")
             setattr(self, self.logger_name, logger if logger is not None else create_logger(logger_settings))
+            self.LOGS = getattr(getattr(self, self.logger_name), "logs", None)
 
         else:
             self.base_dir = os.getcwd()
-            self.config = config if isinstance(config, Params) else Params(config)
-            self.results = results if results is not None else Params()
-            if not hasattr(self.results, "start_time"):
-                self.results.start_time = dt.datetime.utcnow()
-            if not hasattr(self.results, "run_id"):
-                self.results.run_id = self.config.COMMON.RUN_ID or str(uuid.uuid4().hex[:6]).upper()
-            if not hasattr(self.results, "signature"):
-                self.results.signature = f"run_id={self.results.run_id} start_time={self.results.start_time}"
-            if not hasattr(self.results, "app_title"):
-                self.results.app_title = f"{self.config.app.name} v{self.config.app.version}"
-            if not hasattr(self.results, "html_template"):
-                self.results.html_template = self.config.COMMON.HTML_TEMPLATE
-            setattr(self, 'logger', logger if logger is not None else Logger(start_time=self.results.start_time))
+            self.CONFIG = config if isinstance(config, Params) else Params(config)
+            self.config = self.CONFIG
+            self.RESULTS = results if results is not None else Params()
+            self.results = self.RESULTS
+            if not hasattr(self.RESULTS, "start_time"):
+                self.RESULTS.start_time = dt.datetime.utcnow()
+            if not hasattr(self.RESULTS, "run_id"):
+                self.RESULTS.run_id = self.CONFIG.COMMON.RUN_ID or str(uuid.uuid4().hex[:6]).upper()
+            if not hasattr(self.RESULTS, "signature"):
+                self.RESULTS.signature = f"run_id={self.RESULTS.run_id} start_time={self.RESULTS.start_time}"
+            if not hasattr(self.RESULTS, "app_title"):
+                self.RESULTS.app_title = f"{self.CONFIG.APP.name} v{self.CONFIG.APP.version}"
+            if not hasattr(self.RESULTS, "html_template"):
+                self.RESULTS.html_template = self.CONFIG.COMMON.HTML_TEMPLATE
+            setattr(self, 'logger', logger if logger is not None else Logger(start_time=self.RESULTS.start_time))
+            self.LOGS = getattr(self.logger, "logs", None)
 
         self.logger.log(
             f"{self.__class__.__name__} initialized",
             message_code="BASE001",
             data={"instance": str(self)},
         )
-        self.logger.log(message_code="BASE002", data={"run_id": self.results.run_id})
+        self.logger.log(message_code="BASE002", data={"run_id": self.RESULTS.run_id})
         
     def create_results(self):
         """Create initialized run metadata derived from current config."""
         results = Params()
         results.start_time = (
-            dt.datetime.strptime(self.config.COMMON.START_TIME, self.config.COMMON.DATETIME_FORMAT)
-            if self.config.COMMON.START_TIME
+            dt.datetime.strptime(self.CONFIG.COMMON.START_TIME, self.CONFIG.COMMON.DATETIME_FORMAT)
+            if self.CONFIG.COMMON.START_TIME
             else dt.datetime.utcnow()
         )
-        results.run_id = self.config.COMMON.RUN_ID or str(uuid.uuid4().hex[:6]).upper()
+        results.run_id = self.CONFIG.COMMON.RUN_ID or str(uuid.uuid4().hex[:6]).upper()
         results.signature = f"run_id={results.run_id} start_time={results.start_time}"
-        results.app_title = f"{self.config.app.name} v{self.config.app.version}"
-        results.html_template = self.config.COMMON.HTML_TEMPLATE
+        results.app_title = f"{self.CONFIG.APP.name} v{self.CONFIG.APP.version}"
+        results.html_template = self.CONFIG.COMMON.HTML_TEMPLATE
         return results
 
     # Feature 6.1.11.1
     def load_data(self):
         """Feature ID: 6.1.11.1. Load all enabled config.input entries and store results under configured targets."""
-        input_node = getattr(self.config, "input", None)
+        input_node = getattr(self.CONFIG, "INPUT", None)
         if input_node is None:
             return
 
@@ -983,10 +989,10 @@ class AppManager:
 
             target_name = input_settings.get("target", input_key)
 
-            setattr(self.results, target_name, 
+            setattr(self.RESULTS, target_name, 
                     DataLoader( source=input_settings, 
                                 logger=self.logger, 
-                                data=getattr(self.results, target_name, {}),
+                                data=getattr(self.RESULTS, target_name, {}),
                                 base_dir=self.base_dir).load())
 
             # Publish lightweight runtime state into the logger data map for external monitoring.
@@ -1001,14 +1007,14 @@ class AppManager:
             
             getattr(self, self.logger_name).log(
                 message_code="BASE003",
-                message=f"Loaded input '{input_key}' into results.{target_name}",        
-                data={"num_of_results": len(self.results.get_dict().keys())},
+                message=f"Loaded input '{input_key}' into RESULTS.{target_name}",        
+                data={"num_of_results": len(self.RESULTS.get_dict().keys())},
             )
 
     # Feature 6.1.11.2
     def process_data(self):
         """Feature ID: 6.1.11.2. Run configured processing steps against loaded results data."""
-        process_node = getattr(self.config, "process", None)
+        process_node = getattr(self.CONFIG, "PROCESS", None)
         if process_node is None:
             return
 
@@ -1019,11 +1025,11 @@ class AppManager:
                 continue
 
             source_name = step_settings.get("source")
-            source_value = getattr(self.results, source_name, None) if source_name else None
+            source_value = getattr(self.RESULTS, source_name, None) if source_name else None
 
             context = {}
             for alias, result_name in step_settings.get("context", {}).items():
-                context[alias] = getattr(self.results, result_name, None)
+                context[alias] = getattr(self.RESULTS, result_name, None)
             context["source_data"] = source_value
 
             source_df = source_value.copy() if isinstance(source_value, pd.DataFrame) else pd.DataFrame()
@@ -1035,7 +1041,7 @@ class AppManager:
                 log_func=(lambda msg, code=None, data=None: self.logger.log(message=msg, message_code=code, data=data))
             ).apply(source_df)
 
-            setattr(self.results, step_settings.get("target", step_id), result)
+            setattr(self.RESULTS, step_settings.get("target", step_id), result)
 
     def _to_raw_data(self, value, max_items=None):
         """Convert Params/objects into plain dict/list primitives with optional item limits."""
@@ -1117,14 +1123,9 @@ class AppManager:
             title_suffix = output_key.capitalize() if not item_keys else f"{output_key.capitalize()} {' / '.join([str(k) for k in item_keys])}"
             artifact_data = HtmlDoc(
                 data=data,
-                template=output_dict.get("kwargs", {}).get("template", self.results.html_template),
-                title=f"{self.results.app_title} {self.results.signature} {title_suffix}")
-
-        save_kwargs = {
-            'data': artifact_data,
-            'path': full_output_path,
-            'format': output_dict.get("format", "json")
-        }
+                template=output_dict.get("kwargs", {}).get("template", self.RESULTS.html_template),
+                title=f"{self.RESULTS.app_title} {self.RESULTS.signature} {title_suffix}",
+            )
         save_kwargs.update(output_dict.get("kwargs", {}))
         saved_path = save(**save_kwargs)
 
@@ -1156,7 +1157,7 @@ class AppManager:
        
     
     # Feature 6.1.11.3
-    def store_outputs(self, output_config='config.output', outputs=[]):
+    def store_outputs(self, output_config='CONFIG.OUTPUT', outputs=[]):
         """Feature ID: 6.1.11.3. Persist configured outputs, including split artifacts and JSON materialization diagnostics."""
 
         for output_key, output_dict in resolve_dotted(self, output_config).get_dict().items():
@@ -1206,13 +1207,13 @@ class AppManager:
     # Feature 6.1.11.4
     def close(self):
         """Feature ID: 6.1.11.4. Finalize the run state and prepare runtime artifacts for saving."""
-        self.results.end_time = dt.datetime.utcnow()
-        self.results.elapsed_seconds = (self.results.end_time - self.results.start_time).total_seconds()
+        self.RESULTS.end_time = dt.datetime.utcnow()
+        self.RESULTS.elapsed_seconds = (self.RESULTS.end_time - self.RESULTS.start_time).total_seconds()
         self.logger.log(
             data={
                 "results": {
-                    "end_time": self.results.end_time,
-                    "elapsed_seconds": self.results.elapsed_seconds,
+                    "end_time": self.RESULTS.end_time,
+                    "elapsed_seconds": self.RESULTS.elapsed_seconds,
                 }
             },
             entry=False,
@@ -1220,9 +1221,9 @@ class AppManager:
         self.logger.log(
             f"{self.__class__.__name__} completed",
             message_code="BASE999",
-            data={"elapsed_seconds": round(self.results.elapsed_seconds, 2)},
+            data={"elapsed_seconds": round(self.RESULTS.elapsed_seconds, 2)},
         )
-        self.logs = self.logger.logs
+        self.LOGS = self.logger.logs
 
     # Feature 6.1.11.5
     def run(self):

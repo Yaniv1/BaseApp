@@ -65,6 +65,14 @@ class ArchitectureAlignmentTest(AppManager):
     def _normalize_rel(self, value):
         return str(value or "").replace("\\", "/").strip("/")
 
+    def _normalize_path(self, value):
+        path = Path(value)
+        try:
+            path = path.relative_to(self.base_dir)
+        except ValueError:
+            pass
+        return self._normalize_rel(path)
+
     def _normalize_name(self, value):
         text = str(value or "").strip().strip(".")
         if not text:
@@ -558,13 +566,13 @@ class ArchitectureAlignmentTest(AppManager):
     def _write_candidate_documents(self, missing_items, architecture, candidate_rel_dir="tests/results/architecture_changes"):
         candidate_docs = self._build_candidate_documents(missing_items, architecture)
         candidate_paths = {}
-        candidate_dir = Path(self.config.COMMON.OUTPUT_PATH) / candidate_rel_dir
+        candidate_dir = Path(self.CONFIG.COMMON.OUTPUT_PATH) / candidate_rel_dir
         candidate_dir.mkdir(parents=True, exist_ok=True)
         for source_key, document in candidate_docs.items():
             output_path = candidate_dir / f"{source_key}.json"
             with open(output_path, "w", encoding="utf-8") as handle:
                 json.dump(document, handle, indent=4)
-            candidate_paths[source_key] = self._normalize_rel(output_path.relative_to(self.base_dir))
+            candidate_paths[source_key] = self._normalize_path(output_path)
         return candidate_paths
 
     def _architecture_status(self, architecture_item, code_item, comparison):
@@ -699,14 +707,14 @@ class ArchitectureAlignmentTest(AppManager):
         return review
 
     def _store_review_artifacts(self, architecture_review, code_tree_review, artifact_rel_dir, architecture_html_file, code_tree_html_file):
-        artifact_dir = Path(self.config.COMMON.OUTPUT_PATH) / artifact_rel_dir
+        artifact_dir = Path(self.CONFIG.COMMON.OUTPUT_PATH) / artifact_rel_dir
         artifact_dir.mkdir(parents=True, exist_ok=True)
         template_path = self._resolve_template_path()
 
         architecture_path = artifact_dir / architecture_html_file
         code_tree_path = artifact_dir / code_tree_html_file
-        save(architecture_review, str(architecture_path), format="html", template=template_path, title=f"{self.results.app_title} Architecture Review")
-        save(code_tree_review, str(code_tree_path), format="html", template=template_path, title=f"{self.results.app_title} Code Tree Review")
+        save(architecture_review, str(architecture_path), format="html", template=template_path, title=f"{self.RESULTS.app_title} Architecture Review")
+        save(code_tree_review, str(code_tree_path), format="html", template=template_path, title=f"{self.RESULTS.app_title} Code Tree Review")
 
         return {
             "architecture_html": self._normalize_rel(architecture_path),
@@ -861,7 +869,7 @@ class ArchitectureAlignmentTest(AppManager):
             "candidate_paths": candidate_paths,
             "artifact_paths": artifact_paths,
         }
-        report_path = Path(self.config.COMMON.OUTPUT_PATH) / candidate_rel_dir / "report.json"
+        report_path = Path(self.CONFIG.COMMON.OUTPUT_PATH) / candidate_rel_dir / "report.json"
         report_path.parent.mkdir(parents=True, exist_ok=True)
         with open(report_path, "w", encoding="utf-8") as handle:
             json.dump(report, handle, indent=4)

@@ -39,7 +39,7 @@ def run(args=sys.argv[1:]):
         args=args,
         base_config_path=base_config_path,
     ).config
-    logger_settings = config.log.get_dict() if config.log else {}
+    logger_settings = config.LOG.get_dict() if getattr(config, "LOG", None) else {}
     logger_settings["base_dir"] = config.base_dir
     logger = create_logger(logger_settings)
     logger.log(message_code="BASE002", data={"config": config.get_dict()})
@@ -50,7 +50,7 @@ def run(args=sys.argv[1:]):
                                     test_config_path="../test/config/base.json")
     logger.log(message_code="TEST001", data={"test_config": test_config})
     test_manager = TestManager(config=test_config, logger=logger)
-    test_manager.mark_app_state("initialized", run_id=app.results.run_id)
+    test_manager.mark_app_state("initialized", run_id=app.RESULTS.run_id)
 
     tracking = None
     runtime_error = None
@@ -59,17 +59,17 @@ def run(args=sys.argv[1:]):
         test_manager.start_live()
         test_manager.mark_app_state("running")
         tracking = execute(app)
-        app.results.runtime_tracking = tracking
+        app.RESULTS.runtime_tracking = tracking
         track_data = {'function': tracking.get('function')} | tracking.get('metrics', {})
         logger.log(message_code="BASE005", data=track_data)
         
     except Exception as ex:
         runtime_error = {"type": ex.__class__.__name__, "message": str(ex)}
-        app.results.runtime_error = runtime_error
+        app.RESULTS.runtime_error = runtime_error
         logger.log(message_code="BASEE13", message_type="ERROR", data=runtime_error)
 
     
-    app.logs = app.logger.logs
+    app.LOGS = app.logger.logs
     app.store_outputs()
 
     test_manager.mark_app_state(
@@ -80,9 +80,9 @@ def run(args=sys.argv[1:]):
     test_manager.stop_live()
     test_manager.run_phase("post")
     test_manager.finalize()
-    test_manager.store_outputs(output_config="config.output")
+    test_manager.store_outputs(output_config="CONFIG.OUTPUT")
     
-    exit_code = 1 if runtime_error or test_manager.results.report.n_failures > 0 else 0
+    exit_code = 1 if runtime_error or test_manager.RESULTS.report.n_failures > 0 else 0
     return exit_code
 
 if __name__ == "__main__":

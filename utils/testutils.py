@@ -38,10 +38,12 @@ class TestManager(AppManager):
 
         super().__init__(config=config, logger=logger, results=seeded_results)
 
-        self.settings = self.config.settings
+        self.CONFIG = self.config
+        self.RESULTS = self.results
+        self.settings = self.CONFIG.settings
         
-        self.results.summary = Params({"prep": {}, "live": [], "post": {}, "report": {} })
-        self.test_logger = self._create_test_logger(self.config.test_logger)
+        self.RESULTS.summary = Params({"prep": {}, "live": [], "post": {}, "report": {} })
+        self.test_logger = self._create_test_logger(self.CONFIG.test_logger)
         
         self._lock = threading.RLock()
         self._live_thread = None
@@ -59,8 +61,8 @@ class TestManager(AppManager):
     def _create_test_logger(self, logger_settings):
         """Create the dedicated logger used for test results."""
         logger_settings = logger_settings.get_dict() if hasattr(logger_settings, "get_dict") else {}
-        logger_settings["base_dir"] = self.config.base_dir
-        logger_settings["start_time"] = self.config.COMMON.START_TIME
+        logger_settings["base_dir"] = self.CONFIG.base_dir
+        logger_settings["start_time"] = self.CONFIG.COMMON.START_TIME
         return create_logger(logger_settings)
 
     
@@ -124,7 +126,7 @@ class TestManager(AppManager):
             if self.settings.fail_fast and result.get("n_failures", 0) > 0:
                 break
 
-            self.results.summary.set(**{phase: summary})
+            self.RESULTS.summary.set(**{phase: summary})
         if self.logger is not None:
             self.logger.log(message_code="BASE017", data=summary)
         return summary
@@ -138,7 +140,7 @@ class TestManager(AppManager):
         self._live_state = {}
         started_at = time.monotonic()
         live_offset = float(getattr(self.settings, "live_offset_seconds", 0.0) or 0.0)
-        self.results.summary.set(live=[])
+        self.RESULTS.summary.set(live=[])
         self._live_cycle = 0
         for test_def in live_tests:
             test_id = test_def.get("id")
@@ -185,10 +187,10 @@ class TestManager(AppManager):
     def finalize(self):
         """Build the final structured test summary and expose logger output."""
         summary = self._build_summary()
-        self.results.monitor = self._monitor_snapshot()
+        self.RESULTS.monitor = self._monitor_snapshot()
         self.test_logs = self.test_logger.logs
         return {
-            "tests": self.results,
+            "tests": self.RESULTS,
             "test_logs": self.test_logs,
             "summary": summary,
             "exit_code": 1 if summary.get("n_failures", 0) > 0 else 0,
@@ -232,7 +234,7 @@ class TestManager(AppManager):
                             self._live_stop.set()
                     summary["tests_run"] += 1
 
-                self.results.summary.live.append(summary)
+                self.RESULTS.summary.live.append(summary)
                 if self.settings.fail_fast and summary["n_failures"] > 0:
                     break
 
@@ -262,7 +264,7 @@ class TestManager(AppManager):
 
     def _get_phase_tests(self, phase):
         """Normalize configured tests for one phase into a consistent list shape."""
-        raw_tests = getattr(self.config, phase, [])
+        raw_tests = getattr(self.CONFIG, phase, [])
         if hasattr(raw_tests, "get_dict"):
             raw_tests = raw_tests.get_dict()
 
@@ -359,7 +361,7 @@ class TestManager(AppManager):
             )
 
         with self._lock:
-            phase_store = getattr(self.results, phase)
+            phase_store = getattr(self.RESULTS, phase)
             existing = getattr(phase_store, test_id, []) if hasattr(phase_store, test_id) else []
             setattr(phase_store, test_id, existing + result_lines)
 
@@ -441,8 +443,8 @@ class TestManager(AppManager):
         resolved.setdefault("manager", self)
         resolved.setdefault("monitor", self.logger)
         resolved.setdefault("monitor_logger", self.logger)
-        resolved.setdefault("config", self.config)
-        resolved.setdefault("results", getattr(self, "results", None) )
+        resolved.setdefault("config", self.CONFIG)
+        resolved.setdefault("results", getattr(self, "RESULTS", None) )
         resolved.setdefault("test_logger", self.test_logger)
         resolved.setdefault("phase", test_definition.get("phase"))
         resolved.setdefault("test_definition", test_definition)
@@ -485,9 +487,9 @@ class TestManager(AppManager):
             return self.logger
 
         if reference == "config":
-            return self.config
+            return self.CONFIG
         if reference == "results":
-            return getattr(self, "results", None)
+            return getattr(self, "RESULTS", None)
         if reference == "test_logger":
             return self.test_logger
 
@@ -496,9 +498,9 @@ class TestManager(AppManager):
         if reference.startswith("monitor_logger."):
             return self._resolve_monitor(reference.split(".", 1)[1])
         if reference.startswith("config."):
-            return resolve_dotted(self.config, reference.split(".", 1)[1])
+            return resolve_dotted(self.CONFIG, reference.split(".", 1)[1])
         if reference.startswith("results."):
-            return resolve_dotted(getattr(self, "results", None), reference.split(".", 1)[1])
+            return resolve_dotted(getattr(self, "RESULTS", None), reference.split(".", 1)[1])
         
         return reference
 
@@ -644,7 +646,7 @@ class TestManager(AppManager):
         total_tests = 0
 
         for phase in ["prep", "live", "post"]:
-            phase_store = getattr(self.results.summary, phase, [] if phase == "live" else {})
+            phase_store = getattr(self.RESULTS.summary, phase, [] if phase == "live" else {})
 
             if isinstance(phase_store, list):
                 tests = sum(int(item.get("tests_run", 0)) for item in phase_store if isinstance(item, dict))
@@ -681,7 +683,7 @@ class TestManager(AppManager):
 
         failures = sorted(dict.fromkeys(failures))
 
-        self.results.set(report=Params(
+        self.RESULTS.set(report=Params(
             {
                 "enabled": self.settings.enabled,
                 "fail_fast": self.settings.fail_fast,
@@ -693,7 +695,7 @@ class TestManager(AppManager):
                 "phases": phase_counts,
             }
         ))
-        return self.results.report.get_dict()
+        return self.RESULTS.report.get_dict()
 
 
 # Feature 6.3.2

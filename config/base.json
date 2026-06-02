@@ -14,7 +14,8 @@
         "OUTPUT_PATH": "{$OUTPUT_PREFIX$}/{$OUTPUT_VERSION$}"
     },
     
-    "app": {
+    "APP": {
+        
         "name": "{$APP_NAME$}",
         "version": "{$VERSION$}",       
         "dirs":{
@@ -27,7 +28,8 @@
         "verbose": true
     },
 
-    "log":{
+    "LOG":{
+        
         "start_time": "{$START_TIME$}",
         "path": "{$OUTPUT_PATH$}/logs",
         "messages_dir": "docs/message_codes",
@@ -49,7 +51,8 @@
     },
 
     
-    "input": {
+    "INPUT": {
+        
         "message_codes": {
             "load": true,
             "path": "docs/message_codes",
@@ -64,15 +67,15 @@
         }
     },
 
-    "process": {
+    "PROCESS": {
+        
         "message_codes_df": {
             "run": true,
             "source": "message_codes",
             "context": {
                 "message_codes": "message_codes"
             },
-            "conversions": [
-                
+            "conversions": [                
                 {                    
                     "scope": "df",
                     "op": "pd.concat([frame.assign(source_file=name) for name, frame in message_codes.items()], ignore_index=True)"
@@ -83,11 +86,12 @@
     },
 
     
-    "output": {
+    "OUTPUT": {
+        
         "results": {
             "store": true,
             "split": false,
-            "source": "results",
+            "source": "RESULTS",
             "path": "{$OUTPUT_PATH$}/results",
             "file": "results.json",
             "format": "json",
@@ -96,21 +100,21 @@
         "results_split": {
             "store": true,
             "split": true,
-            "source": "results",
+            "source": "RESULTS",
             "path": "{$OUTPUT_PATH$}/results",
             "format": "json",
             "max_items": 100
         },
         "config": {
             "store": true,
-            "source": "config",
+            "source": "CONFIG",
             "path": "{$OUTPUT_PATH$}/config",
             "file": "config.json",
             "format": "json"
         },
         "results_html": {
             "store": true,
-            "source": "results",
+            "source": "RESULTS",
             "path": "{$OUTPUT_PATH$}/results",
             "file": "results.html",
             "format": "html",
@@ -122,7 +126,7 @@
         "results_split_html": {
             "store": true,
             "split": 2,
-            "source": "results",
+            "source": "RESULTS",
             "path": "{$OUTPUT_PATH$}/results",
             "format": "html",
             "kwargs": {
@@ -134,7 +138,7 @@
         "message_codes_split_html": {
             "store": true,
             "split": 2,
-            "source": "results.message_codes",
+            "source": "RESULTS.message_codes",
             "path": "{$OUTPUT_PATH$}/message_codes",
             "format": "html",
             "kwargs": {
@@ -144,7 +148,7 @@
         },
         "config_html": {
             "store": true,
-            "source": "config",
+            "source": "CONFIG",
             "path": "{$OUTPUT_PATH$}/config",
             "file": "config.html",
             "format": "html",
@@ -156,7 +160,7 @@
 
         "log_html": {
             "store": true,
-            "source": "logs",
+            "source": "LOGS",
             "path": "{$OUTPUT_PATH$}/html_logs",
             "file": "{$START_TIME$}.html",
             "format": "html",
