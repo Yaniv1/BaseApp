@@ -1,4 +1,4 @@
-# BaseApp
+# BaseApp V-26.05.28.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -68,7 +68,7 @@ BaseApp/
 `base.json` has a `COMMON` node that acts as the single source of truth for all
 shared values and computed paths.
 
-`Main.__init__` runs this pipeline once:
+`AppManager.__init__` runs this pipeline once:
 
 ```
 config.evaluate(["COMMON"])   # eval Python expressions in COMMON values
@@ -122,7 +122,7 @@ Outputs are declared in the `output` node of `base.json`. Each entry controls:
 | Field | Purpose |
 |---|---|
 | `store` | `true` / `false` — whether to write the file |
-| `source` | attribute on `Main` to read data from |
+| `source` | attribute on `AppManager` to read data from |
 | `path` | output directory (supports `{$…$}` placeholders) |
 | `file` | output filename |
 | `format` | `json`, `csv`, or `html` |
@@ -191,7 +191,7 @@ message code `BASE005`.
 
 ### 8. Generic input loading (`config.input`)
 
-`Main.load_data()` iterates every node under `config.input`.
+`AppManager.load_data()` iterates every node under `config.input`.
 
 BaseApp defaults include `message_codes` and `updates` as input sources.
 
@@ -205,9 +205,28 @@ BaseApp defaults include `message_codes` and `updates` as input sources.
 - Relative and absolute paths are supported.
 - Relative paths are resolved from the app/project root directory.
 
+#### Delta mode
+
+Each input node accepts an optional `delta` flag (default `false`) handled at
+the input level by `DataLoader`:
+
+- When `delta` is `false`, every discovered file is (re)loaded on each call.
+- When `delta` is `true`, the loader rescans the source surface on every call
+  and only loads files that are either missing from the previously loaded
+  results or whose on-disk modification time has changed since the last load.
+- A per-input `last_modified` map (file key → mtime) is maintained by
+  `AppManager` in `self.input_meta[input_key]` and passed back into the loader
+  on subsequent cycles, so files modified after their initial load are picked
+  up automatically.
+- This makes cyclic / periodic scanning of large input stores cheap: unchanged
+  files are skipped, and newly appearing files on the input surface are
+  detected and loaded on the next call.
+- `BASE012` reports `delta`, `loaded`, and `skipped` counters per call for
+  observability.
+
 ### 9. Config-driven processing (`config.process`)
 
-`Main.process_data()` runs after `load_data()` and before outputs are stored.
+`AppManager.process_data()` runs after `load_data()` and before outputs are stored.
 
 - Each key under `config.process` is a step id.
 - `source` points to an item already loaded into `results`.
@@ -305,7 +324,7 @@ Top-level nodes:
 - `COMMON` — source of truth for all shared values; drives evaluate + populate
 - `app` — name, version, dirs
 - `log` — path, verbose, types, colors, max_items
-- `input` — load, path, target, format
+- `input` — load, path, target, format, delta
 - `process` — sequential DataFrame conversion steps over `results` data
 - `output` — declarative output entries (see above)
 - `updates` — changelog loaded from `updates/base.json` (newest first)
@@ -450,7 +469,7 @@ Use this to fully reset an app to the base.
 ## Notes
 
 - Windows-style paths are used by default (`C:/data/…`).
-- CLI arg overrides are supported (`key=value` pairs passed to `Main`).
+- CLI arg overrides are supported (`key=value` pairs passed to `AppManager`).
 
 ## Versioning
 
@@ -463,9 +482,10 @@ during instantiation so it remains app-owned during future base pulls.
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
 - Changelog: `updates` array in `updates/base.json`, newest entry first.
-- Latest: `26.05.28.02` moves suggested architecture change JSON outputs into
-  the test results folder while keeping the architecture review HTML artifacts
-  under the dedicated review folder.
+- Latest: `26.05.28.01` adds path-aware architecture inventories, a class-based
+  architecture compliance prep test with HTML review artifacts, class-target
+  test construction from normal input bindings, and a shebang on `app/app.py`
+  for direct interpreter execution.
 
 ## Agent Guidance
 

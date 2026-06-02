@@ -106,13 +106,26 @@ class DataFrameConverter:
 
 # Feature 6.2.2
 class DataLoader:
-    """Feature ID: 6.2.2. Load files from a source file/folder using configurable format and optional logging."""
+    """Feature ID: 6.2.2. Load files from a source file/folder using configurable format and optional logging.
 
-    def __init__(self, source, logger=None, data=None, base_dir=None):
+    Supports an optional `delta` mode controlled via the source settings (``delta: true``).
+    In delta mode the loader rescans the source surface on every call and only loads files
+    that are either missing from the previously loaded ``data`` dict or whose on-disk
+    modification time differs from the previously recorded ``last_modified`` entry. This
+    makes cyclic / periodic input scanning cheap for large input stores and also picks up
+    files that were modified after their initial load. When ``delta`` is false (default),
+    every discovered file is (re)loaded on each call.
+    """
+
+    def __init__(self, source, logger=None, data=None, base_dir=None, last_modified=None):
         self.source = source if isinstance(source, dict) else vars(source)
         self.logger = logger
         self.data = data if isinstance(data, dict) else {}
         self.base_dir = str(base_dir) if base_dir else os.getcwd()
+        # Per-file modification timestamps from prior loads; used to detect changes in delta mode.
+        self.last_modified = dict(last_modified) if isinstance(last_modified, dict) else {}
+        # Delta mode flag is sourced from the input settings so it lives next to other input options.
+        self.delta = bool(self.source.get("delta", False))
 
         source_path = self.source.get("path", "")
         source_format = self.source.get("format", "")
@@ -179,18 +192,48 @@ class DataLoader:
         return data
 
     def load(self):
-        """Load configured files and return relative-path keyed results."""
+        """Load configured files and return relative-path keyed results.
+
+        In delta mode, only load files that are new or whose mtime changed since the last load.
+        Outside delta mode, (re)load every discovered file. ``self.last_modified`` is refreshed
+        for every successfully loaded file so subsequent delta calls can compare against it.
+        """
         loaded = 0
+        skipped = 0
+
+        # Decide which files actually need to be (re)loaded this call.
+        pending = {}
+        for key, file_path in self.file_map.items():
+            try:
+                mtime = os.path.getmtime(file_path)
+            except OSError:
+                mtime = None
+
+            if self.delta:
+                prior_mtime = self.last_modified.get(key)
+                already_loaded = key in self.data
+                unchanged = (
+                    prior_mtime is not None
+                    and mtime is not None
+                    and prior_mtime == mtime
+                )
+                if already_loaded and unchanged:
+                    skipped += 1
+                    continue
+
+            pending[key] = (file_path, mtime)
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
             futures = {
                 executor.submit(self._load_file, file_path): key
-                for key, file_path in self.file_map.items()
-                if key not in self.data
+                for key, (file_path, _mtime) in pending.items()
             }
             for future in concurrent.futures.as_completed(futures):
                 key = futures[future]
-                file_path = self.file_map[key]
+                file_path, mtime = pending[key]
                 self.data[key] = future.result()
+                if mtime is not None:
+                    self.last_modified[key] = mtime
                 loaded += 1
 
                 if self.logger:
@@ -199,7 +242,7 @@ class DataLoader:
                         data={
                             "file_path": file_path,
                             "items": len(self.data[key]) if hasattr(self.data[key], "__len__") else None,
-                            "loaded%": round(loaded / len(self.files) * 100, 2) if self.files else 0,
+                            "loaded%": round(loaded / len(pending) * 100, 2) if pending else 0,
                         },
                     )
 
@@ -210,7 +253,9 @@ class DataLoader:
                 message_code="BASE012",
                 data={
                     "source": self.path,
+                    "delta": self.delta,
                     "loaded": loaded,
+                    "skipped": skipped,
                     "items": len(self.data) if hasattr(self.data, "__len__") else None,
                     "rows": rows,
                 },

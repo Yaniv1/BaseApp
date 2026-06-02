@@ -423,7 +423,7 @@
                             "features": {
                                 "6.1.11.1": {
                                     "name": "utils.baseutils.AppManager.load_data",
-                                    "description": "Load all enabled config.input entries into results targets.",
+                                    "description": "Load all enabled config.input entries into results targets; persists per-input last_modified maps in self.input_meta to support DataLoader delta mode across cycles.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::AppManager.load_data"
                                 },
@@ -469,7 +469,7 @@
                         },
                         "6.2.2": {
                             "name": "utils.datautils.DataLoader",
-                            "description": "Load files from a source file or folder using configurable format and optional logging.",
+                            "description": "Load files from a source file or folder using configurable format and optional logging. Supports an input-level `delta` flag: in delta mode the loader rescans the source on every call and only loads files that are new or whose on-disk mtime changed since the previous load, tracking per-file mtimes in last_modified.",
                             "type": "Folder.PyFile.Class",
                             "path": "utils/datautils.py::DataLoader"
                         }

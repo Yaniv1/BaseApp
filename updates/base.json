@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [6.1.11.1] [Input Loading] Added delta mode to input reading.",
+        "version": "26.06.02.01",
+        "description": "Added an input-level `delta` flag handled by DataLoader: when enabled, the loader rescans the input surface on every call and only loads files that are new or whose on-disk mtime changed since the previous load. AppManager persists a per-input last_modified map across cycles, enabling fast cyclic / periodic scanning of large input stores and automatic pickup of modified files. BASE012 now reports delta and skipped counters."
+    },
+    {
         "name": "[BaseApp] [5.3.1.1] [Architecture Compliance] Moved suggested architecture JSON outputs into the test results folder.",
         "version": "26.05.28.02",
         "description": "Updated the architecture compliance prep test so suggested architecture change JSON files and the report are saved under {$OUTPUT_PATH$}/tests/results/architecture_changes, while the HTML review artifacts remain in the architecture review folder."

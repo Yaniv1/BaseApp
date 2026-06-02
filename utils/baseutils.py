@@ -952,6 +952,10 @@ class AppManager:
             setattr(self, 'logger', logger if logger is not None else Logger(start_time=self.RESULTS.start_time))
             self.LOGS = getattr(self.logger, "logs", None)
 
+        # Per-input delta state: maps input_key -> {file_key: mtime}. Persists across load_data() calls
+        # so that subsequent runs in delta mode can detect which files are new or changed.
+        self.input_meta = {}
+
         self.logger.log(
             f"{self.__class__.__name__} initialized",
             message_code="BASE001",
@@ -989,11 +993,18 @@ class AppManager:
 
             target_name = input_settings.get("target", input_key)
 
-            setattr(self.RESULTS, target_name, 
-                    DataLoader( source=input_settings, 
-                                logger=self.logger, 
-                                data=getattr(self.RESULTS, target_name, {}),
-                                base_dir=self.base_dir).load())
+            # Instantiate the loader with prior per-file mtimes so delta mode can short-circuit
+            # files that have not changed since the previous cycle.
+            loader = DataLoader(
+                source=input_settings,
+                logger=self.logger,
+                data=getattr(self.RESULTS, target_name, {}),
+                base_dir=self.base_dir,
+                last_modified=self.input_meta.get(input_key, {}),
+            )
+            setattr(self.RESULTS, target_name, loader.load())
+            # Persist refreshed mtime map for the next cycle / delta scan.
+            self.input_meta[input_key] = loader.last_modified
 
             # Publish lightweight runtime state into the logger data map for external monitoring.
             self.logger.log(
