@@ -1,0 +1,79 @@
+{
+    "TASKS": [
+        {
+            "id": "BASE-TASK-260603-0001",
+            "uuid": "4f95b7aa-0b4b-4e26-b89b-cf2e6f4b9d1d",
+            "title": "Finalize version 26.06.03.01",
+            "description": "Finalize the current release by syncing manifest entries for requirements/tasks artifacts, updating requirement baselines, and publishing version/update metadata.",
+            "priority": "High",
+            "status": "Done",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Created reverse-engineered requirements in docs/requirements/base.json and docs/requirements/app.json and validated both files as JSON.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Updated manifests so pull includes base requirements/task artifacts and once includes app requirements/task artifacts, including docs/tasks/template.json.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Finalized release metadata: bumped config/base.json, config/app.json, docs/version/base.txt, docs/version/app.txt, and prepended updates/base.json with this release entry.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260603-0002",
+            "uuid": "b79ca3fb-5e86-45f7-95cc-7202bccf9552",
+            "title": "Load requirements and tasks as input/output",
+            "description": "Add requirements and tasks to BaseApp input loading and publish both as HTML output artifacts.",
+            "priority": "High",
+            "status": "Done",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added INPUT nodes for requirements and tasks in config/base.json and wired RESULTS.requirements_loaded and RESULTS.tasks_loaded monitor flags via existing load_data behavior.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added HTML outputs requirements_split_html and tasks_split_html and updated test/config/base.json post checks to verify requirements/tasks were loaded.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added BASE-REQ-010 to docs/requirements/base.json to capture the new requirement hierarchy and trace solution coverage.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260603-0003",
+            "uuid": "f993f8a2-4ea9-41fe-b34f-d3cf2bbc8c08",
+            "title": "Finalize version 26.06.03.02",
+            "description": "Initiate and complete finalization flow for requirements/tasks runtime input and HTML output enhancement.",
+            "priority": "High",
+            "status": "Done",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Bumped release metadata to 26.06.03.02 across docs/version and config version fields.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Prepended updates/base.json with BASE-TASK-260603-0002 release note and updated README/base readme highlights.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Prepared finalization commit flow with validation and git stage/commit/push steps.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                }
+            ]
+        }
+    ]
+}

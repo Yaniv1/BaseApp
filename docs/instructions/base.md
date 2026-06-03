@@ -2,7 +2,29 @@
 ## These instructions apply when working on the base app
 
 These instructions define how coding agents should work on BaseApp.
-0. break down each task into simple tasks, and execute the simpler tasks one by one.
+
+## Task Selection
+
+If you're asked to work on a specific task, create a task for anything you're asked to do, using the task template in `docs/tasks/template.json`. Create the task in `docs/tasks/base.json`.
+
+If you're asked to work on any open task, follow the task list in docs/tasks/base.json. Prioritize tasks by priority and progress.
+Keep working until there are no open tasks. 
+
+## For every task you're working on:
+
+Update the task list when significant progress is made on a task.
+Use the task comments to update progress details.
+
+For every task that includes a system enhancement or modification:
+
+Clearly state the system requirement in the appropriate location in the hierarchy of requirements in docs/requirements/base.json
+
+Follow the requirements engineering instructions in docs/architecture/req-eng-instructions.md
+
+For maintenance requirements, there is typically no need to change the requirements or the architecture, unless it's clearly stated that the fix requires architecture changes.
+
+0. break down each task into simple tasks, and execute the simpler tasks one by one. There is no need to document the simpler tasks in the tasks file. This is mainly for better agentic flow. But you can update in the comments about each task what you achieved and that would reflect the task breakdown.
+
 1. Maximize reuse and avoid changing the architecture unless it is necessary and the more sensible way to implement the change.
 2. Adhere to object oriented guidelines.
 3. Store all the parameters in the appropriate configuration files. Avoid hard coded parameters.
@@ -13,7 +35,7 @@ These instructions define how coding agents should work on BaseApp.
 When asked to finalize and deploy the code change:
 1. Increment the version id . No need to create a new version number for each small change.
 2. Update the readme base.md after every code change.
-3. Update the updates/base.json file updates array to include a name and description of the change. The name structure has to be "[{APP_NAME}] [{Feature_ID}] [{Feature}] {change desctiption}. New updates should be up the list.
+3. Update the updates/base.json file updates array to include a name and description of the change. The name structure has to be "[{APP_NAME}] [{Task_ID}] [{Feature_ID}] [{Feature}] {change desctiption}. New updates should be prepended to tthe top of the list.
 4. Update the config/base.json file app dict to include the latest version id.
 5. Update docs/version/app.txt to have the same value as the latest docs/version/base.txt but with the prefix letter `A`, so that future instantiations of new apps will start from the latest base version and then increment separately. For example if the base version is `26.05.27.03` then the app version will be `A26.05.27.03`
 6. Update the architecture files under docs/architecture:
@@ -31,6 +53,6 @@ When asked to finalize and deploy the code change:
         The number of items in the type chain must match the number of items in the name chain. do not add sub-types unless they map to named features.
         As you update the feature list, you should also add the identifier of the feature as a comment in the file but only if the format permits it in a way that does not change the semantics of the file. For example, python code supports comments, but json and csv files do not. MD files support comments but these comments are considered part of the text that the reader sees.
         Use the architecture/temp items to update the archiecture based on suggested corrections made by the architecture compliance test.
-7. Update README.md 
+7. Update README.md - this is a high-level overview of the functionality - what functionality is added/ modified, and what is the new behavior/capability. This should not be as detailed as the readme/base.md or readme/app.md files.
 8. Stage and commit all the changes.
 9. Push to the git repository.

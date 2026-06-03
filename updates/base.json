@@ -1,5 +1,15 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260603-0002] [6.1.11.1] [Requirements/Tasks IO] Added requirements and tasks as runtime input and HTML output artifacts.",
+        "version": "26.06.03.02",
+        "description": "Added INPUT sources for docs/requirements and docs/tasks and added requirements_split_html/tasks_split_html outputs in config/base.json. Updated post-run test checks to verify requirements_loaded and tasks_loaded monitor flags."
+    },
+    {
+        "name": "[BaseApp] [BASE-TASK-260603-0001] [3.1.1] [Manifest Governance] Added requirements/tasks artifacts to manifests and established requirements baselines.",
+        "version": "26.06.03.01",
+        "description": "Added docs/requirements/base.json and docs/requirements/req-eng-instructions.md to pull.json; added docs/requirements/app.json to once.json; added docs/tasks/base.json and docs/tasks/template.json to pull.json; added docs/tasks/app.json to once.json. Replaced requirements placeholders with reverse-engineered requirement hierarchies for base and app, then finalized version metadata across config/base.json, config/app.json, and docs/version files."
+    },
+    {
         "name": "[BaseApp] [5.3.1.1.1] [Architecture Compliance] Achieved full architecture alignment (0/0/0) and expanded base inventory.",
         "version": "26.06.02.03",
         "description": "Added all missing architecture entries to docs/architecture/base.json: scripts.instantiate and scripts.pullbase helper functions; Params, HtmlDoc, Logger, and AppManager public methods; module-level baseutils helpers (get_config, tryeval, try_except, add_to_dict, as_list); DataFrameConverter.apply and DataLoader.load; TestManager public methods (mark_app_state, request_store, run_phase, start_live, stop_live, finalize, run_a_test); docs/manifests, docs/instructions, docs/readme leaf files; new top-level updates folder and README.md. Added updates/app.json to docs/architecture/app.json. Removed transient Logger.log block-level sub-features. Comparator now skips __init__.py, dotfiles, and dot-folders (e.g. .git, .vscode), and resolves JSON-pointer architecture paths of the form file.json::dotted.key. Final report: MissingInCode=0, MissingInArch=0, Mismatches=0."

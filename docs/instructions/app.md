@@ -2,18 +2,33 @@
 ## These instructions apply when working on the variant app
 
 These instructions define how coding agents should work on variant app.
-0. break down each task into simple tasks, and execute the simpler tasks one by one.
-1. Maximize reuse and avoid changing the architecture unless it is necessary and the more sensible way to implement the change.
-2. Adhere to object oriented guidelines.
-3. Provide good documentation in docstrings for each class, method, function, etc. and for functional code blocks (no need for every line of code) 
-
-4. Increment the version id in docs/version/app.txt when first starting to make changes after repo sync. No need to create a new version number for each small change. Update the version  in config/app.json to match the version/app.txt file.
 
 
-5. Update the readme app.md after every code change.
+## Task Selection
 
-6. Update the config/app.json file updates array to include a name and description of the change and the new version id. The name structure has to be "[{APP_NAME}] {Feature} New updates should be up the list. Also, keep only the latest 10 versions (but keep all the updates of each version that is kept).
+If you're asked to work on a specific task, create a task for anything you're asked to do, using the task template in `docs/tasks/template.json`. Create the task in `docs/tasks/app.json`.
 
-7. Update the config/app.json file app dict to include the latest version id.
-8. Avoid modifications to base app artifacts, these should not be modified by the app. If behavior changes are needed, inherit and override in app artifacts (app.py,apputils.py, app.json, etc.)
-9. When logging, utilize logger functionality - use message codes instead of text, if necessary add new message codes to messages/app.csv. report variable values using data and not in message.
+If you're asked to work on any open task, follow the task list in `docs/tasks/app.json`. Prioritize tasks by priority and progress.
+Keep working until there are no open tasks. 
+
+## For every task you're working on:
+
+Prioritize tasks by priority and progress.
+Update the task list when significant progress is made on a task.
+Use the task comments to update progress details.
+
+For every task that includes a system enhancement or modification:
+
+Clearly state the system requirement in the appropriate location in the hierarchy of requirements in `docs/requirements/app.json`
+
+Follow the requirements engineering instructions in `docs/architecture/req-eng-instructions.md`
+
+For maintenance requirements, there is typically no need to change the requirements or the architecture, unless it's clearly stated that the fix requires architecture changes.
+
+Follow all the instructions in `docs/instructions/base.md` but notice that wherever the instructions refer to a base resource (e.g. `app/base.py`, `config/base.json`, etc.) - switch here to the corresponding app resource ( `app/app.py`, `config/app.json`, etc. )
+
+Avoid modifications to base app artifacts, these should not be modified by the app. If behavior changes are needed, inherit and override in app artifacts (`app.py`,`apputils.py`, `app.json`, etc.)
+
+When logging, utilize logger functionality - use message codes instead of text, if necessary add new message codes to `messages/app.csv`. report variable values using data and not in message.
+
+If a generic functionality is needed, submit a task into the `docs/tasks/base.json` file so that the functionality will be implemented as a base functionality and be available to all apps utilizing this framework.

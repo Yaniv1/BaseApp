@@ -13,6 +13,12 @@
             "source": "docs/readme/app.md"
         },
         {
+            "source": "docs/requirements/app.json"
+        },
+        {
+            "source": "docs/tasks/app.json"
+        },
+        {
             "source": "docs/version/app.txt"
         },
         {

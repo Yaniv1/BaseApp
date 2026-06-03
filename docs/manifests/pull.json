@@ -34,6 +34,18 @@
             "source": "docs/readme/base.md"
         },
         {
+            "source": "docs/requirements/base.json"
+        },
+        {
+            "source": "docs/requirements/req-eng-instructions.md"
+        },
+        {
+            "source": "docs/tasks/base.json"
+        },
+        {
+            "source": "docs/tasks/template.json"
+        },
+        {
             "source": "docs/architecture/base.json"
         },
         {

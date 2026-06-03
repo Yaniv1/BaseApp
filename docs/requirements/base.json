@@ -1,0 +1,553 @@
+{
+    "REQUIREMENTS": [
+        {
+            "id": "BASE-REQ-001",
+            "title": "Load and Resolve Layered Runtime Configuration",
+            "description": "The system must load base and overlay configuration files, evaluate runtime expressions, and populate placeholders to produce one resolved runtime configuration object.",
+            "priority": "Critical",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-001.1",
+                    "description": "Input requirement: The system shall read base configuration and merge JSON overrides from adjacent configuration files.",
+                    "priority": "Critical",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-001.2",
+                    "description": "Process requirement: The system shall evaluate expressions in COMMON and resolve placeholder references recursively using configurable wrapper tokens.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-001.3",
+                    "description": "Output requirement: The system shall expose resolved configuration attributes through a dictionary-like object with dot-access.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-001.4",
+                    "description": "Verification requirement: Runtime execution and prep tests shall confirm required configuration values are present and populated.",
+                    "priority": "High",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "6.1.3",
+                    "role": "Params container merges nested config values and supports evaluate/populate flow.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.4",
+                    "role": "Config orchestrates load, merge, evaluate, and placeholder population.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "BASE-REQ-002",
+            "title": "Provide Structured Logging and Runtime Monitoring",
+            "description": "The system must log structured runtime events with message codes, typed severity, caller lineage, and optional data payloads while maintaining a monitorable in-memory state map.",
+            "priority": "Critical",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-002.1",
+                    "description": "Input requirement: The system shall load message dictionaries from configured CSV sources.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-002.2",
+                    "description": "Process requirement: The logger shall resolve message type and text by code, persist events, and include caller stack lineage metadata.",
+                    "priority": "Critical",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-002.3",
+                    "description": "Output requirement: The system shall write logs to CSV, optionally render logs to HTML, and enforce retention limits.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-002.4",
+                    "description": "Structure requirement: The logger shall maintain a data_map snapshot and support dotted-path value resolution for test monitoring and diagnostics.",
+                    "priority": "High",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "6.1.7",
+                    "role": "Loads message lookup tables from configured CSV files and folders.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.8",
+                    "role": "Factory resolves logger settings and constructs logger instances.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.9",
+                    "role": "Logger stores typed events, caller lineage, data map snapshots, and CSV/HTML artifacts.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "BASE-REQ-003",
+            "title": "Load Input Data from Files and Folders",
+            "description": "The system must load configured input sources from file or folder paths into runtime results, including optional delta loading based on file modification times.",
+            "priority": "Critical",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-003.1",
+                    "description": "Input requirement: The system shall support file and directory input paths with configurable format detection and relative-path resolution.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-003.2",
+                    "description": "Process requirement: The loader shall support JSON, CSV, and text payloads and load items concurrently.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-003.3",
+                    "description": "Performance requirement: In delta mode, unchanged files shall be skipped and only new or modified files shall be loaded.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-003.4",
+                    "description": "Verification requirement: Prep tests shall validate delta behavior for first load, unchanged cycle, modified file, and added file scenarios.",
+                    "priority": "High",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "6.2.2",
+                    "role": "DataLoader implements input source scanning, file loading, and delta mtime logic.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.11.1",
+                    "role": "AppManager coordinates configured input loading and persists per-input delta metadata.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "5.3.1.2.1",
+                    "role": "Input delta prep test verifies expected loader behavior across cycles.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "BASE-REQ-004",
+            "title": "Run Config-Driven Data Processing",
+            "description": "The system must execute configured processing steps that transform loaded data using safe expression evaluation over DataFrame sources.",
+            "priority": "High",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-004.1",
+                    "description": "Input requirement: Each process step shall define source data, optional context aliases, and ordered conversion rules.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-004.2",
+                    "description": "Security requirement: Expression evaluation shall be constrained to an explicit safe globals set.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-004.3",
+                    "description": "Output requirement: Each completed process step shall persist transformed data under a configured target.",
+                    "priority": "High",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "6.2.1",
+                    "role": "DataFrameConverter applies secure, scope-aware conversions.",
+                    "implementation": 1.0,
+                    "verification": 0.8,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.11.2",
+                    "role": "AppManager executes process pipeline and stores target outputs.",
+                    "implementation": 1.0,
+                    "verification": 0.8,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "BASE-REQ-005",
+            "title": "Persist Runtime Outputs as JSON, CSV, and HTML",
+            "description": "The system must persist configured runtime artifacts in standard output formats, including nested split outputs and template-based HTML rendering.",
+            "priority": "Critical",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-005.1",
+                    "description": "Output requirement: The system shall serialize runtime data to JSON and CSV with robust conversion of non-primitive values.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-005.2",
+                    "description": "Output requirement: The system shall render HTML artifacts using configurable templates and wrappers.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-005.3",
+                    "description": "Structure requirement: The system shall support split output generation across one or more nested dictionary levels.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-005.4",
+                    "description": "Performance requirement: When output delta mode is enabled, unchanged artifacts shall be skipped using checksum and persisted manifest validation.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-005.5",
+                    "description": "Verification requirement: Prep tests shall validate output delta behavior including skip, rewrite, and manifest persistence paths.",
+                    "priority": "High",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "6.1.6",
+                    "role": "HtmlDoc renders structured tabular HTML outputs from runtime data.",
+                    "implementation": 1.0,
+                    "verification": 0.9,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.10",
+                    "role": "save() persists artifacts in json/csv/html formats.",
+                    "implementation": 1.0,
+                    "verification": 0.9,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.11.3",
+                    "role": "AppManager drives output storage, split logic, and checksum-manifest delta behavior.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "5.3.1.3.1",
+                    "role": "Output delta prep test validates delta skip and overwrite scenarios.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "BASE-REQ-006",
+            "title": "Execute Standardized Runtime Lifecycle",
+            "description": "The system must execute the runtime lifecycle in deterministic order, capture runtime metrics, and return an explicit process exit code.",
+            "priority": "Critical",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-006.1",
+                    "description": "Process requirement: Runtime shall execute load, process, close, and store-output stages in order.",
+                    "priority": "Critical",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-006.2",
+                    "description": "Output requirement: Runtime shall capture elapsed duration and include execution tracking metrics.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-006.3",
+                    "description": "Safety requirement: Runtime shall return non-zero exit code on unhandled runtime errors or failed required tests.",
+                    "priority": "High",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "6.1.1",
+                    "role": "App entrypoint class hosts concrete runtime instance.",
+                    "implementation": 1.0,
+                    "verification": 0.9,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.11.5",
+                    "role": "AppManager.run enforces lifecycle stage order.",
+                    "implementation": 1.0,
+                    "verification": 0.9,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.1",
+                    "role": "run() in app/base.py initializes config/logger, orchestrates tests, and emits final exit code.",
+                    "implementation": 1.0,
+                    "verification": 0.9,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "BASE-REQ-007",
+            "title": "Provide Built-In Multi-Phase Test Framework",
+            "description": "The system must provide a configuration-driven test harness with prep, live, and post phases, structured result reporting, and independent test logging.",
+            "priority": "Critical",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-007.1",
+                    "description": "Input requirement: Tests shall be declared by phase with callable targets, inputs, schedules, and pass/fail policies.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-007.2",
+                    "description": "Process requirement: The harness shall execute prep tests synchronously, live tests on a scheduler thread, and post tests during shutdown.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-007.3",
+                    "description": "Output requirement: The harness shall emit structured per-test result lines, phase summaries, aggregate reports, and dedicated test logs.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-007.4",
+                    "description": "Safety requirement: Fail-fast behavior and fail-on statuses shall be configurable.",
+                    "priority": "Medium",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "6.3.1",
+                    "role": "TestManager executes configured test phases and builds summaries/reports.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.3.2",
+                    "role": "build_test_config merges runtime and testing configuration trees.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.3.3",
+                    "role": "evaluate_checks validates declarative criteria in tests.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.3.4",
+                    "role": "monitor_activity verifies runtime monitor behavior during live phase.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "BASE-REQ-008",
+            "title": "Synchronize Base and Variant Assets via Manifests",
+            "description": "The system must support manifest-driven app instantiation and base-update pull workflows with deterministic copy behavior and run logging.",
+            "priority": "High",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-008.1",
+                    "description": "Input requirement: Instantiation and pull workflows shall parse manifests from docs/manifests and validate schema.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-008.2",
+                    "description": "Process requirement: Instantiation shall apply pull entries always and once entries only when destination files are absent.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-008.3",
+                    "description": "Process requirement: Pull workflow shall support normal pull mode and hard overwrite mode.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-008.4",
+                    "description": "Output requirement: Both workflows shall produce typed log artifacts and clear operation summaries.",
+                    "priority": "Medium",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "3.1.1",
+                    "role": "Manifest loader reads and validates instantiate entries.",
+                    "implementation": 1.0,
+                    "verification": 0.8,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.1.2",
+                    "role": "instantiate applies pull/once behavior and placeholder creation.",
+                    "implementation": 1.0,
+                    "verification": 0.8,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.2.1",
+                    "role": "hard_pull overwrites all files in hard mode.",
+                    "implementation": 1.0,
+                    "verification": 0.8,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.2.2",
+                    "role": "pull_base_files synchronizes pull-scoped files and folders.",
+                    "implementation": 1.0,
+                    "verification": 0.8,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "BASE-REQ-009",
+            "title": "Maintain Architecture Compliance Inventory",
+            "description": "The system must verify consistency between code and architecture inventories and generate review artifacts with actionable mismatch diagnostics.",
+            "priority": "High",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-009.1",
+                    "description": "Input requirement: The test shall read architecture inventories and parse codebase items including files, classes, methods, and functions.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-009.2",
+                    "description": "Process requirement: The comparator shall detect missing items, identifier mismatches, and path/name mismatches.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-009.3",
+                    "description": "Output requirement: The test shall emit compliance reports and candidate architecture updates under test result folders.",
+                    "priority": "Medium",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "5.3.1.1.1",
+                    "role": "ArchitectureAlignmentTest compares architecture inventory to parsed code and emits artifacts.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "BASE-REQ-010",
+            "title": "Expose Requirements and Tasks as Runtime Data and HTML Artifacts",
+            "description": "The system must load requirements and task catalogs as standard runtime inputs and publish them as HTML output artifacts.",
+            "priority": "High",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-010.1",
+                    "description": "Input requirement: The system shall load docs/requirements JSON files into runtime results.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-010.2",
+                    "description": "Input requirement: The system shall load docs/tasks JSON files into runtime results.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-010.3",
+                    "description": "Output requirement: The system shall render requirements runtime data as HTML artifacts.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-010.4",
+                    "description": "Output requirement: The system shall render tasks runtime data as HTML artifacts.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-010.5",
+                    "description": "Verification requirement: Post tests shall confirm requirements/tasks input load flags are present in monitor state.",
+                    "priority": "Medium",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "6.1.11.1",
+                    "role": "AppManager.load_data loads requirements and task sources under configured INPUT targets.",
+                    "implementation": 1.0,
+                    "verification": 0.9,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.11.3",
+                    "role": "AppManager.store_outputs renders requirements/tasks split HTML outputs through HtmlDoc.",
+                    "implementation": 1.0,
+                    "verification": 0.9,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.3.3",
+                    "role": "Post-run evaluate_checks verifies requirements/tasks loaded flags.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                }
+            ]
+        }
+    ]
+}
+
+            

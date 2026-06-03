@@ -1,0 +1,188 @@
+{
+    "REQUIREMENTS": [
+        {
+            "id": "APP-REQ-001",
+            "title": "Override Base Configuration Safely",
+            "description": "The variant app must override only app-specific configuration values while inheriting all base runtime behaviors by default.",
+            "priority": "Critical",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "APP-REQ-001.1",
+                    "description": "Input requirement: The app shall provide variant overrides in config/app.json and test/config/app.json.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "APP-REQ-001.2",
+                    "description": "Structure requirement: App overrides shall remain additive or selective, avoiding duplication of unchanged base settings.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "APP-REQ-001.3",
+                    "description": "Output requirement: Effective app identity and output paths shall resolve correctly from app-level COMMON overrides.",
+                    "priority": "High",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "config/app.json",
+                    "role": "Defines app identity overrides (APP_NAME, VERSION, OUTPUT_PREFIX).",
+                    "implementation": 1.0,
+                    "verification": 0.8,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "test/config/app.json",
+                    "role": "Defines app test override scaffold aligned with base test framework.",
+                    "implementation": 1.0,
+                    "verification": 0.8,
+                    "deployment": 1.0
+                }
+            ]
+        },
+        {
+            "id": "APP-REQ-002",
+            "title": "Provide App-Specific Runtime Extension Points",
+            "description": "The variant app must provide extension points for app-specific runtime behavior without modifying base runtime internals.",
+            "priority": "High",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "APP-REQ-002.1",
+                    "description": "Structure requirement: app/app.py shall remain the variant executable entrypoint and call base runtime execution.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "APP-REQ-002.2",
+                    "description": "Process requirement: utils/apputils.py shall be the designated place for app-specific utility extensions and overrides.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "APP-REQ-002.3",
+                    "description": "Safety requirement: App customizations should prefer inheritance/override patterns and avoid direct edits to base artifacts.",
+                    "priority": "High",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "1.2",
+                    "role": "app/app.py delegates execution to base.run().",
+                    "implementation": 1.0,
+                    "verification": 0.7,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.4",
+                    "role": "apputils module imports and extends base/data utilities for app-specific logic.",
+                    "implementation": 0.7,
+                    "verification": 0.4,
+                    "deployment": 0.7
+                }
+            ]
+        },
+        {
+            "id": "APP-REQ-003",
+            "title": "Define App-Specific Functional Behavior",
+            "description": "The variant app must define at least one concrete app-specific input-process-output capability beyond base template behavior.",
+            "priority": "Critical",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "date": "2026-06-03",
+                    "comment": "Current codebase appears scaffolded: app-specific processing and tests are not yet implemented."
+                }
+            ],
+            "breakdown": [
+                {
+                    "id": "APP-REQ-003.1",
+                    "description": "Input requirement: App shall define at least one app-owned input source or app-specific source constraints.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "APP-REQ-003.2",
+                    "description": "Process requirement: App shall implement at least one app-specific transformation or orchestration step.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "APP-REQ-003.3",
+                    "description": "Output requirement: App shall produce at least one app-owned artifact or report derived from app-specific logic.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "APP-REQ-003.4",
+                    "description": "Verification requirement: App shall include app-owned tests in test/tests/app to validate app-specific behavior.",
+                    "priority": "High",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "test/tests/app/app.py",
+                    "role": "Reserved for app-specific tests; currently empty and requires implementation.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "utils/apputils.py",
+                    "role": "Reserved extension module for app-specific business logic; currently pass-through imports only.",
+                    "implementation": 0.2,
+                    "verification": 0.0,
+                    "deployment": 0.2
+                }
+            ]
+        },
+        {
+            "id": "APP-REQ-004",
+            "title": "Maintain App Versioning and Change Documentation",
+            "description": "The variant app must maintain app-specific versioning and change history that remains synchronized with app configuration metadata.",
+            "priority": "Medium",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "APP-REQ-004.1",
+                    "description": "Structure requirement: docs/version/app.txt and config/app.json COMMON.VERSION shall be aligned after app changes.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "APP-REQ-004.2",
+                    "description": "Output requirement: docs/readme/app.md shall document app-specific behavior and changes.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "APP-REQ-004.3",
+                    "description": "Process requirement: App updates should be tracked in app-owned update entries.",
+                    "priority": "Low",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "docs/version/app.txt",
+                    "role": "Stores app version identifier and tracks variant lineage.",
+                    "implementation": 1.0,
+                    "verification": 0.8,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "docs/readme/app.md",
+                    "role": "App-specific readme placeholder exists and requires content.",
+                    "implementation": 0.1,
+                    "verification": 0.0,
+                    "deployment": 0.1
+                }
+            ]
+        }
+    ]
+}

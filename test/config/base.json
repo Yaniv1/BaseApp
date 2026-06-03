@@ -120,6 +120,16 @@
                             "name": "message_codes_loaded",
                             "operator": "exists",
                             "actual": {"ref": "monitor.results.message_codes_loaded"}
+                        },
+                        {
+                            "name": "requirements_loaded",
+                            "operator": "exists",
+                            "actual": {"ref": "monitor.results.requirements_loaded"}
+                        },
+                        {
+                            "name": "tasks_loaded",
+                            "operator": "exists",
+                            "actual": {"ref": "monitor.results.tasks_loaded"}
                         }
                     ]
                 }

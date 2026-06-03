@@ -4,8 +4,18 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.02.03
-- App template version: A26.06.02.03
+- Base version: 26.06.03.02
+- App template version: A26.06.03.02
+
+## Highlights (26.06.03.02)
+
+- Added `requirements` and `tasks` as BaseApp runtime inputs.
+- Added HTML outputs for requirements/tasks catalogs under the run output path.
+
+## Highlights (26.06.03.01)
+
+- Added a Task Management framework. Every task gets added to the taks list and progress is tracked.
+- Added a Requirements Engineering framework. Every requirement is specified and a through spec-driven-development is adhered to (breakdown, solution design, implementation, verification, and deployment)
 
 ## Highlights (26.06.02.03)
 

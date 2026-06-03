@@ -1,4 +1,4 @@
-# BaseApp V-26.06.02.03
+# BaseApp V-26.06.03.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,21 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.03.02)
+
+- Added `requirements` and `tasks` to runtime INPUT so BaseApp loads both catalogs during normal execution.
+- Added `requirements_split_html` and `tasks_split_html` outputs so both catalogs are rendered to HTML under `{$OUTPUT_PATH$}`.
+- Extended test post-checks to validate `requirements_loaded` and `tasks_loaded` monitor flags.
+
+## Release Highlights (26.06.03.01)
+
+- Added requirement and task artifacts to the framework.
+- `docs/manifests/pull.json` now pulls `docs/requirements/base.json`, `docs/requirements/req-eng-instructions.md`, `docs/tasks/base.json`, and `docs/tasks/template.json`.
+- `docs/manifests/once.json` now provisions `docs/requirements/app.json` and `docs/tasks/app.json`.
+- Created  requirements with reverse-engineered base and app requirement hierarchies.
+- Added `requirements` and `tasks` to runtime INPUT so BaseApp loads both catalogs during normal execution.
+- Added `requirements_split_html` and `tasks_split_html` outputs so both catalogs are rendered to HTML under `{$OUTPUT_PATH$}`.
 
 ## Current Structure
 

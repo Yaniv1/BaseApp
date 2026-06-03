@@ -1,0 +1,19 @@
+{
+    "TASKS":[
+        {
+            "id": "BASE-TASK-260603-0001",
+            "uuid": "123e4567-e89b-12d3-a456-426614174000",
+            "title": "Template",
+            "description": "This is the task template.",
+            "priority": "Low|Medium|High|Critical",
+            "status": "ToDo|InProgress|Done",
+            "comments": [
+                {
+                    "author": "User1",
+                    "content": "This is a comment on Task 1.",
+                    "timestamp": "2024-06-01T12:00:00Z"
+                }
+            ]
+        }
+    ]
+}
