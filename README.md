@@ -4,8 +4,16 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.02.02
-- App template version: A26.06.02.02
+- Base version: 26.06.02.03
+- App template version: A26.06.02.03
+
+## Highlights (26.06.02.03)
+
+- Full architecture alignment: comparator now reports `MissingInCode=0, MissingInArch=0, Mismatches=0` against `docs/architecture/base.json` and `docs/architecture/app.json`.
+- Expanded base architecture inventory to cover all public functions/methods in `scripts/`, `utils/baseutils.py`, `utils/datautils.py`, `utils/testutils.py`, plus leaf docs files, the `updates/` folder, and `README.md`.
+- Architecture compliance comparator now skips `__init__.py`, dotfiles, and dot-folders (e.g. `.git`, `.vscode`), and resolves JSON-pointer paths of the form `file.json::dotted.key`.
+- `Logger.log` records caller lineage (file, module, class, function, line) on every entry via inspect-based stack walking, surfaced as a new `caller` column in the log CSV/HTML.
+- Test outputs route to a dedicated `TESTS_RESULTS` subfolder via a test-config `OUTPUT_PATH` override, so `TestManager` no longer overwrites the main app's `config.json` / `config.html`.
 
 ## Highlights (26.06.02.02)
 

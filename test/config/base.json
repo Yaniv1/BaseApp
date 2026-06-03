@@ -1,5 +1,9 @@
 {    
-    "testing": {
+    "COMMON": {
+        "OUTPUT_PATH": "{$OUTPUT_PREFIX$}/{$OUTPUT_VERSION$}/TESTS_RESULTS"
+        
+    },
+    "TESTING": {
         "settings": {
             "enabled": true,
             "fail_fast": false,
@@ -58,7 +62,7 @@
                         {
                             "name": "test_logger_path_present",
                             "operator": "truthy",
-                            "actual": {"ref": "config.test_logger.path"}
+                            "actual": {"ref": "config.TESTING.test_logger.path"}
                         }
                     ]
                 }
@@ -120,50 +124,71 @@
                     ]
                 }
             }
-        ],
-        "output": {
-            "results": {
-                "store": true,
-                "source": "results",
-                "path": "{$OUTPUT_PATH$}/tests/results",
-                "file": "{$START_TIME$}.json",
-                "format": "json"
+        ]
+    },
+
+    "OUTPUT": {
+
+        "config": {
+            "path": "{$OUTPUT_PATH$}/tests/config",
+            "file": "test_config.json"
+        },
+        "config_html": {
+            "path": "{$OUTPUT_PATH$}/tests/config",
+            "file": "test_config.html"
+        },
+        "results": {
+            "store": true,
+            "source": "RESULTS",
+            "path": "{$OUTPUT_PATH$}/tests/results",
+            "file": "{$START_TIME$}.json",
+            "format": "json"
+        },
+        "results_html": {
+            "store": true,
+            "split": false,
+            "source": "RESULTS",
+            "path": "{$OUTPUT_PATH$}/tests/results",
+            "file": "test_results.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
             },
-            "results_html": {
-                "store": true,
-                "split": false,
-                "source": "results",
-                "path": "{$OUTPUT_PATH$}/tests/results",
-                "file": "test_results.html",
-                "format": "html",
-                "kwargs": {
-                    "template": "{$HTML_TEMPLATE$}"
-                },
-                "open": false
+            "open": false
+        },
+        "summary_html": {
+            "store": true,
+            "split": false,
+            "source": "RESULTS.summary",
+            "path": "{$OUTPUT_PATH$}/tests/summary",
+            "file": "summary.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
             },
-            "summary_html": {
-                "store": true,
-                "split": false,
-                "source": "results.summary",
-                "path": "{$OUTPUT_PATH$}/tests/summary",
-                "file": "summary.html",
-                "format": "html",
-                "kwargs": {
-                    "template": "{$HTML_TEMPLATE$}"
-                },
-                "open": false
+            "open": false
+        },
+        "test_log_html": {
+            "store": true,
+            "source": "test_logger.logs",
+            "path": "{$OUTPUT_PATH$}/tests/logs",
+            "file": "test_log.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
             },
-            "test_log_html": {
-                "store": true,
-                "source": "test_logger.logs",
-                "path": "{$OUTPUT_PATH$}/tests/logs",
-                "file": "test_log.html",
-                "format": "html",
-                "kwargs": {
-                    "template": "{$HTML_TEMPLATE$}"
-                },
-                "open": false
-            }
+            "open": false
+        },
+        "test_config_html": {
+            "store": true,
+            "source": "CONFIG",
+            "path": "{$OUTPUT_PATH$}/tests/config",
+            "file": "test_config.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "open": false
         }
     }
 }

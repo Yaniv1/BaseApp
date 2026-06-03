@@ -16,6 +16,7 @@ import webbrowser
 import time
 import threading
 import hashlib
+import inspect
 from functools import wraps
 import math
 
@@ -48,9 +49,9 @@ def trackit(func):
     return wrapper
 
 # Feature 6.1.2
-def dict_merge(base, override):
+def dict_merge(base: dict = {}, override: dict = {}):
     """Feature ID: 6.1.2. Recursively merge override dict into base dict and return merged result."""
-    merged = dict(base)
+    merged = base.copy()
     for key, override_value in override.items():
         base_value = merged.get(key)
         if isinstance(base_value, dict) and isinstance(override_value, dict):
@@ -468,7 +469,7 @@ class Logger:
         self.start_time = start_time or dt.datetime.utcnow()
         self.logs = []
         self.data_map = {}
-        self.log_columns = ["timestamp", "type_key", "type", "elapsed_sec", "message_code", "message", "data"]
+        self.log_columns = ["timestamp", "type_key", "type", "elapsed_sec", "caller", "message_code", "message", "data"]
         self.message_lookup = message_lookup if message_lookup is not None else pd.DataFrame(columns=["code", "type", "text"])
         self.log_path = log_path
         self.max_items = max_items
@@ -723,6 +724,34 @@ class Logger:
         value = resolve_dotted(snapshot, path)
         return default if value is None else value
 
+    # Feature 6.1.9.19
+    def _get_caller_lineage(self, max_depth=12):
+        """Feature ID: 6.1.9.19. Walk the call stack and capture the lineage of callers outside this logger."""
+        lineage = []
+        frame = inspect.currentframe()
+        try:
+            # Skip this helper and the log() frame.
+            outer = frame.f_back.f_back if frame and frame.f_back else None
+            while outer is not None and len(lineage) < max_depth:
+                info = inspect.getframeinfo(outer)
+                module = inspect.getmodule(outer)
+                module_name = module.__name__ if module else None
+                cls = None
+                self_obj = outer.f_locals.get("self")
+                if self_obj is not None:
+                    cls = type(self_obj).__name__
+                lineage.append({
+                    "file": os.path.basename(info.filename),
+                    "module": module_name,
+                    "class": cls,
+                    "function": info.function,
+                    "line": info.lineno,
+                })
+                outer = outer.f_back
+        finally:
+            del frame
+        return lineage
+
     # Feature 6.1.9.18
     def log(self, message="", message_type=None, data=None, message_code=None, entry=True):
         """Feature ID: 6.1.9.18. Store a message or data with the current timestamp."""
@@ -730,7 +759,6 @@ class Logger:
         looked_up_text = ""
         looked_up_type = ""
 
-        # Feature 6.1.9.18.1: Resolving message
         if message_code:
             looked_up_text, looked_up_type = self._lookup_entry(message_code)
 
@@ -743,26 +771,25 @@ class Logger:
                 
         with self._lock:
 
-            # Feature 6.1.9.18.2: Storing data
             normalized_data = self._normalize_data(data)
             if normalized_data is not None:
                 self.data_map = dict_merge(self.data_map, normalized_data)
             
-            # Feature 6.1.9.18.3: Storing message
             if entry:
                 now = dt.datetime.utcnow()
                 elapsed_time = (now - self.start_time).total_seconds()
+                caller_lineage = self._get_caller_lineage()
                 event = {"timestamp": now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
                         "type_key": message_key,
                         "type": message_type.rjust(5),
                         "elapsed_sec": f"{elapsed_time:06.3f}",
+                        "caller": caller_lineage,
                         "message_code": message_code,
                         "message": resolved_message,
                         "data": normalized_data}
 
                 self.logs.append(event)
 
-            # Feature 6.1.9.18.4: Printing message to console
             if entry and self._should_print(message_key):
                 console_line = ' | '.join([str(v) for v in list(event.values())])
                 print(self._format_console_row(message_type, console_line))

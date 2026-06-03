@@ -1,4 +1,4 @@
-# BaseApp V-26.05.28.02
+# BaseApp V-26.06.02.03
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -482,10 +482,14 @@ during instantiation so it remains app-owned during future base pulls.
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)
 - Rule: every BaseApp modification increments the version.
 - Changelog: `updates` array in `updates/base.json`, newest entry first.
-- Latest: `26.05.28.01` adds path-aware architecture inventories, a class-based
-  architecture compliance prep test with HTML review artifacts, class-target
-  test construction from normal input bindings, and a shebang on `app/app.py`
-  for direct interpreter execution.
+- Latest: `26.06.02.03` brings the architecture compliance test to full alignment
+  (0/0/0), expands the base architecture inventory to cover all public
+  scripts/utils helpers, leaf docs files, and the `updates/` folder; teaches
+  the comparator to skip dotfiles/dot-folders and `__init__.py` and to resolve
+  `file.json::dotted.key` JSON-pointer paths; adds caller lineage (file,
+  module, class, function, line) to every `Logger.log` entry; and routes test
+  outputs to a dedicated `TESTS_RESULTS` subfolder so test runs no longer
+  overwrite the main app's `config.json` / `config.html`.
 
 ## Agent Guidance
 

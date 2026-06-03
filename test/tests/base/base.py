@@ -362,7 +362,9 @@ class ArchitectureAlignmentTest(AppManager):
             dirs[:] = [
                 name
                 for name in dirs
-                if name not in self.EXCLUDED_DIRS and not (rel_root_text == "docs/architecture" and name == "temp")
+                if name not in self.EXCLUDED_DIRS
+                and not name.startswith(".")
+                and not (rel_root_text == "docs/architecture" and name == "temp")
             ]
 
             if rel_root_text:
@@ -381,6 +383,10 @@ class ArchitectureAlignmentTest(AppManager):
                 rel_path = rel_root / file_name if rel_root_text else Path(file_name)
                 rel_path_text = rel_path.as_posix()
                 if rel_path_text.startswith("docs/architecture/temp/"):
+                    continue
+                if file_name == "__init__.py":
+                    continue
+                if file_name.startswith("."):
                     continue
 
                 self._register_code_item(
@@ -412,7 +418,52 @@ class ArchitectureAlignmentTest(AppManager):
     def _find_code_match_for_architecture_item(self, item, codebase):
         if item.get("path") and item["path"] in codebase["items_by_path"]:
             return codebase["items_by_path"][item["path"]]
-        return codebase["items_by_name"].get(item["name"])
+        match = codebase["items_by_name"].get(item["name"])
+        if match is not None:
+            return match
+        return self._resolve_json_pointer(item, codebase)
+
+    def _resolve_json_pointer(self, item, codebase):
+        """Resolve an architecture path of the form 'file.json::dotted.key' against the on-disk JSON file."""
+        path = item.get("path") or ""
+        if "::" not in path:
+            return None
+        file_part, pointer = path.split("::", 1)
+        if not file_part.lower().endswith(".json"):
+            return None
+        absolute_path = Path(self.base_dir) / file_part
+        if not absolute_path.is_file():
+            return None
+        cache = codebase.setdefault("json_cache", {})
+        if file_part not in cache:
+            try:
+                with open(absolute_path, "r", encoding="utf-8") as handle:
+                    cache[file_part] = json.load(handle)
+            except Exception:
+                cache[file_part] = None
+        data = cache.get(file_part)
+        if data is None:
+            return None
+        node = data
+        for key in pointer.split("."):
+            if isinstance(node, dict) and key in node:
+                node = node[key]
+            else:
+                return None
+        return {
+            "kind": "json_node",
+            "path": path,
+            "name": item.get("name"),
+            "match_path": path,
+        }
+
+    def _arch_item_unparseable(self, item):
+        """True when the architecture item points inside a file the comparator does not parse (e.g. JSON pointers)."""
+        path = item.get("path") or ""
+        if "::" not in path:
+            return False
+        file_part = path.split("::", 1)[0]
+        return not file_part.lower().endswith(".py")
 
     def _compare_architecture_to_code(self, architecture, codebase):
         code_items = codebase["items_by_name"]

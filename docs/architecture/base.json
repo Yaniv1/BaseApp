@@ -83,6 +83,48 @@
                             "description": "CLI entrypoint for instantiating a new app variant.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/instantiate.py::main"
+                        },
+                        "3.1.4": {
+                            "name": "scripts.instantiate.load_runtime_config",
+                            "description": "Load and evaluate the base runtime config for instantiation tooling.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::load_runtime_config"
+                        },
+                        "3.1.5": {
+                            "name": "scripts.instantiate.parse_args",
+                            "description": "Parse CLI arguments for the instantiate script.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::parse_args"
+                        },
+                        "3.1.6": {
+                            "name": "scripts.instantiate.populate_app_config",
+                            "description": "Populate the new app's config/app.json with the target value (e.g. APP_NAME).",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::populate_app_config"
+                        },
+                        "3.1.7": {
+                            "name": "scripts.instantiate.resolve_template_path",
+                            "description": "Resolve the HTML template path used by the instantiate logger.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::resolve_template_path"
+                        },
+                        "3.1.8": {
+                            "name": "scripts.instantiate.create_instantiate_logger",
+                            "description": "Create a dedicated logger for the instantiate run with timestamped output.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::create_instantiate_logger"
+                        },
+                        "3.1.9": {
+                            "name": "scripts.instantiate.ensure_app_instruction_file",
+                            "description": "Ensure a variant-specific app instruction file exists in the target app.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::ensure_app_instruction_file"
+                        },
+                        "3.1.10": {
+                            "name": "scripts.instantiate.expand_manifest_entry",
+                            "description": "Expand a manifest entry (file or folder) into concrete source/target path pairs.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::expand_manifest_entry"
                         }
                     }
                 },
@@ -109,6 +151,54 @@
                             "description": "CLI entrypoint for applying base updates to an instantiated app.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::main"
+                        },
+                        "3.2.4": {
+                            "name": "scripts.pullbase.create_pullbase_logger",
+                            "description": "Create a dedicated logger for the pullbase run with timestamped output.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::create_pullbase_logger"
+                        },
+                        "3.2.5": {
+                            "name": "scripts.pullbase.iter_source_files",
+                            "description": "Iterate the source root yielding files eligible for pulling.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::iter_source_files"
+                        },
+                        "3.2.6": {
+                            "name": "scripts.pullbase.load_pull_entries",
+                            "description": "Load pull entries from one or more manifest files.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::load_pull_entries"
+                        },
+                        "3.2.7": {
+                            "name": "scripts.pullbase.load_runtime_config",
+                            "description": "Load and evaluate the base runtime config for pullbase tooling.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::load_runtime_config"
+                        },
+                        "3.2.8": {
+                            "name": "scripts.pullbase.parse_args",
+                            "description": "Parse CLI arguments for the pullbase script.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::parse_args"
+                        },
+                        "3.2.9": {
+                            "name": "scripts.pullbase.resolve_source",
+                            "description": "Resolve the BaseApp source root from a CLI argument or default location.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::resolve_source"
+                        },
+                        "3.2.10": {
+                            "name": "scripts.pullbase.resolve_template_path",
+                            "description": "Resolve the HTML template path used by the pullbase logger.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::resolve_template_path"
+                        },
+                        "3.2.11": {
+                            "name": "scripts.pullbase.sync_manifests",
+                            "description": "Sync manifest files from the source BaseApp into the local app.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::sync_manifests"
                         }
                     }
                 }
@@ -124,19 +214,55 @@
                     "name": "docs.manifests",
                     "description": "Manifest files that declare instantiate-once and pull-on-update file mappings.",
                     "type": "Folder.Folder",
-                    "path": "docs/manifests"
+                    "path": "docs/manifests",
+                    "features": {
+                        "4.1.1": {
+                            "name": "docs.manifests.once",
+                            "description": "Manifest of files copied once during instantiation only.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "docs/manifests/once.json"
+                        },
+                        "4.1.2": {
+                            "name": "docs.manifests.pull",
+                            "description": "Manifest of files refreshed on every base pull.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "docs/manifests/pull.json"
+                        }
+                    }
                 },
                 "4.2": {
                     "name": "docs.instructions",
                     "description": "Agent and developer guidance for the base and app layers.",
                     "type": "Folder.Folder",
-                    "path": "docs/instructions"
+                    "path": "docs/instructions",
+                    "features": {
+                        "4.2.1": {
+                            "name": "docs.instructions.base",
+                            "description": "Base-layer agent and developer instructions.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "docs/instructions/base.md"
+                        }
+                    }
                 },
                 "4.3": {
                     "name": "docs.readme",
                     "description": "End-user and maintainer readme documents for base and app layers.",
                     "type": "Folder.Folder",
-                    "path": "docs/readme"
+                    "path": "docs/readme",
+                    "features": {
+                        "4.3.1": {
+                            "name": "docs.readme.base",
+                            "description": "Base-layer readme document.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "docs/readme/base.md"
+                        },
+                        "4.3.2": {
+                            "name": "docs.readme.app",
+                            "description": "App-layer readme document.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "docs/readme/app.md"
+                        }
+                    }
                 },
                 "4.4": {
                     "name": "docs.message_codes",
@@ -252,19 +378,19 @@
                                     "name": "test.config.base.prep",
                                     "description": "Prep test definitions in the base test configuration.",
                                     "type": "Folder.Folder.JsonFile.DataSet",
-                                    "path": "test/config/base.json::testing.prep"
+                                    "path": "test/config/base.json::TESTING.prep"
                                 },
                                 "5.2.1.2": {
                                     "name": "test.config.base.live",
                                     "description": "Live test definitions in the base test configuration.",
                                     "type": "Folder.Folder.JsonFile.DataSet",
-                                    "path": "test/config/base.json::testing.live"
+                                    "path": "test/config/base.json::TESTING.live"
                                 },
                                 "5.2.1.3": {
                                     "name": "test.config.base.post",
                                     "description": "Post test definitions in the base test configuration.",
                                     "type": "Folder.Folder.JsonFile.DataSet",
-                                    "path": "test/config/base.json::testing.post"
+                                    "path": "test/config/base.json::TESTING.post"
                                 }
                             }
                         }
@@ -302,6 +428,34 @@
                                             }
                                         }
                                     }
+                                },
+                                "5.3.1.2": {
+                                    "name": "test.tests.base.input",
+                                    "description": "Pre-test for input loading tests.",
+                                    "type": "Folder.Folder.Folder.PyFile",
+                                    "path": "test/tests/base/input.py",
+                                    "features": {
+                                        "5.3.1.2.1": {
+                                            "name": "test.tests.base.input.test_input_delta",
+                                            "description": "Pre-test that exercises DataLoader delta mode for new, unchanged, modified, and added files.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/input.py::test_input_delta"
+                                        }
+                                    }
+                                },
+                                "5.3.1.3": {
+                                    "name": "test.tests.base.output",
+                                    "description": "Pre-test for output storage tests.",
+                                    "type": "Folder.Folder.Folder.PyFile",
+                                    "path": "test/tests/base/output.py",
+                                    "features": {
+                                        "5.3.1.3.1": {
+                                            "name": "test.tests.base.output.test_output_delta",
+                                            "description": "Pre-test that exercises _save_output_artifact checksum/manifest delta behavior.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/output.py::test_output_delta"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -337,7 +491,39 @@
                             "name": "utils.baseutils.Params",
                             "description": "Simple container that exposes dictionary values as attributes and supports deep merge, evaluation, and placeholder population.",
                             "type": "Folder.PyFile.Class",
-                            "path": "utils/baseutils.py::Params"
+                            "path": "utils/baseutils.py::Params",
+                            "features": {
+                                "6.1.3.1": {
+                                    "name": "utils.baseutils.Params.set",
+                                    "description": "Deep-merge keyword parameters into the container and expose them as attributes.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Params.set"
+                                },
+                                "6.1.3.2": {
+                                    "name": "utils.baseutils.Params.get",
+                                    "description": "Get a value (or chain of values) by attribute key.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Params.get"
+                                },
+                                "6.1.3.3": {
+                                    "name": "utils.baseutils.Params.get_dict",
+                                    "description": "Return the container contents as a plain dict.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Params.get_dict"
+                                },
+                                "6.1.3.4": {
+                                    "name": "utils.baseutils.Params.evaluate",
+                                    "description": "Resolve placeholder references inside COMMON (or other named) nodes.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Params.evaluate"
+                                },
+                                "6.1.3.5": {
+                                    "name": "utils.baseutils.Params.populate",
+                                    "description": "Substitute placeholder wrappers across the container using COMMON values.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Params.populate"
+                                }
+                            }
                         },
                         "6.1.4": {
                             "name": "utils.baseutils.Config",
@@ -355,7 +541,27 @@
                             "name": "utils.baseutils.HtmlDoc",
                             "description": "Render DataFrame, dict, and list datasets into HTML documents via template files.",
                             "type": "Folder.PyFile.Class",
-                            "path": "utils/baseutils.py::HtmlDoc"
+                            "path": "utils/baseutils.py::HtmlDoc",
+                            "features": {
+                                "6.1.6.1": {
+                                    "name": "utils.baseutils.HtmlDoc.load_template",
+                                    "description": "Load the configured HTML template from disk.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::HtmlDoc.load_template"
+                                },
+                                "6.1.6.2": {
+                                    "name": "utils.baseutils.HtmlDoc.to_html",
+                                    "description": "Render the current dataset into an HTML string using the loaded template.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::HtmlDoc.to_html"
+                                },
+                                "6.1.6.3": {
+                                    "name": "utils.baseutils.HtmlDoc.save",
+                                    "description": "Save the rendered HTML document to the given output path.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::HtmlDoc.save"
+                                }
+                            }
                         },
                         "6.1.7": {
                             "name": "utils.baseutils.load_message_lookup",
@@ -379,33 +585,31 @@
                                     "name": "utils.baseutils.Logger.log",
                                     "description": "Store a message or data payload with the current timestamp.",
                                     "type": "Folder.PyFile.Class.Method",
-                                    "path": "utils/baseutils.py::Logger.log",
-                                    "features": {
-                                        "6.1.9.18.1": {
-                                            "name": "utils.baseutils.Logger.log.resolve_message",
-                                            "description": "Resolve message text and type from the message code lookup.",
-                                            "type": "Folder.PyFile.Class.Method.Block",
-                                            "path": "utils/baseutils.py::Logger.log.resolve_message"
-                                        },
-                                        "6.1.9.18.2": {
-                                            "name": "utils.baseutils.Logger.log.store_data",
-                                            "description": "Store normalized data payload in the logger state map.",
-                                            "type": "Folder.PyFile.Class.Method.Block",
-                                            "path": "utils/baseutils.py::Logger.log.store_data"
-                                        },
-                                        "6.1.9.18.3": {
-                                            "name": "utils.baseutils.Logger.log.store_message",
-                                            "description": "Append the resolved log event to the in-memory event list.",
-                                            "type": "Folder.PyFile.Class.Method.Block",
-                                            "path": "utils/baseutils.py::Logger.log.store_message"
-                                        },
-                                        "6.1.9.18.4": {
-                                            "name": "utils.baseutils.Logger.log.print_to_console",
-                                            "description": "Print the formatted log event to the console when verbosity allows it.",
-                                            "type": "Folder.PyFile.Class.Method.Block",
-                                            "path": "utils/baseutils.py::Logger.log.print_to_console"
-                                        }
-                                    }
+                                    "path": "utils/baseutils.py::Logger.log"
+                                },
+                                "6.1.9.19": {
+                                    "name": "utils.baseutils.Logger.update_data_map",
+                                    "description": "Merge a normalized data payload into the logger's runtime data map.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Logger.update_data_map"
+                                },
+                                "6.1.9.20": {
+                                    "name": "utils.baseutils.Logger.get_data_map_snapshot",
+                                    "description": "Return a shallow snapshot of the current data map.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Logger.get_data_map_snapshot"
+                                },
+                                "6.1.9.21": {
+                                    "name": "utils.baseutils.Logger.resolve_data",
+                                    "description": "Resolve a dotted path against the data map, returning a default when missing.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Logger.resolve_data"
+                                },
+                                "6.1.9.22": {
+                                    "name": "utils.baseutils.Logger.save_html",
+                                    "description": "Render and persist the collected log events as an HTML document.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Logger.save_html"
                                 }
                             }
                         },
@@ -414,6 +618,36 @@
                             "description": "Save data to JSON, CSV, or HTML outputs using runtime-aware serialization rules.",
                             "type": "Folder.PyFile.Function",
                             "path": "utils/baseutils.py::save"
+                        },
+                        "6.1.12": {
+                            "name": "utils.baseutils.get_config",
+                            "description": "Convenience loader that returns an evaluated Params object for the given config path.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "utils/baseutils.py::get_config"
+                        },
+                        "6.1.13": {
+                            "name": "utils.baseutils.tryeval",
+                            "description": "Best-effort literal-evaluate a value, returning the original on failure.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "utils/baseutils.py::tryeval"
+                        },
+                        "6.1.14": {
+                            "name": "utils.baseutils.try_except",
+                            "description": "Run a callable and return a default value (logging optionally) when it raises.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "utils/baseutils.py::try_except"
+                        },
+                        "6.1.15": {
+                            "name": "utils.baseutils.add_to_dict",
+                            "description": "Add keyword parameters into a dict in place and return the updated dict.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "utils/baseutils.py::add_to_dict"
+                        },
+                        "6.1.16": {
+                            "name": "utils.baseutils.as_list",
+                            "description": "Coerce a scalar or iterable value into a list.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "utils/baseutils.py::as_list"
                         },
                         "6.1.11": {
                             "name": "utils.baseutils.AppManager",
@@ -450,6 +684,24 @@
                                     "description": "Run the full data loading and processing pipeline, then store outputs.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::AppManager.run"
+                                },
+                                "6.1.11.6": {
+                                    "name": "utils.baseutils.AppManager.create_results",
+                                    "description": "Initialize the in-memory results container that holds per-target loaded and processed data.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::AppManager.create_results"
+                                },
+                                "6.1.11.7": {
+                                    "name": "utils.baseutils.AppManager.touch_result",
+                                    "description": "Update a result target's last-modified timestamp from a source descriptor.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::AppManager.touch_result"
+                                },
+                                "6.1.11.8": {
+                                    "name": "utils.baseutils.AppManager.open_output",
+                                    "description": "Open a previously saved output artifact for a given output key.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::AppManager.open_output"
                                 }
                             }
                         }
@@ -465,13 +717,29 @@
                             "name": "utils.datautils.DataFrameConverter",
                             "description": "Securely applies transformation rules to a pandas DataFrame.",
                             "type": "Folder.PyFile.Class",
-                            "path": "utils/datautils.py::DataFrameConverter"
+                            "path": "utils/datautils.py::DataFrameConverter",
+                            "features": {
+                                "6.2.1.1": {
+                                    "name": "utils.datautils.DataFrameConverter.apply",
+                                    "description": "Apply the configured transformation rules to a pandas DataFrame and return the result.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/datautils.py::DataFrameConverter.apply"
+                                }
+                            }
                         },
                         "6.2.2": {
                             "name": "utils.datautils.DataLoader",
                             "description": "Load files from a source file or folder using configurable format and optional logging. Supports an input-level `delta` flag: in delta mode the loader rescans the source on every call and only loads files that are new or whose on-disk mtime changed since the previous load, tracking per-file mtimes in last_modified.",
                             "type": "Folder.PyFile.Class",
-                            "path": "utils/datautils.py::DataLoader"
+                            "path": "utils/datautils.py::DataLoader",
+                            "features": {
+                                "6.2.2.1": {
+                                    "name": "utils.datautils.DataLoader.load",
+                                    "description": "Load files from the configured source (file or folder), honoring delta mode and updating last_modified.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/datautils.py::DataLoader.load"
+                                }
+                            }
                         }
                     }
                 },
@@ -485,7 +753,51 @@
                             "name": "utils.testutils.TestManager",
                             "description": "Coordinate config-driven prep, live, and post runtime tests.",
                             "type": "Folder.PyFile.Class",
-                            "path": "utils/testutils.py::TestManager"
+                            "path": "utils/testutils.py::TestManager",
+                            "features": {
+                                "6.3.1.1": {
+                                    "name": "utils.testutils.TestManager.mark_app_state",
+                                    "description": "Record an app-state transition observation for later test evaluation.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/testutils.py::TestManager.mark_app_state"
+                                },
+                                "6.3.1.2": {
+                                    "name": "utils.testutils.TestManager.request_store",
+                                    "description": "Queue an arbitrary item for storage in the test results bundle.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/testutils.py::TestManager.request_store"
+                                },
+                                "6.3.1.3": {
+                                    "name": "utils.testutils.TestManager.run_phase",
+                                    "description": "Run all tests defined for the given phase (prep, live, or post).",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/testutils.py::TestManager.run_phase"
+                                },
+                                "6.3.1.4": {
+                                    "name": "utils.testutils.TestManager.start_live",
+                                    "description": "Start the background live-monitoring loop that periodically evaluates live tests.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/testutils.py::TestManager.start_live"
+                                },
+                                "6.3.1.5": {
+                                    "name": "utils.testutils.TestManager.stop_live",
+                                    "description": "Stop the background live-monitoring loop and join the worker thread.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/testutils.py::TestManager.stop_live"
+                                },
+                                "6.3.1.6": {
+                                    "name": "utils.testutils.TestManager.finalize",
+                                    "description": "Finalize test run state and persist accumulated results.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/testutils.py::TestManager.finalize"
+                                },
+                                "6.3.1.7": {
+                                    "name": "utils.testutils.TestManager.run_a_test",
+                                    "description": "Execute a single test definition for the given phase and record the outcome.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/testutils.py::TestManager.run_a_test"
+                                }
+                            }
                         },
                         "6.3.2": {
                             "name": "utils.testutils.build_test_config",
@@ -508,6 +820,26 @@
                     }
                 }
             }
+        },
+        "7": {
+            "name": "updates",
+            "description": "Pending update payloads applied to instantiated apps during base pulls.",
+            "type": "Folder",
+            "path": "updates",
+            "features": {
+                "7.1": {
+                    "name": "updates.base",
+                    "description": "Base-layer update payload consumed by pullbase tooling.",
+                    "type": "Folder.JsonFile",
+                    "path": "updates/base.json"
+                }
+            }
+        },
+        "8": {
+            "name": "README",
+            "description": "Top-level repository readme.",
+            "type": "MdFile",
+            "path": "README.md"
         }
     }
 }

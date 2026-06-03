@@ -1,5 +1,4 @@
-"""Feature ID: 5.3.1.2.2. Delta mode pre-test for output storage."""
-
+"""Feature ID: 5.3.1.3. pre-test for output storage tests."""
 import json
 import os
 import shutil
@@ -50,9 +49,9 @@ def _last_skip_flag(manager):
     return False
 
 
-# Feature 5.3.1.2.2
+# Feature 5.3.1.3.1
 def test_output_delta(manager=None, message=None, **kwargs):
-    """Feature ID: 5.3.1.2.2. Pre-test that exercises _save_output_artifact checksum/manifest delta behavior.
+    """Feature ID: 5.3.1.3.1. Pre-test that exercises _save_output_artifact checksum/manifest delta behavior.
 
     Covers features:
       - 6.1.11.3 (AppManager.store_outputs: output-level delta flag via checksum manifest)

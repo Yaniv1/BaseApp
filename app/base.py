@@ -46,10 +46,10 @@ def run(args=sys.argv[1:]):
 
     app = App(config=config, logger=logger)
 
-    test_config = build_test_config(runtime_config=config,
-                                    test_config_path="../test/config/base.json")
-    logger.log(message_code="TEST001", data={"test_config": test_config})
-    test_manager = TestManager(config=test_config, logger=logger)
+    test_config = get_config(config_path="../test/config/base.json")
+    TestConfig = build_test_config(base_config=config.get_dict(), test_config=test_config)
+    logger.log(message_code="TEST001", data={"test_config": TestConfig.get_dict()})
+    test_manager = TestManager(config=TestConfig, logger=logger)
     test_manager.mark_app_state("initialized", run_id=app.RESULTS.run_id)
 
     tracking = None

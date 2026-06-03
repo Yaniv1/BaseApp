@@ -1,5 +1,20 @@
 [ 
     {
+        "name": "[BaseApp] [5.3.1.1.1] [Architecture Compliance] Achieved full architecture alignment (0/0/0) and expanded base inventory.",
+        "version": "26.06.02.03",
+        "description": "Added all missing architecture entries to docs/architecture/base.json: scripts.instantiate and scripts.pullbase helper functions; Params, HtmlDoc, Logger, and AppManager public methods; module-level baseutils helpers (get_config, tryeval, try_except, add_to_dict, as_list); DataFrameConverter.apply and DataLoader.load; TestManager public methods (mark_app_state, request_store, run_phase, start_live, stop_live, finalize, run_a_test); docs/manifests, docs/instructions, docs/readme leaf files; new top-level updates folder and README.md. Added updates/app.json to docs/architecture/app.json. Removed transient Logger.log block-level sub-features. Comparator now skips __init__.py, dotfiles, and dot-folders (e.g. .git, .vscode), and resolves JSON-pointer architecture paths of the form file.json::dotted.key. Final report: MissingInCode=0, MissingInArch=0, Mismatches=0."
+    },
+    {
+        "name": "[BaseApp] [6.1.9.18] [Logger] Added caller lineage to every log entry.",
+        "version": "26.06.02.03",
+        "description": "Logger.log now records the call-stack lineage (file, module, class, function, line) for every entry using inspect-based stack walking. Added a 'caller' column to log_columns and a _get_caller_lineage helper. This makes it possible to trace which call site emitted any given log entry, which was used to diagnose duplicate output writes and TESTING-config contamination of base config artifacts."
+    },
+    {
+        "name": "[BaseApp] [5.1.1] [Test Config] Routed test outputs to a dedicated TESTS_RESULTS folder.",
+        "version": "26.06.02.03",
+        "description": "test/config/base.json now overrides COMMON.OUTPUT_PATH to {$OUTPUT_PREFIX$}/{$OUTPUT_VERSION$}/TESTS_RESULTS so TestManager.store_outputs no longer overwrites the main app's config.json / config.html sibling artifacts. build_test_config re-runs evaluate+populate after dict_merge so the override propagates to all dependent test-output paths."
+    },
+    {
         "name": "[BaseApp] [6.1.11.3] [Output Storage] Added checksum-manifest delta mode to output storage.",
         "version": "26.06.02.02",
         "description": "Added an output-level `delta` flag handled by `_save_output_artifact` backed by a content-checksum manifest. AppManager holds an in-memory `output_manifest` dict (loaded from `<OUTPUT_PATH>/manifest.json` at init) keyed by full artifact path with `{sha256, mtime}` values. On every save in delta mode, the data is hashed (canonical JSON sha256); if the existing file's mtime matches the manifest entry AND the new checksum equals the stored sha256, the save is skipped and BASE003 is logged with `skipped: true, delta: true, sha256: <hash>`. Otherwise the artifact is written, the manifest entry is updated, and the manifest is flushed to disk so subsequent process restarts can reuse it. Applies per leaf for split outputs. Also restored the missing `save_kwargs` initialization so output saves work end-to-end."

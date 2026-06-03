@@ -10,7 +10,8 @@ import re
 import threading
 import time
 import traceback
-from .baseutils import AppManager, Params, create_logger, get_config, resolve_dotted, as_list
+from .baseutils import AppManager, Params, create_logger, get_config, resolve_dotted, as_list, dict_merge
+from utils import baseutils
 
 
 # Feature 6.3.1
@@ -40,10 +41,10 @@ class TestManager(AppManager):
 
         self.CONFIG = self.config
         self.RESULTS = self.results
-        self.settings = self.CONFIG.settings
+        self.settings = self.CONFIG.TESTING.settings
         
         self.RESULTS.summary = Params({"prep": {}, "live": [], "post": {}, "report": {} })
-        self.test_logger = self._create_test_logger(self.CONFIG.test_logger)
+        self.test_logger = self._create_test_logger(self.CONFIG.TESTING.test_logger)
         
         self._lock = threading.RLock()
         self._live_thread = None
@@ -264,7 +265,7 @@ class TestManager(AppManager):
 
     def _get_phase_tests(self, phase):
         """Normalize configured tests for one phase into a consistent list shape."""
-        raw_tests = getattr(self.CONFIG, phase, [])
+        raw_tests = getattr(self.CONFIG.TESTING, phase, [])
         if hasattr(raw_tests, "get_dict"):
             raw_tests = raw_tests.get_dict()
 
@@ -699,23 +700,11 @@ class TestManager(AppManager):
 
 
 # Feature 6.3.2
-def build_test_config(runtime_config, test_config_path="../test/config/base.json"):
-    """Feature ID: 6.3.2. Load a flattened test config derived from the integrated runtime config."""
-    if runtime_config is None:
-        raise ValueError("runtime_config is required for build_test_config")
-
-    common_config = runtime_config.COMMON.get_dict() if hasattr(runtime_config, "COMMON") else {}
-
-    test_config_root = get_config(config_path=test_config_path)
-    testing_config = test_config_root.get("testing", {}) if isinstance(test_config_root, dict) else {}
-
-    flattened_config = Params({"COMMON": common_config} | testing_config)
-    flattened_config.base_dir = runtime_config.base_dir if hasattr(runtime_config, "base_dir") else os.getcwd()
-    return flattened_config.evaluate(common_nodes=["COMMON"]).populate(
-        common_nodes=["COMMON"],
-        wrappers=flattened_config.COMMON.CONFIG_WRAPPERS,
-    )
-
+def build_test_config(base_config: dict ={}, test_config: dict ={}):
+    """Feature ID: 6.3.2. Merge the test config into the base config and resolve COMMON."""
+    merged_config = Params(dict_merge(base_config, test_config))
+    merged_config = merged_config.evaluate(common_nodes=["COMMON"]).populate(common_nodes=["COMMON"])
+    return merged_config
 
 # Feature 6.3.3
 def evaluate_checks(checks=None, **kwargs):

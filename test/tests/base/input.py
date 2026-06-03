@@ -1,4 +1,4 @@
-"""Feature ID: 5.3.1.2.1. Delta mode pre-test for input loading."""
+"""Feature ID: 5.3.1.2. pre-test for input loading tests."""
 
 import json
 import os
