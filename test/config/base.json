@@ -62,6 +62,22 @@
                         }
                     ]
                 }
+            },
+            {
+                "id": "prep_input_delta_mode",
+                "name": "Prep input delta mode",
+                "callable": "test.tests.base.input.test_input_delta",
+                "inputs": {
+                    "message": "Validated DataLoader delta mode across new, unchanged, modified, and added files"
+                }
+            },
+            {
+                "id": "prep_output_delta_mode",
+                "name": "Prep output delta mode",
+                "callable": "test.tests.base.output.test_output_delta",
+                "inputs": {
+                    "message": "Validated _save_output_artifact delta mode for skip, overwrite, and missing-file paths"
+                }
             }
         ],
         "live": [

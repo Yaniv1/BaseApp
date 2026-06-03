@@ -4,8 +4,22 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.05.28.02
-- App template version: A26.05.28.02
+- Base version: 26.06.02.02
+- App template version: A26.06.02.02
+
+## Highlights (26.06.02.02)
+
+- Added an output-level `delta` flag in `_save_output_artifact` backed by a sha256 content-checksum manifest.
+- `AppManager` holds an in-memory `output_manifest` (loaded from `<OUTPUT_PATH>/manifest.json` at init) keyed by full artifact path with `{sha256, mtime}` values.
+- Saves are skipped only when the new content checksum matches the stored sha256 AND the on-disk file mtime matches the manifest entry; the skip is logged via `BASE003` with `skipped: true, delta: true, sha256: <hash>`.
+- After every write the manifest entry is refreshed and the manifest is flushed to disk so it survives process restarts.
+- Applies per leaf for split outputs. Restored the missing `save_kwargs` initialization so output saves work end-to-end.
+
+## Highlights (26.06.02.01)
+
+- Added an input-level `delta` flag in `DataLoader`: when enabled, the loader rescans the input surface on every call and only loads files that are new or whose on-disk mtime changed since the previous load.
+- `AppManager` persists a per-input `last_modified` map (`self.input_meta`) across cycles, enabling fast cyclic / periodic scanning of large input stores and automatic pickup of modified files.
+- `BASE012` now reports `delta`, `loaded`, and `skipped` counters for observability.
 
 ## Highlights (26.05.28.02)
 

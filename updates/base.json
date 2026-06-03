@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [6.1.11.3] [Output Storage] Added checksum-manifest delta mode to output storage.",
+        "version": "26.06.02.02",
+        "description": "Added an output-level `delta` flag handled by `_save_output_artifact` backed by a content-checksum manifest. AppManager holds an in-memory `output_manifest` dict (loaded from `<OUTPUT_PATH>/manifest.json` at init) keyed by full artifact path with `{sha256, mtime}` values. On every save in delta mode, the data is hashed (canonical JSON sha256); if the existing file's mtime matches the manifest entry AND the new checksum equals the stored sha256, the save is skipped and BASE003 is logged with `skipped: true, delta: true, sha256: <hash>`. Otherwise the artifact is written, the manifest entry is updated, and the manifest is flushed to disk so subsequent process restarts can reuse it. Applies per leaf for split outputs. Also restored the missing `save_kwargs` initialization so output saves work end-to-end."
+    },
+    {
         "name": "[BaseApp] [6.1.11.1] [Input Loading] Added delta mode to input reading.",
         "version": "26.06.02.01",
         "description": "Added an input-level `delta` flag handled by DataLoader: when enabled, the loader rescans the input surface on every call and only loads files that are new or whose on-disk mtime changed since the previous load. AppManager persists a per-input last_modified map across cycles, enabling fast cyclic / periodic scanning of large input stores and automatic pickup of modified files. BASE012 now reports delta and skipped counters."

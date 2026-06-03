@@ -435,7 +435,7 @@
                                 },
                                 "6.1.11.3": {
                                     "name": "utils.baseutils.AppManager.store_outputs",
-                                    "description": "Persist configured outputs, including split artifacts and JSON materialization diagnostics.",
+                                    "description": "Persist configured outputs, including split artifacts and JSON materialization diagnostics. Supports an output-level `delta` flag (handled by _save_output_artifact) backed by a sha256 content-checksum manifest persisted to <OUTPUT_PATH>/manifest.json: when the new checksum and on-disk mtime match the manifest entry, the save is skipped; otherwise the artifact is written and the manifest is updated and flushed.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::AppManager.store_outputs"
                                 },

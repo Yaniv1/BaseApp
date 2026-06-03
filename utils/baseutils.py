@@ -15,6 +15,7 @@ import re
 import webbrowser
 import time
 import threading
+import hashlib
 from functools import wraps
 import math
 
@@ -956,6 +957,24 @@ class AppManager:
         # so that subsequent runs in delta mode can detect which files are new or changed.
         self.input_meta = {}
 
+        # Output delta manifest: maps full_output_path -> {"sha256": str, "mtime": float}. Loaded
+        # from <OUTPUT_PATH>/manifest.json on init (if present) and rewritten after every save so
+        # output delta mode can skip artifacts whose serialized content matches the on-disk file.
+        self.output_manifest_path = None
+        common = getattr(self.CONFIG, "COMMON", None)
+        output_root = getattr(common, "OUTPUT_PATH", None) if common is not None else None
+        if output_root:
+            self.output_manifest_path = os.path.join(str(output_root), "manifest.json")
+        self.output_manifest = {}
+        if self.output_manifest_path and os.path.isfile(self.output_manifest_path):
+            try:
+                with open(self.output_manifest_path, "r", encoding="utf-8") as f:
+                    loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    self.output_manifest = loaded
+            except (OSError, ValueError):
+                self.output_manifest = {}
+
         self.logger.log(
             f"{self.__class__.__name__} initialized",
             message_code="BASE001",
@@ -977,6 +996,29 @@ class AppManager:
         results.html_template = self.CONFIG.COMMON.HTML_TEMPLATE
         return results
 
+    def touch_result(self, source, when=None):
+        """Deprecated no-op kept for backwards compatibility; output delta now uses content checksums."""
+        return None
+
+    def _data_checksum(self, data):
+        """Return a sha256 hex digest of a JSON-serialized canonical form of ``data``."""
+        try:
+            payload = json.dumps(data, sort_keys=True, default=str, ensure_ascii=False).encode("utf-8")
+        except (TypeError, ValueError):
+            payload = repr(data).encode("utf-8")
+        return hashlib.sha256(payload).hexdigest()
+
+    def _save_output_manifest(self):
+        """Persist the in-memory output manifest to <OUTPUT_PATH>/manifest.json."""
+        if not self.output_manifest_path:
+            return
+        try:
+            os.makedirs(os.path.dirname(self.output_manifest_path), exist_ok=True)
+            with open(self.output_manifest_path, "w", encoding="utf-8") as f:
+                json.dump(self.output_manifest, f, indent=2, default=str)
+        except OSError:
+            pass
+
     # Feature 6.1.11.1
     def load_data(self):
         """Feature ID: 6.1.11.1. Load all enabled config.input entries and store results under configured targets."""
@@ -995,12 +1037,13 @@ class AppManager:
 
             # Instantiate the loader with prior per-file mtimes so delta mode can short-circuit
             # files that have not changed since the previous cycle.
+            prior_last_modified = dict(self.input_meta.get(input_key, {}))
             loader = DataLoader(
                 source=input_settings,
                 logger=self.logger,
                 data=getattr(self.RESULTS, target_name, {}),
                 base_dir=self.base_dir,
-                last_modified=self.input_meta.get(input_key, {}),
+                last_modified=prior_last_modified,
             )
             setattr(self.RESULTS, target_name, loader.load())
             # Persist refreshed mtime map for the next cycle / delta scan.
@@ -1114,7 +1157,13 @@ class AppManager:
         return os.path.join(output_path, *parent_parts, f"{leaf_name}.{output_format}")
 
     def _save_output_artifact(self, output_key, output_dict, data, item_keys=None):
-        """Save one output payload and emit the normal output logs."""
+        """Save one output payload and emit the normal output logs.
+
+        Honors output-level `delta` mode: when `delta` is true, the artifact is skipped if its
+        content checksum matches the entry recorded in ``self.output_manifest`` for this path AND
+        the on-disk file mtime matches what we last wrote. Otherwise the artifact is (re)saved
+        and the manifest is updated and flushed to ``<OUTPUT_PATH>/manifest.json``.
+        """
         if data is None:
             return
 
@@ -1129,6 +1178,35 @@ class AppManager:
         else:
             full_output_path = self._split_output_path(output_dict, item_keys)
 
+        delta_mode = bool(output_dict.get("delta", False))
+        new_checksum = self._data_checksum(data) if delta_mode else None
+
+        # Delta mode: skip when the manifest entry matches both the new checksum and the on-disk
+        # file's current mtime (no external tampering since we last wrote it).
+        if delta_mode and os.path.isfile(full_output_path):
+            entry = self.output_manifest.get(full_output_path)
+            try:
+                current_mtime = os.path.getmtime(full_output_path)
+            except OSError:
+                current_mtime = None
+            if (
+                isinstance(entry, dict)
+                and entry.get("sha256") == new_checksum
+                and current_mtime is not None
+                and entry.get("mtime") == current_mtime
+            ):
+                log_data = {
+                    "output_key": output_key,
+                    "path": full_output_path,
+                    "skipped": True,
+                    "delta": True,
+                    "sha256": new_checksum,
+                }
+                if item_keys:
+                    log_data["item_key"] = "/".join([str(k) for k in item_keys])
+                self.logger.log(message_code="BASE003", data=log_data)
+                return
+
         artifact_data = data
         if output_dict.get('format', '').lower() == 'html':
             title_suffix = output_key.capitalize() if not item_keys else f"{output_key.capitalize()} {' / '.join([str(k) for k in item_keys])}"
@@ -1137,10 +1215,30 @@ class AppManager:
                 template=output_dict.get("kwargs", {}).get("template", self.RESULTS.html_template),
                 title=f"{self.RESULTS.app_title} {self.RESULTS.signature} {title_suffix}",
             )
+
+        save_kwargs = {
+            "data": artifact_data,
+            "path": full_output_path,
+            "format": output_dict.get("format", "json"),
+        }
         save_kwargs.update(output_dict.get("kwargs", {}))
         saved_path = save(**save_kwargs)
 
+        # Update and persist the manifest entry for this artifact (delta mode only).
+        if delta_mode and saved_path:
+            try:
+                saved_mtime = os.path.getmtime(saved_path)
+            except OSError:
+                saved_mtime = None
+            self.output_manifest[full_output_path] = {
+                "sha256": new_checksum,
+                "mtime": saved_mtime,
+            }
+            self._save_output_manifest()
+
         log_data = {"output_key": output_key, "path": full_output_path}
+        if delta_mode:
+            log_data["sha256"] = new_checksum
         if item_keys:
             log_data["item_key"] = "/".join([str(k) for k in item_keys])
         self.logger.log(message_code="BASE003", data=log_data)
