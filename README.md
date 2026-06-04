@@ -4,8 +4,13 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.04.02
-- App template version: A26.06.04.02
+- Base version: 26.06.04.03
+- App template version: A26.06.04.03
+
+## Highlights (26.06.04.03)
+
+- `store_outputs` now writes artifacts concurrently via `ThreadPoolExecutor`. Set `CONFIG.COMMON.OUTPUT_WORKERS` (default 8) to control the worker count; 0 or 1 retains sequential behaviour.
+- Per-worker exceptions are caught and logged as `BASEW06` without aborting other writes.
 
 ## Highlights (26.06.04.02)
 

@@ -1,4 +1,4 @@
-# BaseApp V-26.06.04.02
+# BaseApp V-26.06.04.03
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,16 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.04.03)
+
+- `store_outputs` now writes artifacts concurrently via `ThreadPoolExecutor`. Set `CONFIG.COMMON.OUTPUT_WORKERS` (default 8) to control the worker count; values of 0 or 1 retain the original sequential behaviour.
+- New private method `_store_one_output` (Feature 6.1.11.9) encapsulates the resolve/convert/save logic for a single artifact, making it callable from both the sequential loop and the thread pool.
+- `_output_manifest_lock` (`threading.Lock`) added to `AppManager.__init__` to serialise all reads and writes to `output_manifest` across concurrent worker threads.
+- `_save_output_artifact` acquires the lock when checking and updating manifest entries, ensuring delta-mode integrity under concurrency.
+- Per-worker exceptions are caught and logged as `BASEW06` (WARN) without aborting remaining writes.
+- Added prep test `test_concurrent_store_outputs` (Feature 5.3.1.3.2) with 6 criteria covering sequential output, concurrent output, content parity, error isolation, and lock initialisation.
+- Added requirement `BASE-REQ-005.6` with full breakdown and solution traceability.
 
 ## Release Highlights (26.06.04.02)
 

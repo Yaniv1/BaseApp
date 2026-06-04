@@ -240,6 +240,45 @@
                     "description": "Verification requirement: Prep tests shall validate output delta behavior including skip, rewrite, and manifest persistence paths.",
                     "priority": "High",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-005.6",
+                    "title": "Concurrent Output Storage",
+                    "description": "The system must support concurrent execution of output storage operations so that independent output artifacts are written in parallel, reducing total output phase elapsed time when multiple outputs are configured.",
+                    "priority": "High",
+                    "comments": [],
+                    "breakdown": [
+                        {
+                            "id": "BASE-REQ-005.6.1",
+                            "description": "Performance requirement: When OUTPUT_WORKERS > 1 is configured, each independent entry in CONFIG.OUTPUT shall be dispatched to a thread pool and written concurrently.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-005.6.2",
+                            "description": "Configuration requirement: The worker count shall be stored in CONFIG.COMMON.OUTPUT_WORKERS. A value of 0 or 1 shall retain the existing sequential behavior.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-005.6.3",
+                            "description": "Safety requirement: The shared output_manifest dict and its disk flush must be protected from concurrent access by a threading lock.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-005.6.4",
+                            "description": "Safety requirement: A per-worker exception in concurrent mode must be caught, logged via a dedicated WARN message code, and must not abort other in-flight workers.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-005.6.5",
+                            "description": "Verification requirement: A prep test shall confirm that sequential mode produces correct artifacts, concurrent mode produces the same artifacts, and a worker exception is logged as WARN while remaining outputs are still written.",
+                            "priority": "High",
+                            "comments": []
+                        }
+                    ]                    
                 }
             ],
             "solution": [
@@ -270,6 +309,34 @@
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.11.3",
+                    "role": "store_outputs reads OUTPUT_WORKERS; when > 1 dispatches each enabled output entry to a ThreadPoolExecutor and collects exceptions.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.11.9",
+                    "role": "_store_one_output encapsulates resolve/convert/save for one output key, callable from both sequential loop and thread pool.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.11",
+                    "role": "AppManager.__init__ initializes _output_manifest_lock to serialize manifest reads/writes across worker threads.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.11.7",
+                    "role": "_save_output_artifact wraps output_manifest read and write+flush in _output_manifest_lock.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
                 }
             ]
         },

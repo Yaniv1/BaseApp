@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260604-0002] [6.1.11.3, 6.1.11.9] [Concurrent Output Storage] store_outputs now writes artifacts concurrently via ThreadPoolExecutor.",
+        "version": "26.06.04.03",
+        "description": "store_outputs reads CONFIG.COMMON.OUTPUT_WORKERS (default 8); when > 1, dispatches each enabled OUTPUT entry to a ThreadPoolExecutor with up to OUTPUT_WORKERS threads. Per-worker exceptions are caught and logged as BASEW06 without aborting remaining writes. New private method _store_one_output (Feature 6.1.11.9) encapsulates resolve/convert/save for a single artifact and is callable from both the sequential loop (OUTPUT_WORKERS <= 1) and the thread pool. _output_manifest_lock (threading.Lock) added to AppManager.__init__ to serialise output_manifest reads and writes across worker threads. _save_output_artifact now acquires the lock when reading and updating the manifest entry. Prep test test_concurrent_store_outputs (Feature 5.3.1.3.2) added covering 6 criteria. Added BASEW06 message code and BASE-REQ-005.6 requirement."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260604-0001] [3.2.12, 3.2.13] [Pullbase Once Sync] Pullbase now syncs once-manifest items to existing apps.",
         "version": "26.06.04.02",
         "description": "pullbase.py now loads 'once' entries from all synced manifest files and copies each source file/directory to the local app only when the destination does not already exist. New functions: load_once_entries (Feature 3.2.12) reads once entries from manifests; pull_once_files (Feature 3.2.13) performs the conditional copy and returns (copied, skipped, missing_sources) counts. main() extends missing_sources with once-pull misses for unified PULLW07/PULLW08 warning reporting. Fixed PULLE07 message code typo to PULLW07. Added PULL007 and PULL008 message codes. Added BASE-REQ-008.5 requirement. Added prep test test_pullbase_once_sync covering pre/live/post scenarios."

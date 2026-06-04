@@ -19,6 +19,7 @@ import hashlib
 import inspect
 from functools import wraps
 import math
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 try:
     from .datautils import DataFrameConverter, DataLoader
@@ -1024,6 +1025,9 @@ class AppManager:
             except (OSError, ValueError):
                 self.output_manifest = {}
 
+        # Lock that serialises output_manifest reads/writes across worker threads (Feature 6.1.11).
+        self._output_manifest_lock = threading.Lock()
+
         self.logger.log(
             f"{self.__class__.__name__} initialized",
             message_code="BASE001",
@@ -1217,7 +1221,8 @@ class AppManager:
         # Delta mode: skip when the manifest entry matches both the new checksum and the on-disk
         # file's current mtime (no external tampering since we last wrote it).
         if delta_mode and os.path.isfile(full_output_path):
-            entry = self.output_manifest.get(full_output_path)
+            with self._output_manifest_lock:
+                entry = self.output_manifest.get(full_output_path)
             try:
                 current_mtime = os.path.getmtime(full_output_path)
             except OSError:
@@ -1263,11 +1268,12 @@ class AppManager:
                 saved_mtime = os.path.getmtime(saved_path)
             except OSError:
                 saved_mtime = None
-            self.output_manifest[full_output_path] = {
-                "sha256": new_checksum,
-                "mtime": saved_mtime,
-            }
-            self._save_output_manifest()
+            with self._output_manifest_lock:
+                self.output_manifest[full_output_path] = {
+                    "sha256": new_checksum,
+                    "mtime": saved_mtime,
+                }
+                self._save_output_manifest()
 
         log_data = {"output_key": output_key, "path": full_output_path}
         if delta_mode:
@@ -1297,32 +1303,53 @@ class AppManager:
 
         self._save_output_artifact(output_key, output_dict, data, item_keys=item_keys)
        
-    
+    # Feature 6.1.11.9
+    def _store_one_output(self, output_key, output_dict):
+        """Feature ID: 6.1.11.9. Resolve, convert, and persist a single configured output artifact; callable from both sequential and concurrent paths."""
+        data = resolve_dotted(self, output_dict.get("source", output_key))
+        data = self._to_raw_data(
+            data,
+            max_items=output_dict.get("max_items", None),
+        )
+        split_setting = output_dict.get("split", False)
+        split_depth = int(split_setting) if isinstance(split_setting, (int, float)) else (1 if split_setting else 0)
+        if split_depth > 0 and isinstance(data, dict):
+            self._store_split_outputs(output_key, output_dict, data, split_depth)
+        else:
+            self._save_output_artifact(output_key, output_dict, data)
+
     # Feature 6.1.11.3
     def store_outputs(self, output_config='CONFIG.OUTPUT', outputs=[]):
-        """Feature ID: 6.1.11.3. Persist configured outputs, including split artifacts and JSON materialization diagnostics."""
+        """Feature ID: 6.1.11.3. Persist configured outputs, sequentially or concurrently based on CONFIG.COMMON.OUTPUT_WORKERS. Workers > 1 dispatches each artifact to a ThreadPoolExecutor; per-worker exceptions are caught and logged without aborting remaining writes."""
 
-        for output_key, output_dict in resolve_dotted(self, output_config).get_dict().items():
-            if outputs and output_key not in outputs:
-                continue
+        pending = [
+            (output_key, output_dict)
+            for output_key, output_dict in resolve_dotted(self, output_config).get_dict().items()
+            if (not outputs or output_key in outputs) and output_dict.get("store", True)
+        ]
 
-            store = output_dict.get("store", True)
-            if not store:
-                continue
+        max_workers = int(getattr(getattr(self.CONFIG, "COMMON", None), "OUTPUT_WORKERS", 0) or 0)
 
-            data = resolve_dotted(self, output_dict.get("source", output_key))
-            data = self._to_raw_data(
-                data,
-                max_items=output_dict.get("max_items", None),
-            )
-
-            split_setting = output_dict.get("split", False)
-            split_depth = int(split_setting) if isinstance(split_setting, (int, float)) else (1 if split_setting else 0)
-
-            if split_depth > 0 and isinstance(data, dict):
-                self._store_split_outputs(output_key, output_dict, data, split_depth)
-            else:
-                self._save_output_artifact(output_key, output_dict, data)
+        if max_workers <= 1 or len(pending) <= 1:
+            # Sequential path — unchanged behavior.
+            for output_key, output_dict in pending:
+                self._store_one_output(output_key, output_dict)
+        else:
+            # Concurrent path — dispatch independent artifacts to a thread pool.
+            n_workers = min(max_workers, len(pending))
+            with ThreadPoolExecutor(max_workers=n_workers) as executor:
+                futures = {
+                    executor.submit(self._store_one_output, output_key, output_dict): output_key
+                    for output_key, output_dict in pending
+                }
+                for future in as_completed(futures):
+                    exc = future.exception()
+                    if exc:
+                        self.logger.log(
+                            message_code="BASEW06",
+                            message_type="WARN",
+                            data={"output_key": futures[future], "error": str(exc)},
+                        )
 
     def open_output(self, saved_path, output_key):
         try:

@@ -2,7 +2,7 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.06.04.02",
+        "VERSION": "26.06.04.03",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -11,7 +11,8 @@
         "HTML_WRAPPERS": ["{$", "$}"],        
         "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}",
         "OUTPUT_VERSION": "dt.datetime.utcnow().strftime('%Y%m%d')",
-        "OUTPUT_PATH": "{$OUTPUT_PREFIX$}/{$OUTPUT_VERSION$}"
+        "OUTPUT_PATH": "{$OUTPUT_PREFIX$}/{$OUTPUT_VERSION$}",
+        "OUTPUT_WORKERS": "os.cpu_count()"
     },
     
     "APP": {

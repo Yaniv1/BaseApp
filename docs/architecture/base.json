@@ -466,6 +466,12 @@
                                             "description": "Pre-test that exercises _save_output_artifact checksum/manifest delta behavior.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/output.py::test_output_delta"
+                                        },
+                                        "5.3.1.3.2": {
+                                            "name": "test.tests.base.output.test_concurrent_store_outputs",
+                                            "description": "Pre-test that validates store_outputs concurrent mode: all artifacts written in parallel, worker exceptions logged as BASEW06 without aborting others, and _output_manifest_lock initialised.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/output.py::test_concurrent_store_outputs"
                                         }
                                     }
                                 },
@@ -695,7 +701,7 @@
                                 },
                                 "6.1.11.3": {
                                     "name": "utils.baseutils.AppManager.store_outputs",
-                                    "description": "Persist configured outputs, including split artifacts. Supports an output-level `delta` flag (handled by _save_output_artifact) backed by a sha256 content-checksum manifest persisted to <OUTPUT_PATH>/manifest.json: when the new checksum and on-disk mtime match the manifest entry, the save is skipped; otherwise the artifact is written and the manifest is updated and flushed.",
+                                    "description": "Persist configured outputs sequentially or concurrently via ThreadPoolExecutor based on CONFIG.COMMON.OUTPUT_WORKERS. Supports split artifacts and output-level delta flag backed by a sha256 checksum manifest. Per-worker exceptions are caught and logged as BASEW06 without aborting remaining writes.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::AppManager.store_outputs"
                                 },
@@ -728,6 +734,12 @@
                                     "description": "Open a previously saved output artifact for a given output key.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::AppManager.open_output"
+                                },
+                                "6.1.11.9": {
+                                    "name": "utils.baseutils.AppManager._store_one_output",
+                                    "description": "Resolve, convert, and persist a single configured output artifact; callable from both sequential loop and ThreadPoolExecutor worker threads in store_outputs.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::AppManager._store_one_output"
                                 }
                             }
                         }

@@ -5,6 +5,7 @@ BASE003,INFO,Stored output artifact
 BASE004,INFO,Opened output for browsing
 BASE005,INFO,Measured function runtime
 BASEW05,WARN,Could not open output
+BASEW06,WARN,Concurrent output worker failed
 BASE009,INFO,Resolved input files
 BASE010,INFO,Loaded input file
 BASE012,INFO,File loading completed

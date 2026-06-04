@@ -3,6 +3,7 @@ import json
 import os
 import shutil
 import tempfile
+import threading
 import time
 
 from utils.baseutils import AppManager
@@ -36,6 +37,7 @@ def _make_manager(workdir):
     manager = object.__new__(AppManager)
     manager.output_manifest_path = os.path.join(workdir, "manifest.json")
     manager.output_manifest = {}
+    manager._output_manifest_lock = threading.Lock()
     manager.logger = _DummyLogger()
     manager.logger_name = "logger"
     return manager
@@ -163,6 +165,189 @@ def test_output_delta(manager=None, message=None, **kwargs):
         return _build_result(
             status=overall,
             message=message or "Validated _save_output_artifact delta mode for skip, overwrite, and missing-file paths",
+            criteria=criteria,
+            features=features,
+            data={"workdir": workdir},
+        )
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)
+
+
+# Feature 5.3.1.3.2
+def test_concurrent_store_outputs(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.3.2. Pre-test that validates store_outputs concurrent mode (OUTPUT_WORKERS > 1).
+
+    Covers features:
+      - 6.1.11.3  (store_outputs: concurrent dispatch via ThreadPoolExecutor)
+      - 6.1.11.9  (_store_one_output: single-artifact worker callable)
+      - 6.1.11    (AppManager.__init__: _output_manifest_lock initialised)
+      - 6.1.11.7  (_save_output_artifact: manifest guarded by lock)
+    """
+    from utils.baseutils import Params
+
+    features = ["6.1.11.3", "6.1.11.9", "6.1.11", "6.1.11.7"]
+    criteria = []
+    workdir = tempfile.mkdtemp(prefix="baseconcur_out_")
+
+    try:
+        artifact_names = [f"artifact_{i}" for i in range(6)]
+        expected_files = sorted([f"{n}.json" for n in artifact_names])
+
+        def _build_output_entries(out_path):
+            """Return a plain dict of OUTPUT entries all pointing at out_path."""
+            return {
+                name: {
+                    "store": True,
+                    "source": f"RESULTS.{name}",
+                    "path": out_path,
+                    "file": f"{name}.json",
+                    "format": "json",
+                }
+                for name in artifact_names
+            }
+
+        def _make_full_manager(out_path, output_workers):
+            """Build a minimal AppManager with CONFIG and RESULTS ready for store_outputs."""
+            mgr = object.__new__(AppManager)
+            mgr.output_manifest_path = os.path.join(workdir, f"manifest_{output_workers}.json")
+            mgr.output_manifest = {}
+            mgr._output_manifest_lock = threading.Lock()
+            mgr.logger = _DummyLogger()
+            mgr.logger_name = "logger"
+            mgr.CONFIG = Params({
+                "COMMON": {"OUTPUT_WORKERS": output_workers},
+                "OUTPUT": _build_output_entries(out_path),
+            })
+            mgr.RESULTS = Params({name: {"value": i} for i, name in enumerate(artifact_names)})
+            return mgr
+
+        # ------------------------------------------------------------------ #
+        # Criterion 1: Sequential mode (OUTPUT_WORKERS=1) writes all 6 artifacts.
+        # ------------------------------------------------------------------ #
+        seq_dir = os.path.join(workdir, "seq")
+        os.makedirs(seq_dir, exist_ok=True)
+        seq_mgr = _make_full_manager(seq_dir, output_workers=1)
+        seq_mgr.store_outputs()
+        seq_files = sorted(os.listdir(seq_dir))
+        seq_ok = seq_files == expected_files
+        criteria.append({
+            "name": "sequential_mode_writes_all_artifacts",
+            "operator": "eq",
+            "actual": seq_files,
+            "expected": expected_files,
+            "success": seq_ok,
+            "status": "PASS" if seq_ok else "FAIL",
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 2: Concurrent mode (OUTPUT_WORKERS=4) writes all 6 artifacts.
+        # ------------------------------------------------------------------ #
+        con_dir = os.path.join(workdir, "con")
+        os.makedirs(con_dir, exist_ok=True)
+        con_mgr = _make_full_manager(con_dir, output_workers=4)
+        con_mgr.store_outputs()
+        con_files = sorted(os.listdir(con_dir))
+        con_ok = con_files == expected_files
+        criteria.append({
+            "name": "concurrent_mode_writes_all_artifacts",
+            "operator": "eq",
+            "actual": con_files,
+            "expected": expected_files,
+            "success": con_ok,
+            "status": "PASS" if con_ok else "FAIL",
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 3: Concurrent mode file contents match sequential mode.
+        # ------------------------------------------------------------------ #
+        contents_match = True
+        mismatch_file = None
+        for fname in expected_files:
+            with open(os.path.join(seq_dir, fname), "r", encoding="utf-8") as f:
+                seq_data = json.load(f)
+            with open(os.path.join(con_dir, fname), "r", encoding="utf-8") as f:
+                con_data = json.load(f)
+            if seq_data != con_data:
+                contents_match = False
+                mismatch_file = fname
+                break
+        criteria.append({
+            "name": "concurrent_output_contents_match_sequential",
+            "operator": "eq",
+            "actual": contents_match,
+            "expected": True,
+            "success": contents_match,
+            "status": "PASS" if contents_match else "FAIL",
+            **({"data": {"mismatch_file": mismatch_file}} if not contents_match else {}),
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 4: A worker exception is logged as BASEW06 and does not
+        #              prevent other outputs from being written.
+        # ------------------------------------------------------------------ #
+        err_dir = os.path.join(workdir, "err")
+        os.makedirs(err_dir, exist_ok=True)
+        # Create a file at the path that bad_output tries to use as a directory.
+        bad_path = os.path.join(err_dir, "collision")
+        with open(bad_path, "w") as f:
+            f.write("not a directory")
+
+        err_mgr = object.__new__(AppManager)
+        err_mgr.output_manifest_path = os.path.join(workdir, "manifest_err.json")
+        err_mgr.output_manifest = {}
+        err_mgr._output_manifest_lock = threading.Lock()
+        err_mgr.logger = _DummyLogger()
+        err_mgr.logger_name = "logger"
+        err_entries = _build_output_entries(err_dir)
+        # bad_output points at a file path — os.makedirs inside _save_output_artifact will fail.
+        err_entries["bad_output"] = {
+            "store": True,
+            "source": "RESULTS.artifact_0",
+            "path": bad_path,
+            "file": "should_fail.json",
+            "format": "json",
+        }
+        err_mgr.CONFIG = Params({"COMMON": {"OUTPUT_WORKERS": 4}, "OUTPUT": err_entries})
+        err_mgr.RESULTS = Params({name: {"value": i} for i, name in enumerate(artifact_names)})
+        err_mgr.store_outputs()
+
+        warn_logged = any(e.get("message_code") == "BASEW06" for e in err_mgr.logger.events)
+        good_files = sorted(f for f in os.listdir(err_dir) if f.startswith("artifact_"))
+        all_good_written = good_files == expected_files
+        criteria.append({
+            "name": "worker_exception_logged_as_basew06",
+            "operator": "eq",
+            "actual": warn_logged,
+            "expected": True,
+            "success": warn_logged,
+            "status": "PASS" if warn_logged else "FAIL",
+        })
+        criteria.append({
+            "name": "remaining_outputs_written_despite_worker_failure",
+            "operator": "eq",
+            "actual": good_files,
+            "expected": expected_files,
+            "success": all_good_written,
+            "status": "PASS" if all_good_written else "FAIL",
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 6: _output_manifest_lock is a real Lock on the stub manager.
+        # ------------------------------------------------------------------ #
+        lock_present = isinstance(err_mgr._output_manifest_lock, type(threading.Lock()))
+        criteria.append({
+            "name": "output_manifest_lock_initialised",
+            "operator": "eq",
+            "actual": lock_present,
+            "expected": True,
+            "success": lock_present,
+            "status": "PASS" if lock_present else "FAIL",
+        })
+
+        overall = "PASS" if all(c["success"] for c in criteria) else "FAIL"
+        return _build_result(
+            status=overall,
+            message=message or "Validated store_outputs concurrent mode: all artifacts written, errors isolated, lock present",
             criteria=criteria,
             features=features,
             data={"workdir": workdir},

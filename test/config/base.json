@@ -84,6 +84,14 @@
                 }
             },
             {
+                "id": "prep_concurrent_store_outputs",
+                "name": "Prep concurrent store outputs",
+                "callable": "test.tests.base.output.test_concurrent_store_outputs",
+                "inputs": {
+                    "message": "Validated store_outputs concurrent mode: all artifacts written, errors isolated, lock present"
+                }
+            },
+            {
                 "id": "prep_pullbase_once_sync",
                 "name": "Prep pullbase once sync",
                 "callable": "test.tests.base.pullbase.test_pullbase_once_sync",
