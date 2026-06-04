@@ -472,6 +472,7 @@ class Logger:
         self.log_columns = ["timestamp", "type_key", "type", "elapsed_sec", "caller", "message_code", "message", "data"]
         self.message_lookup = message_lookup if message_lookup is not None else pd.DataFrame(columns=["code", "type", "text"])
         self.log_path = log_path
+        self._csv_written_count = 0
         self.max_items = max_items
         self.log_folders = {
             'csv': os.path.dirname(log_path) if log_path else None,
@@ -690,17 +691,38 @@ class Logger:
             return None
         return data
 
-    def _write_csv(self):
-        """Persist all logs with a stable schema including a single data column."""
+    def _write_csv(self, append=True):
+        """Append any new log entries to the CSV log file."""
         if not self.log_path:
             return
 
+        new_events = self.logs[self._csv_written_count:]
+        
         rows = []
-        for event in self.logs:
-            row = {column: event.get(column, None) for column in self.log_columns}
+        events = new_events if append else self.logs
+        for event in events:
+            row = {}
+            for column in self.log_columns:
+                val = event.get(column, None)
+                if isinstance(val, (dict, list)):
+                    val = json.dumps(val, default=str)
+                row[column] = val
             rows.append(row)
 
-        pd.DataFrame(rows, columns=self.log_columns).to_csv(self.log_path, mode='w', header=True, index=False)
+        write_header = not os.path.isfile(self.log_path) or self._csv_written_count == 0
+        try:
+            if append:
+                pd.DataFrame(rows, columns=self.log_columns).to_csv(
+                    self.log_path, mode='a', header=write_header, index=False
+                )
+                self._csv_written_count += len(rows)
+            else:
+                pd.DataFrame(rows, columns=self.log_columns).to_csv(
+                    self.log_path, mode='w', header=True, index=False
+                )
+                self._csv_written_count = len(rows)
+        except Exception:
+            pass
 
 
     def update_data_map(self, data=None):
@@ -1122,28 +1144,12 @@ class AppManager:
                 log_func=(lambda msg, code=None, data=None: self.logger.log(message=msg, message_code=code, data=data))
             ).apply(source_df)
 
+            # Store the result regardless of type; custom scope steps return dicts/lists.
             setattr(self.RESULTS, step_settings.get("target", step_id), result)
 
     def _to_raw_data(self, value, max_items=None):
         """Convert Params/objects into plain dict/list primitives with optional item limits."""
-
         if isinstance(value, str):
-            v = value.strip()
-            if (v.startswith("{") and v.endswith("}")) or (v.startswith("[") and v.endswith("]")):
-                self._json_parse_stats["attempted"] += 1
-                try:
-                    parsed = json.loads(v)
-                    self._json_parse_stats["parsed"] += 1
-                    return self._to_raw_data(parsed, max_items=max_items)
-                except Exception as ex:
-                    self._json_parse_stats["failed"] += 1
-                    if hasattr(self,self.logger_name):
-                        getattr(self, self.logger_name).log(
-                            message_code="BASEW11",
-                            message_type="WARN",
-                            data={"error": str(ex), "sample": v[:200]},
-                        )
-                    return value
             return value
 
         if isinstance(value, Params):
@@ -1305,14 +1311,10 @@ class AppManager:
                 continue
 
             data = resolve_dotted(self, output_dict.get("source", output_key))
-            self._json_parse_stats = {"attempted": 0, "parsed": 0, "failed": 0}
-            data = self._to_raw_data(data, max_items=output_dict.get("max_items", None))
-
-            if self._json_parse_stats["attempted"] > 0:
-                self.logger.log(
-                    message_code="BASE011",
-                    data={"output_key": output_key} | self._json_parse_stats,
-                )
+            data = self._to_raw_data(
+                data,
+                max_items=output_dict.get("max_items", None),
+            )
 
             split_setting = output_dict.get("split", False)
             split_depth = int(split_setting) if isinstance(split_setting, (int, float)) else (1 if split_setting else 0)

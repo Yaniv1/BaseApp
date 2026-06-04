@@ -2,7 +2,7 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.06.03.02",
+        "VERSION": "26.06.04.01",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -94,7 +94,54 @@
                 }
             ],
             "target": "message_codes_df"
+        },
+
+        "tasks_df": {
+            "run": true,
+            "source": "tasks",
+            "context": {
+                "tasks": "tasks"
+            },
+            "conversions": [ 
+                          
+                {                    
+                    "scope": "df",
+                    "op": "pd.concat([pd.DataFrame(task_dict.get('TASKS', [])).assign(source_file=name) for name, task_dict in tasks.items() if name != 'template.json'], ignore_index=True)"
+                }
+            ],
+            "target": "tasks_df"
+        },
+
+        "tasks_filtered": {
+            "run": true,
+            "source": "tasks",
+            "context": {
+                "tasks": "tasks"
+            },
+            "conversions": [
+                {
+                    "scope": "custom",
+                    "op": "{k: v for k, v in tasks.items() if k != 'template.json'}"
+                }
+            ],
+            "target": "tasks_filtered"
+        },
+
+        "tasks_by_status": {
+            "run": true,
+            "source": "tasks_df",
+            "context": {
+                "tasks": "tasks_df"
+            },
+            "conversions": [
+                {
+                    "scope": "df",
+                    "op": "{status: grp.sort_values('priority').to_dict(orient='records') for status, grp in df.groupby('status')}"
+                }
+            ],
+            "target": "tasks_by_status"
         }
+        
     },
 
     
@@ -123,6 +170,7 @@
             "path": "{$OUTPUT_PATH$}/config",
             "file": "config.json",
             "format": "json"
+
         },
         "results_html": {
             "store": true,
@@ -172,7 +220,7 @@
         "tasks_split_html": {
             "store": true,
             "split": 1,
-            "source": "RESULTS.tasks",
+            "source": "RESULTS.tasks_filtered",
             "path": "{$OUTPUT_PATH$}/tasks",
             "format": "html",
             "kwargs": {
@@ -180,6 +228,31 @@
             },
             "open": false
         },
+        
+        "tasks_by_status_split": {
+            "store": true,
+            "split": 1,
+            "source": "RESULTS.tasks_by_status",
+            "path": "{$OUTPUT_PATH$}/tasks/reports",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "max_items": 100
+        },
+
+        "tasks_df_html": {
+            "store": true,
+            "source": "RESULTS.tasks_df",
+            "path": "{$OUTPUT_PATH$}/tasks",
+            "file": "tasks.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            }
+        },
+        
+                
         "config_html": {
             "store": true,
             "source": "CONFIG",

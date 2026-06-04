@@ -4,8 +4,21 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.03.02
-- App template version: A26.06.03.02
+- Base version: 26.06.04.01
+- App template version: A26.06.04.01
+
+## Highlights (26.06.04.01)
+
+- Improved Logger performance to append log entries rather than rewrite the log file with each log entry. 
+- Improved App Manager performance by avoiding warnings for string to JSON parsing while saving outputs.
+- Add supports in `DataFrameConverter.apply` for a `custom` scope for expression-based transformations that return raw results.
+
+
+## Highlights (26.06.03.03)
+
+- Added config-driven task report generation with status-based grouping via the built-in `PROCESS` mechanism.
+- Tasks are grouped by status field through custom data conversion expressions and rendered to separate JSON and HTML files.
+- New outputs: `tasks_by_status_split` (JSON) and `tasks_by_status_html` (HTML) stored under `tasks/reports/` folder.
 
 ## Highlights (26.06.03.02)
 

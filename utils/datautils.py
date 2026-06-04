@@ -57,9 +57,19 @@ class DataFrameConverter:
         except Exception as e:
             raise ValueError(f"Conversion expression failed: {expr}\n{str(e)}")
 
-    def apply(self, df: pd.DataFrame) -> pd.DataFrame:
-        """Apply conversion list to DataFrame."""
+    def apply(self, df: pd.DataFrame):
+        """Apply conversion list to DataFrame or context data.
+
+        For ``col``, ``row``, and ``df`` scopes the working value is a DataFrame and
+        the return value is a DataFrame.  For ``custom`` scope the expression is
+        evaluated with the full context (no DataFrame required) and its result is
+        returned as-is, allowing arbitrary data shapes (dict, list, etc.) to be
+        produced by a process step.
+        """
         df = df.copy()
+        # Track whether a custom scope expression produced a non-DataFrame result.
+        custom_result = None
+        has_custom = False
 
         for conv in self.conversions:
             target = conv.get("target")
@@ -75,6 +85,12 @@ class DataFrameConverter:
 
             if self.verbose:
                 self.log_func(f"Applying conversion -> {target or '<df>'} | scope={scope}")
+
+            if scope == "custom":
+                # Evaluate expression with the full context; no DataFrame manipulation.
+                custom_result = self._safe_eval(op, {})
+                has_custom = True
+                continue
 
             if filt:
                 df = df[df[source].isin(filt)]
@@ -101,6 +117,8 @@ class DataFrameConverter:
             elif scope == "df":
                 df = self._safe_eval(op, {"df": df})
 
+        if has_custom:
+            return custom_result
         return df
 
 

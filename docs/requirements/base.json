@@ -521,6 +521,38 @@
                     "description": "Verification requirement: Post tests shall confirm requirements/tasks input load flags are present in monitor state.",
                     "priority": "Medium",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-010.6",
+                    "description": "Processing requirement: The system shall support grouping tasks by status field using config-driven data conversion and generate separate JSON and HTML output artifacts for each status group.",
+                    "priority": "High",
+                    "comments": [],
+                    "breakdown": [
+                        {
+                            "id": "BASE-REQ-010.6.1",
+                            "description": "Process requirement: The system shall execute config.PROCESS steps with custom conversions that transform raw input data structures into grouped outputs.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-010.6.2",
+                            "description": "Conversion requirement: The system shall support grouping tasks loaded from multiple source files by status field using data conversion expressions.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-010.6.3",
+                            "description": "Output requirement: The system shall render grouped task data to separate JSON files (one per status) and HTML artifacts using split output configuration.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-010.6.4",
+                            "description": "Verification requirement: Post tests shall confirm tasks_by_status process output contains all status groups with correct task filtering.",
+                            "priority": "Medium",
+                            "comments": []
+                        }
+                    ]
                 }
             ],
             "solution": [
@@ -541,6 +573,27 @@
                 {
                     "feature": "6.3.3",
                     "role": "Post-run evaluate_checks verifies requirements/tasks loaded flags.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.12.1",
+                    "role": "AppManager.process_data executes PROCESS steps with custom scope conversions on loaded input data.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.12.2",
+                    "role": "tasks_by_status process step transforms raw tasks dict into status-keyed groups via custom conversion expression.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.11.4",
+                    "role": "AppManager.store_outputs renders tasks_by_status split JSON and HTML outputs to reports subfolder.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0

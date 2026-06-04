@@ -74,6 +74,51 @@
                     "timestamp": "2026-06-03T00:00:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260603-0004",
+            "uuid": "d4e8f5c2-7a1b-42c9-9d3e-5f8c1a9b2e7d",
+            "title": "Create task report grouped by status with config-driven processing",
+            "description": "Implement built-in process mechanism to group loaded tasks by status and store each status group in a separate output file with data conversion on raw input. Ignore the template.json file in the input directory.",
+            "priority": "High",
+            "status": "Done",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added PROCESS step tasks_by_status to config/base.json with custom scope data conversion that transforms raw TASKS list into status-keyed dictionary.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added OUTPUT configurations for tasks_by_status_split (JSON) and tasks_by_status_html (HTML) to store grouped tasks as separate JSON and HTML files with split rendering under tasks/reports folder.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added BASE-REQ-011 requirement to capture task report grouping and status-based distribution capability through built-in process mechanism and custom conversion scope.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Updated version to 26.06.03.03, updated README.md and docs/readme/base.md with release highlights and feature details, prepended updates/base.json with release note, updated docs/version files.",
+                    "timestamp": "2026-06-03T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added custom scope to DataFrameConverter.apply so PROCESS steps can evaluate expressions against context dicts and return raw results. Fixed Logger._write_csv to append-only mode using _csv_written_count. Removed JSON string-parsing heuristic from AppManager._to_raw_data (strings returned as-is); removed _json_parse_stats tracking and BASE011/BASEW11 message codes. Task complete.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260604-0001",
+            "uuid": "e5f6a7b8-9c0d-4e1f-8a2b-3c4d5e6f7g8h",
+            "title": "Pullbase to pull all oncce items that have not yet been pulled, to cover for newly added items like requirements and tasks.",
+            "description": "Pullbase currently pulls only items listed in manifests/pull.json. It also needs to pull items in manifests/once.json if they are not already in the variant app's codebase.",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+            ]
         }
     ]
 }

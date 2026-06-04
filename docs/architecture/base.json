@@ -577,7 +577,7 @@
                         },
                         "6.1.9": {
                             "name": "utils.baseutils.Logger",
-                            "description": "Simple logger that stores messages, emits console output, persists CSV and HTML logs, and publishes a runtime data map.",
+                            "description": "Simple logger that stores messages, emits console output, persists append-only CSV logs, renders HTML logs, and publishes a runtime data map.",
                             "type": "Folder.PyFile.Class",
                             "path": "utils/baseutils.py::Logger",
                             "features": {
@@ -669,7 +669,7 @@
                                 },
                                 "6.1.11.3": {
                                     "name": "utils.baseutils.AppManager.store_outputs",
-                                    "description": "Persist configured outputs, including split artifacts and JSON materialization diagnostics. Supports an output-level `delta` flag (handled by _save_output_artifact) backed by a sha256 content-checksum manifest persisted to <OUTPUT_PATH>/manifest.json: when the new checksum and on-disk mtime match the manifest entry, the save is skipped; otherwise the artifact is written and the manifest is updated and flushed.",
+                                    "description": "Persist configured outputs, including split artifacts. Supports an output-level `delta` flag (handled by _save_output_artifact) backed by a sha256 content-checksum manifest persisted to <OUTPUT_PATH>/manifest.json: when the new checksum and on-disk mtime match the manifest entry, the save is skipped; otherwise the artifact is written and the manifest is updated and flushed.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::AppManager.store_outputs"
                                 },
@@ -721,7 +721,7 @@
                             "features": {
                                 "6.2.1.1": {
                                     "name": "utils.datautils.DataFrameConverter.apply",
-                                    "description": "Apply the configured transformation rules to a pandas DataFrame and return the result.",
+                                    "description": "Apply the configured transformation rules to a pandas DataFrame and return the result. Supports a 'custom' scope that evaluates the op expression against the converter's context dict and returns the raw result directly, bypassing the DataFrame column-assignment path.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/datautils.py::DataFrameConverter.apply"
                                 }

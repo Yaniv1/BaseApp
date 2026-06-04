@@ -1,5 +1,15 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260603-0004] [6.1.9, 6.1.11, 6.2.1] [Infrastructure Fixes] Fixed Logger CSV to append-only, removed _to_raw_data JSON parsing heuristic, completed DataFrameConverter custom scope.",
+        "version": "26.06.04.01",
+        "description": "Logger._write_csv now appends only new log entries on each call using a _csv_written_count counter instead of rewriting the entire file, and pre-serializes dict/list column values to JSON strings before writing. AppManager._to_raw_data no longer auto-parses strings starting with { or [ via json.loads; strings are returned as-is. Removed _json_parse_stats tracking and BASE011 log from store_outputs. Removed BASE011 and BASEW11 message codes (no longer generated). DataFrameConverter.apply custom scope evaluates op expressions against context dict and returns raw results. These changes complete task BASE-TASK-260603-0004 and eliminate spurious BASEW11 warnings and the pandas C-level crash from unserialised column values."
+    },
+    {
+        "name": "[BaseApp] [BASE-TASK-260603-0004] [6.1.12] [Task Report Processing] Added config-driven task grouping by status with data conversion and status-based output reports.",
+        "version": "26.06.03.03",
+        "description": "Added config.PROCESS step tasks_grouped_by_status with custom conversion that transforms raw tasks input dict into status-keyed groups. Added OUTPUT configurations tasks_by_status_split and tasks_by_status_html that render each status group to separate JSON and HTML files under tasks/reports folder. Added BASE-REQ-011 requirement capturing task report grouping and status-based distribution capability through built-in process mechanism."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260603-0002] [6.1.11.1] [Requirements/Tasks IO] Added requirements and tasks as runtime input and HTML output artifacts.",
         "version": "26.06.03.02",
         "description": "Added INPUT sources for docs/requirements and docs/tasks and added requirements_split_html/tasks_split_html outputs in config/base.json. Updated post-run test checks to verify requirements_loaded and tasks_loaded monitor flags."

@@ -32,6 +32,8 @@ For maintenance requirements, there is typically no need to change the requireme
 5. When logging, utilize logger functionality - use message codes instead of text, if necessary add new message codes to messages/base.csv or messages/test.csv. report variable values using data and not in message.
 6. Maintain three tests for each feature: pre-test, live test, and post-test. Tests can be combined with other tests to simplify the test system. For example, if a single variable or object is sufficient for two separate tests, we can do away with a single test and two success criteria to match the two tests. Each test has to report which feature(s) it covers.
 
+## Change Finalizing and Deployment
+
 When asked to finalize and deploy the code change:
 1. Increment the version id . No need to create a new version number for each small change.
 2. Update the readme base.md after every code change.

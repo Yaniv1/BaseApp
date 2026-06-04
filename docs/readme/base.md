@@ -1,4 +1,4 @@
-# BaseApp V-26.06.03.02
+# BaseApp V-26.06.04.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -8,13 +8,25 @@ BaseApp is a reusable Python foundation for app projects that need:
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
 
+## Release Highlights (26.06.04.01)
+
+- `Logger._write_csv` now operates in append-only mode: a `_csv_written_count` counter tracks how many entries have been flushed so only new log entries are appended on each call, eliminating the full file rewrite that occurred on every `log()` call. Dict/list column values are serialised to JSON strings before DataFrame construction.
+- `AppManager._to_raw_data` no longer attempts to auto-parse string values that happen to start with `{` or `[` via `json.loads`. Strings are returned as-is; callers own string semantics. This removes the false-positive BASEW11 warnings that fired on Python expression strings and config template values.
+- `DataFrameConverter.apply` now supports a `custom` scope that evaluates the `op` expression against the converter's context dict and returns the raw result directly, bypassing the DataFrame column-assignment path.
+- Removed `BASE011` (JSON text parse summary) and `BASEW11` (Failed to parse JSON text field) message codes — no longer generated.
+
+## Release Highlights (26.06.03.03)
+
+- Added config-driven task report generation with status-based grouping using the built-in `PROCESS` mechanism.
+- Tasks are grouped by status field through custom data conversion expressions that transform raw loaded task dictionaries into status-keyed groups.
+- New process step: `tasks_by_status` uses custom conversion scope to group tasks from multiple source files.
+- New output configurations: `tasks_by_status_split` (JSON) and `tasks_by_status_html` (HTML) render each status group to separate files under `{$OUTPUT_PATH$}/tasks/reports/`.
+
 ## Release Highlights (26.06.03.02)
 
 - Added `requirements` and `tasks` to runtime INPUT so BaseApp loads both catalogs during normal execution.
 - Added `requirements_split_html` and `tasks_split_html` outputs so both catalogs are rendered to HTML under `{$OUTPUT_PATH$}`.
 - Extended test post-checks to validate `requirements_loaded` and `tasks_loaded` monitor flags.
-
-## Release Highlights (26.06.03.01)
 
 - Added requirement and task artifacts to the framework.
 - `docs/manifests/pull.json` now pulls `docs/requirements/base.json`, `docs/requirements/req-eng-instructions.md`, `docs/tasks/base.json`, and `docs/tasks/template.json`.
@@ -255,12 +267,22 @@ the input level by `DataLoader`:
   `print` when verbose logging is enabled.
 - `df`-scope conversions do not need their own `target`; the step-level
   `target` controls where the final processed DataFrame is stored.
+- Conversion scope can be `df` for DataFrame operations or `custom` for arbitrary
+  Python expressions that transform any data shape (dict, list, etc.).
 - Process outputs are stored back on `results` using the step id unless a
   `target` override is provided.
 
-BaseApp includes an example step, `message_codes_df`, which concatenates all
-loaded message code CSVs from the `message_codes` context mapping into a single
-DataFrame and adds a `source_file` column.
+BaseApp includes example steps:
+
+1. `message_codes_df` — uses `df` scope to concatenate all loaded message code CSVs
+   from the `message_codes` context mapping into a single DataFrame and adds a
+   `source_file` column.
+
+2. `tasks_grouped_by_status` — uses `custom` scope with a dictionary comprehension
+   to group all tasks loaded from multiple source files by their `status` field.
+   The expression iterates through each source file's TASKS array and collects
+   tasks into a status-keyed dictionary. Output is stored as `tasks_by_status`
+   and rendered via split outputs to separate JSON/HTML files per status.
 
 ### 10. Output JSON materialization and parse diagnostics
 
