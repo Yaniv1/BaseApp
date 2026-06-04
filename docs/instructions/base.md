@@ -12,6 +12,8 @@ Keep working until there are no open tasks.
 
 ## For every task you're working on:
 
+Change the task's status from ToDo to InProgress when you start working on it. Then commit and push the tasks file so that the task's status will be reflected in the repository.
+
 Update the task list when significant progress is made on a task.
 Use the task comments to update progress details.
 
@@ -56,5 +58,6 @@ When asked to finalize and deploy the code change:
         As you update the feature list, you should also add the identifier of the feature as a comment in the file but only if the format permits it in a way that does not change the semantics of the file. For example, python code supports comments, but json and csv files do not. MD files support comments but these comments are considered part of the text that the reader sees.
         Use the architecture/temp items to update the archiecture based on suggested corrections made by the architecture compliance test.
 7. Update README.md - this is a high-level overview of the functionality - what functionality is added/ modified, and what is the new behavior/capability. This should not be as detailed as the readme/base.md or readme/app.md files.
-8. Stage and commit all the changes.
-9. Push to the git repository.
+8. Update the task's status to Done.
+9. Stage and commit all the changes.
+10. Push to the git repository.

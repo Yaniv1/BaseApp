@@ -116,9 +116,56 @@
             "title": "Pullbase to pull all oncce items that have not yet been pulled, to cover for newly added items like requirements and tasks.",
             "description": "Pullbase currently pulls only items listed in manifests/pull.json. It also needs to pull items in manifests/once.json if they are not already in the variant app's codebase.",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Done",
             "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added load_once_entries() to read 'once' entries from synced manifest files (parallel to load_pull_entries for 'pull' entries).",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added pull_once_files() (Feature 3.2.13) to copy once-manifest items to the local app only when the destination does not already exist, returning (copied, skipped, missing_sources).",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Updated main() in pullbase.py: after regular pull, loads once entries and invokes pull_once_files; extends missing_sources for unified warning reporting; prints once-files stats. Also fixed PULLE07 -> PULLW07 bug.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added PULL007 (Loaded once entries) and PULL008 (Once pull synced files) message codes to docs/message_codes/base.csv. Fixed PULW08 typo to PULLW08.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added BASE-REQ-012 to docs/requirements/base.json capturing the once-pull propagation requirement with breakdown and solution traceability.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Changed the requirement ID from BASE-REQ-012 to BASE-REQ-008.5 to fit into the existing requirement hierarchy under BASE-REQ-008, which captures pullbase sync requirements. Updated breakdown IDs accordingly to maintain consistency. Merged solution components into the existing BASE-REQ-008 breakdown where appropriate, since they are closely related to the pullbase sync process.",
+                    "timestamp": "2026-06-04T19:00:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Updated the req-eng-instructions.md skill to clarify the method for determining the correct place of a requirement in the hierarchy and how to assign IDs, especially for requirements that are closely related to existing ones. Emphasized the importance of maintaining a logical structure and consistent ID scheme in the requirements documentation. This will help ensure that future requirements are organized in a way that reflects their relationships and dependencies.",
+                    "timestamp": "2026-06-04T19:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added prep test test_pullbase_once_sync (Feature 5.3.1.4.1) in test/tests/base/pullbase.py covering 9 criteria: pre (load_once_entries), live (pull_once_files copies missing, skips existing), post (missing sources reported). All criteria PASS. Registered test in test/config/base.json. Updated architecture 5.3.1.4/5.3.1.4.1. Updated verification scores to 1.0 for features 3.2.12 and 3.2.13 in requirements. Bumped version to 26.06.04.02.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                }
             ]
+        },
+        {
+            "id": "BASE-TASK-260604-0002",
+            "uuid": "a1b2c3d4-e5f6-7g8h-9i0j-k1l2m3n4o5p6",
+            "title": "Store outputs concurrently.",
+            "description": "Improve the performance of output storage by enabling concurrent writes.",
+            "priority": "High"
         }
     ]
 }

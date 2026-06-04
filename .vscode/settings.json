@@ -1,0 +1,14 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "winget": true,
+        "/^python --version$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "&": true,
+        "/^Set-Location \"c:\\\\Users\\\\ymordecai\\\\OneDrive - Microsoft\\\\Code\\\\BaseApp\"; & \"\\.\\\\\\.venv\\\\Scripts\\\\python\\.exe\" -c \"import json, py_compile; files=\\[r'test/config/base\\.json', r'docs/architecture/base\\.json'\\]; \\[json\\.load\\(open\\(f, 'r', encoding='utf-8'\\)\\) for f in files\\]; pyfiles=\\[r'app/base\\.py', r'utils/datautils\\.py', r'utils/baseutils\\.py', r'utils/testutils\\.py', r'test/tests/base/base\\.py'\\]; \\[py_compile\\.compile\\(f, doraise=True\\) for f in pyfiles\\]; print\\('validation ok'\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

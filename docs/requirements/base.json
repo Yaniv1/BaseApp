@@ -206,7 +206,7 @@
         },
         {
             "id": "BASE-REQ-005",
-            "title": "Persist Runtime Outputs as JSON, CSV, and HTML",
+            "title": "Persist Runtime Outputs with Configurable Formats and Delta Behavior",
             "description": "The system must persist configured runtime artifacts in standard output formats, including nested split outputs and template-based HTML rendering.",
             "priority": "Critical",
             "comments": [],
@@ -416,6 +416,40 @@
                     "description": "Output requirement: Both workflows shall produce typed log artifacts and clear operation summaries.",
                     "priority": "Medium",
                     "comments": []
+                },                
+                {
+                    "id": "BASE-REQ-008.5",
+                    "title": "Pullbase Syncs Newly Added Once Items to Existing Apps",
+                    "description": "The pullbase script must apply once-manifest entries to an existing variant app by copying each source file or directory only when the destination does not already exist, so that newly introduced once items (e.g., requirements, tasks) are propagated without overwriting app-specific customizations.",
+                    "priority": "High",
+                    "comments": [],
+                    "breakdown": [
+                        {
+                            "id": "BASE-REQ-008.5.1",
+                            "description": "Process requirement: The system shall read 'once' entries from all synced manifest files during a normal (non-hard) pullbase run.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.5.2",
+                            "description": "Process requirement: For each once entry, the system shall copy the source file or directory contents to the local app only when the destination path does not already exist.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.5.3",
+                            "description": "Output requirement: The system shall report the count of newly copied once files and the count of skipped (already existing) once files.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.5.4",
+                            "description": "Verification requirement: Missing source files from once entries shall be reported in the same missing-sources warning flow as pull entries.",
+                            "priority": "Medium",
+                            "comments": []
+                        }
+                    ]
+                    
                 }
             ],
             "solution": [
@@ -446,6 +480,27 @@
                     "implementation": 1.0,
                     "verification": 0.8,
                     "deployment": 1.0
+                },
+                {
+                    "feature": "3.2.13",
+                    "role": "pull_once_files copies once-manifest items to local app only when destination is absent, returning (copied, skipped, missing) counts.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.2.12",
+                    "role": "load_once_entries reads once entries from synced manifest files, parallel to load_pull_entries.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.2.3",
+                    "role": "main() loads once entries via load_once_entries, invokes pull_once_files, and extends missing_sources for unified warning reporting.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
                 }
             ]
         },

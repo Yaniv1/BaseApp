@@ -199,6 +199,18 @@
                             "description": "Sync manifest files from the source BaseApp into the local app.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::sync_manifests"
+                        },
+                        "3.2.12": {
+                            "name": "scripts.pullbase.load_once_entries",
+                            "description": "Load once entries from synced manifest files; each entry is only applied when the destination does not already exist.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::load_once_entries"
+                        },
+                        "3.2.13": {
+                            "name": "scripts.pullbase.pull_once_files",
+                            "description": "Copy once-manifest files and directories from source into local app only when destination is absent, returning (copied, skipped, missing_sources) counts.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::pull_once_files"
                         }
                     }
                 }
@@ -454,6 +466,20 @@
                                             "description": "Pre-test that exercises _save_output_artifact checksum/manifest delta behavior.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/output.py::test_output_delta"
+                                        }
+                                    }
+                                },
+                                "5.3.1.4": {
+                                    "name": "test.tests.base.pullbase",
+                                    "description": "Pre-tests for pullbase once-pull sync features (3.2.12 and 3.2.13).",
+                                    "type": "Folder.Folder.Folder.PyFile",
+                                    "path": "test/tests/base/pullbase.py",
+                                    "features": {
+                                        "5.3.1.4.1": {
+                                            "name": "test.tests.base.pullbase.test_pullbase_once_sync",
+                                            "description": "Pre/live/post test that validates load_once_entries reads manifest entries and pull_once_files copies missing files while skipping existing ones.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/pullbase.py::test_pullbase_once_sync"
                                         }
                                     }
                                 }

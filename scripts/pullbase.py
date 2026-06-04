@@ -129,6 +129,42 @@ def load_pull_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
 
     return file_map
 
+# Feature 3.2.12
+def load_once_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
+    """Load all once entries from copied manifest files.
+
+    Once entries are copied only when the destination file does not already exist in the local app.
+    """
+    file_map: list[tuple[str, str]] = []
+
+    for manifest_path in manifest_paths:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+
+        if not isinstance(raw, dict):
+            raise ValueError(f"Invalid manifest format in {manifest_path}: expected object at root")
+
+        entries = raw.get("once")
+        if entries is None:
+            continue
+        if not isinstance(entries, list):
+            raise ValueError(f"Invalid manifest format in {manifest_path}: expected list at 'once'")
+
+        for index, item in enumerate(entries):
+            if not isinstance(item, dict):
+                raise ValueError(f"Invalid manifest item at {manifest_path}:once[{index}] - expected object")
+
+            source = item.get("source")
+            target = item.get("target", source)
+            if not isinstance(source, str) or not source:
+                raise ValueError(f"Invalid manifest item at {manifest_path}:once[{index}] - 'source' is required")
+            if not isinstance(target, str) or not target:
+                raise ValueError(f"Invalid manifest item at {manifest_path}:once[{index}] - 'target' must be a string")
+
+            file_map.append((source, target))
+
+    return file_map
+
 
 # Feature 3.2.2
 def pull_base_files(local_root: Path, source_root: Path, file_map: list[tuple[str, str]]) -> tuple[int, list[str]]:
@@ -165,6 +201,55 @@ def pull_base_files(local_root: Path, source_root: Path, file_map: list[tuple[st
         missing_sources.append(str(src))
 
     return copied, missing_sources
+
+
+# Feature 3.2.13
+def pull_once_files(
+    local_root: Path, source_root: Path, file_map: list[tuple[str, str]]
+) -> tuple[int, int, list[str]]:
+    """Copy once files from source into local root only when destination does not already exist.
+
+    Returns (copied, skipped, missing_sources) where skipped counts files already present locally.
+    """
+    copied = 0
+    skipped = 0
+    missing_sources: list[str] = []
+
+    for src_rel, dst_rel in file_map:
+        src = source_root / src_rel
+
+        if not src.exists():
+            missing_sources.append(str(src))
+            continue
+
+        if src.is_file():
+            dst = local_root / dst_rel
+            if dst.exists():
+                skipped += 1
+                continue
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+            copied += 1
+            continue
+
+        if src.is_dir():
+            dst_root = local_root / dst_rel
+            for child in sorted(src.rglob("*")):
+                if not child.is_file():
+                    continue
+                child_rel = child.relative_to(src)
+                dst = dst_root / child_rel
+                if dst.exists():
+                    skipped += 1
+                    continue
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(child, dst)
+                copied += 1
+            continue
+
+        missing_sources.append(str(src))
+
+    return copied, skipped, missing_sources
 
 
 def load_runtime_config(app_root: Path) -> Params:
@@ -271,6 +356,8 @@ def main() -> int:
         print(f"Source not found: {source_root}")
         return 1
 
+    once_copied = once_skipped = 0
+
     if args.hard:
         copied, missing_sources = hard_pull(local_root, source_root)
         if logger:
@@ -298,14 +385,26 @@ def main() -> int:
         copied, missing_sources = pull_base_files(local_root, source_root, file_map)
         if logger:
             logger.log(message_code="PULL006", data={"copied": copied})
+        once_map = load_once_entries(manifest_paths)
+        if logger:
+            logger.log(
+                message_code="PULL007",
+                data={"entry_count": len(once_map)},
+            )
+        once_copied, once_skipped, once_missing = pull_once_files(local_root, source_root, once_map)
+        if logger:
+            logger.log(message_code="PULL008", data={"copied": once_copied, "skipped": once_skipped})
+        missing_sources.extend(once_missing)
 
     print(f"Source: {source_root}")
     print(f"Local app: {local_root}")
     print(f"Base files updated: {copied}")
+    if not args.hard:
+        print(f"Once files synced: {once_copied} new (skipped {once_skipped} existing)")
 
     if missing_sources:
         if logger:
-            logger.log(message_code="PULLE07", message_type="WARN", data={"count": len(missing_sources)})
+            logger.log(message_code="PULLW07", message_type="WARN", data={"count": len(missing_sources)})
         print("Missing source files:")
         for path in missing_sources:
             print(f"- {path}")

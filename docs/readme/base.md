@@ -1,4 +1,4 @@
-# BaseApp V-26.06.04.01
+# BaseApp V-26.06.04.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,15 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.04.02)
+
+- `pullbase.py` now applies `once` manifest entries when run against an existing variant app. Two new functions handle this: `load_once_entries` (Feature 3.2.12) reads `once` entries from all synced manifest files, and `pull_once_files` (Feature 3.2.13) copies each source file or directory to the local app only when the destination does not already exist — preserving any app-specific customisations.
+- `main()` merges missing-source paths from the once pull into the same `PULLW07`/`PULLW08` warning flow used by the regular pull, and prints a summary line reporting how many once files were synced vs skipped.
+- Fixed a message-code typo: `PULLE07` → `PULLW07` (missing sources detected is a warning, not an error).
+- Added message codes `PULL007` (Loaded once entries) and `PULL008` (Once pull synced files).
+- Added prep test `test_pullbase_once_sync` covering all nine criteria across pre/live/post phases for features 3.2.12 and 3.2.13.
+- Added requirement `BASE-REQ-008.5` capturing the once-pull propagation requirement with full breakdown and solution traceability.
 
 ## Release Highlights (26.06.04.01)
 

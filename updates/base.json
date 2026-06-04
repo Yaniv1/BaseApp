@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260604-0001] [3.2.12, 3.2.13] [Pullbase Once Sync] Pullbase now syncs once-manifest items to existing apps.",
+        "version": "26.06.04.02",
+        "description": "pullbase.py now loads 'once' entries from all synced manifest files and copies each source file/directory to the local app only when the destination does not already exist. New functions: load_once_entries (Feature 3.2.12) reads once entries from manifests; pull_once_files (Feature 3.2.13) performs the conditional copy and returns (copied, skipped, missing_sources) counts. main() extends missing_sources with once-pull misses for unified PULLW07/PULLW08 warning reporting. Fixed PULLE07 message code typo to PULLW07. Added PULL007 and PULL008 message codes. Added BASE-REQ-008.5 requirement. Added prep test test_pullbase_once_sync covering pre/live/post scenarios."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260603-0004] [6.1.9, 6.1.11, 6.2.1] [Infrastructure Fixes] Fixed Logger CSV to append-only, removed _to_raw_data JSON parsing heuristic, completed DataFrameConverter custom scope.",
         "version": "26.06.04.01",
         "description": "Logger._write_csv now appends only new log entries on each call using a _csv_written_count counter instead of rewriting the entire file, and pre-serializes dict/list column values to JSON strings before writing. AppManager._to_raw_data no longer auto-parses strings starting with { or [ via json.loads; strings are returned as-is. Removed _json_parse_stats tracking and BASE011 log from store_outputs. Removed BASE011 and BASEW11 message codes (no longer generated). DataFrameConverter.apply custom scope evaluates op expressions against context dict and returns raw results. These changes complete task BASE-TASK-260603-0004 and eliminate spurious BASEW11 warnings and the pandas C-level crash from unserialised column values."

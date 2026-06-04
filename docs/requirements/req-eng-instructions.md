@@ -44,10 +44,14 @@ This file provides instructions for requirements engineering:
         
     }
 
+3.1. Note that this structure applies recursively to sub-requirements.
+
+4. Find the appropriate location in the hierarchy for the requirement. Ideally a requirement should be placed at the bottommost location in the hierarchy, i.e. under existing requirements if it reflects a specific extension, specialization or derivation of an existing functionality. A requirement that is being changed as a whole should be replaced by a new requirement at the same level. Only a requirement for a completely new feature/functionality that does not exist should be added at the topmost level.
+
 4. Breakdown:
     - break down the requirement into more detailed sub-requirements, verification criteria, etc.
-    - keep breaking down until sub-requirements become complete and implementable.
-    - for each requirement try to define clearly:
+    - keep breaking down until sub-requirements become trivial, simple, complete, and implementable.
+    - for each requirement try to define clearly, if necessary:
         - input requirement(s)
         - process requirement(s)
         - output requirement(s)

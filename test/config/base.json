@@ -82,6 +82,14 @@
                 "inputs": {
                     "message": "Validated _save_output_artifact delta mode for skip, overwrite, and missing-file paths"
                 }
+            },
+            {
+                "id": "prep_pullbase_once_sync",
+                "name": "Prep pullbase once sync",
+                "callable": "test.tests.base.pullbase.test_pullbase_once_sync",
+                "inputs": {
+                    "message": "Validated pullbase once-pull sync: load_once_entries reads manifest entries and pull_once_files copies missing files while skipping existing ones"
+                }
             }
         ],
         "live": [

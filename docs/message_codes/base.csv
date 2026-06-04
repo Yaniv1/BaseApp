@@ -34,5 +34,7 @@ PULL004,INFO,Loaded pull entries
 PULLE05,ERROR,Failed to load manifests
 PULL006,INFO,Pull copied files
 PULLW07,WARN,Missing source files detected
-PULW08,WARN,Missing source file
+PULLW08,WARN,Missing source file
+PULL007,INFO,Loaded once entries
+PULL008,INFO,Once pull synced files
 PULL999,GOOD,Pullbase completed successfully
