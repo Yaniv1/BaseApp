@@ -179,6 +179,26 @@
                     "timestamp": "2026-06-04T00:00:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260604-0003",
+            "uuid": "f1e2d3c4-b5a6-7h8i-9j0k-l1m2n3o4p5q6",
+            "title": "Add a TestApp deployment test.",
+            "description": "Implement a test that runs a TestApp deployment scenario using instantiate.py, followed by a pullbase from the TestApp's side. This needs to run as a powershell script.",
+            "priority": "High",
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Task created",
+                    "timestamp": "2026-06-04T21:07:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Started work. Plan: create scripts/test_deployment.ps1 with pre/instantiate/pullbase/post phases; add to pull manifest; add BASE-REQ-013; update architecture.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                }
+            ]
         }
     ]
 }
