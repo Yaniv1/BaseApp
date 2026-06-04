@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260604-0003] [3.3.1] [Deployment Integration Test] Added scripts/test_deployment.ps1 PowerShell end-to-end deployment test.",
+        "version": "26.06.04.04",
+        "description": "Added scripts/test_deployment.ps1 (Feature 3.3.1): a standalone PowerShell integration test covering the full BaseApp deployment pipeline. Four phases: PRE validates required BaseApp source files; INSTANTIATE runs scripts/instantiate.py in a unique temp folder and verifies pull-manifest items, once-manifest items, and APP_NAME population; PULLBASE runs scripts/pullbase.py from the new TestApp pointing back to BaseApp as source; POST verifies final file layout and confirms config/app.json APP_NAME was not overwritten (once-manifest skip behavior). 25 per-criterion PASS/FAIL checks. Accepts -BaseAppRoot, -Python, and -KeepTemp parameters. Temp folder cleaned up automatically. Added BASE-REQ-013 requirement with breakdown and solution traceability. Updated architecture with feature 3.3 / 3.3.1."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260604-0002] [6.1.11.3, 6.1.11.9] [Concurrent Output Storage] store_outputs now writes artifacts concurrently via ThreadPoolExecutor.",
         "version": "26.06.04.03",
         "description": "store_outputs reads CONFIG.COMMON.OUTPUT_WORKERS (default 8); when > 1, dispatches each enabled OUTPUT entry to a ThreadPoolExecutor with up to OUTPUT_WORKERS threads. Per-worker exceptions are caught and logged as BASEW06 without aborting remaining writes. New private method _store_one_output (Feature 6.1.11.9) encapsulates resolve/convert/save for a single artifact and is callable from both the sequential loop (OUTPUT_WORKERS <= 1) and the thread pool. _output_manifest_lock (threading.Lock) added to AppManager.__init__ to serialise output_manifest reads and writes across worker threads. _save_output_artifact now acquires the lock when reading and updating the manifest entry. Prep test test_concurrent_store_outputs (Feature 5.3.1.3.2) added covering 6 criteria. Added BASEW06 message code and BASE-REQ-005.6 requirement."

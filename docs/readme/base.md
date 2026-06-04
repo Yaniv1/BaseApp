@@ -1,4 +1,4 @@
-# BaseApp V-26.06.04.03
+# BaseApp V-26.06.04.04
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,11 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.04.04)
+
+- Added `scripts/test_deployment.ps1` (Feature 3.3.1): a standalone PowerShell integration test that exercises the full BaseApp deployment pipeline. The script runs four sequential phases — pre (source validity), instantiate (`scripts/instantiate.py`), pullbase (`scripts/pullbase.py` from the TestApp), and post (final state verification) — reporting per-criterion PASS/FAIL across 25 checks. Accepts optional `-BaseAppRoot`, `-Python`, and `-KeepTemp` parameters. Temp folders are cleaned up automatically.
+- Added requirement `BASE-REQ-013` with full breakdown and solution traceability.
 
 ## Release Highlights (26.06.04.03)
 

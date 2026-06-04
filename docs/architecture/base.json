@@ -213,6 +213,20 @@
                             "path": "scripts/pullbase.py::pull_once_files"
                         }
                     }
+                },
+                "3.3": {
+                    "name": "scripts.test_deployment",
+                    "description": "Standalone PowerShell integration test that verifies the full BaseApp deployment pipeline: source validity pre-check, instantiate a fresh TestApp, run pullbase from the TestApp, and confirm the final file layout including once-manifest item preservation.",
+                    "type": "Folder.Ps1File",
+                    "path": "scripts/test_deployment.ps1",
+                    "features": {
+                        "3.3.1": {
+                            "name": "scripts.test_deployment.test_deployment",
+                            "description": "Feature ID: 3.3.1. Pre/instantiate/pullbase/post test phases with per-criterion PASS/FAIL reporting and temp-folder cleanup.",
+                            "type": "Folder.Ps1File.Script",
+                            "path": "scripts/test_deployment.ps1"
+                        }
+                    }
                 }
             }
         },

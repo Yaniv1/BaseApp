@@ -1,7 +1,7 @@
 # BaseApp Agent Instructions
 ## These instructions apply when working on the base app
 
-These instructions define how coding agents should work on BaseApp.
+These instructions define how you must work on BaseApp.
 
 ## Task Selection
 

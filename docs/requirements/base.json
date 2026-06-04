@@ -607,6 +607,7 @@
                 }
             ]
         },
+        
         {
             "id": "BASE-REQ-010",
             "title": "Expose Requirements and Tasks as Runtime Data and HTML Artifacts",
@@ -719,6 +720,70 @@
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0
+                }
+            ]
+        },
+
+        {
+            "id": "BASE-REQ-011",
+            "title": "Execute End-to-End Deployment Validation and Verifitcation",
+            "description": "The system must provide a set of end-to-end tests.",
+            "priority": "High",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-011.1",
+                    "title": "Execute End-to-End Deployment Validation and Verifitcation Script",
+                    "description": "The system must provide a standalone PowerShell script that exercises the full BaseApp deployment pipeline — instantiation of a fresh variant app followed by a base-update pull — and reports per-criterion PASS/FAIL results for pre, instantiate, pullbase, and post phases.",
+                    "priority": "High",
+                    "comments": [],
+                    "breakdown": [
+                        {
+                            "id": "BASE-REQ-011.1.1",
+                            "description": "Pre-test requirement: The script shall verify that all required BaseApp source files exist before attempting instantiation.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-011.1.2",
+                            "description": "Process requirement: The script shall invoke scripts/instantiate.py with a unique temp target path and assert exit code 0.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-011.1.3",
+                            "description": "Process requirement: The script shall verify that all expected pull-manifest and once-manifest files are present in the new TestApp after instantiation.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-011.1.4",
+                            "description": "Process requirement: The script shall invoke scripts/pullbase.py from the newly instantiated TestApp pointing back to BaseApp as source, and assert exit code 0.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-011.1.5",
+                            "description": "Post-test requirement: The script shall verify that pull-manifest items are present and that once-manifest items (e.g. config/app.json APP_NAME) were not overwritten by the pullbase run.",
+                            "priority": "High",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-011.1.6",
+                            "description": "Configuration requirement: The script shall accept optional parameters for BaseApp root path, Python executable, and KeepTemp flag, and shall clean up temporary folders after the test.",
+                            "priority": "Medium",
+                            "comments": []
+                        }
+                    ],
+                    "solution": [
+                        {
+                            "feature": "3.3.1",
+                            "role": "test_deployment.ps1 implements pre/instantiate/pullbase/post phases with per-criterion PASS/FAIL reporting.",
+                            "implementation": 1.0,
+                            "verification": 1.0,
+                            "deployment": 1.0
+                        }
+                    ]
                 }
             ]
         }

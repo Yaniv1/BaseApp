@@ -1,7 +1,7 @@
 # App Instructions
 ## These instructions apply when working on the variant app
 
-These instructions define how coding agents should work on variant app.
+These instructions define how you must work on a variant app of BaseApp.
 
 
 ## Task Selection

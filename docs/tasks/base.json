@@ -186,7 +186,7 @@
             "title": "Add a TestApp deployment test.",
             "description": "Implement a test that runs a TestApp deployment scenario using instantiate.py, followed by a pullbase from the TestApp's side. This needs to run as a powershell script.",
             "priority": "High",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
@@ -196,6 +196,42 @@
                 {
                     "author": "GitHub Copilot",
                     "content": "Started work. Plan: create scripts/test_deployment.ps1 with pre/instantiate/pullbase/post phases; add to pull manifest; add BASE-REQ-013; update architecture.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Created scripts/test_deployment.ps1 (Feature 3.3.1) with 4 phases and 25 criteria: PRE (5) validates source files; INSTANTIATE (10) verifies pull/once items and APP_NAME; PULLBASE (1) confirms exit code 0; POST (9) verifies final layout, base.py content match, and APP_NAME preservation. All 25 criteria PASS. Script accepts -BaseAppRoot, -Python, -KeepTemp parameters; cleans up temp folder automatically. Added BASE-REQ-013 with breakdown and solution traceability. Updated architecture with features 3.3 and 3.3.1. Bumped version to 26.06.04.04.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Changed the requirement ID from BASE-REQ-012 to BASE-REQ-008.5 to fit into the existing requirement hierarchy under BASE-REQ-008, which captures pullbase sync requirements. Updated breakdown IDs accordingly to maintain consistency. Merged solution components into the existing BASE-REQ-008 breakdown where appropriate, since they are closely related to the pullbase sync process.",
+                    "timestamp": "2026-06-04T22:00:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260604-0011",
+            "uuid": "9faa8e43-311d-4e6e-afdc-376c6a291579",
+            "title": "Add build phase tests to TESTING dict",
+            "description": [
+                "I added a `build` node to the TESTING dict in test/config/base.json.",
+                "These are tests that you have to run as part of the deployment ceremony.",
+                "In order to achieve this, create test/tests/build.py  that will run the build phase tests and include any future build tests.",
+                "The build.py script must adhere to the current test management design, use TestManager and configure it to focus on the build tests.",
+                "Make sure you work according to the instructions when you plan, design, and implement the build test capability."
+            ],
+            "priority": "Medium",
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "Task created.",
+                    "content": "Created docs/req-eng-instructions.md with detailed instructions on how to add new requirements and tasks, including examples and best practices for structuring the JSON files and linking to features and tests.",
+                    "timestamp": "2026-06-05T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Started work. Plan: (1) add test_deployment function (Feature 6.3.5) to testutils.py + fix run_a_test to initialize unknown phase slots; (2) create test/tests/build.py (Feature 5.3.2) as standalone build runner; (3) add TST008 message code; (4) add BASE-REQ-007.5; (5) update architecture.",
                     "timestamp": "2026-06-04T00:00:00Z"
                 }
             ]
