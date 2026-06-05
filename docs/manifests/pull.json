@@ -61,7 +61,7 @@
             "source": "docs/message_codes/test.csv"
         },
         {
-            "source": "config/requirements.txt"
+            "source": "dependencies/base.txt"
         },
         {
             "source": "docs/version/base.txt"

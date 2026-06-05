@@ -1,4 +1,4 @@
-# BaseApp V-26.06.04.05
+# BaseApp V-26.06.04.06
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,12 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.04.06)
+
+- Refactored `config/requirements.txt` into `dependencies/base.txt` and `dependencies/app.txt`. Base dependencies (numpy, scipy, pandas, tqdm) are now declared in `dependencies/base.txt` and pulled to every variant app on each base update. App-specific additions live in `dependencies/app.txt`, which is copied once on instantiation.
+- Updated `docs/manifests/pull.json` to pull `dependencies/base.txt` and `docs/manifests/once.json` to copy `dependencies/app.txt` on first instantiation.
+- Added `dependencies` folder as top-level Feature `9` (with `9.1` = `base.txt`, `9.2` = `app.txt`) in `docs/architecture/base.json`; removed stale Feature `2.3` (`config/requirements.txt`) and updated the `config` folder description.
 
 ## Release Highlights (26.06.04.05)
 

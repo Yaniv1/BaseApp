@@ -252,7 +252,7 @@
                 "Update the manifests and any relevant documentation to reflect this change, and ensure that the installation instructions are updated accordingly."
             ],
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Task created.",
@@ -263,6 +263,38 @@
                     "author": "GitHub Copilot",
                     "content": "Started work. dependencies/base.txt and dependencies/app.txt already exist. Plan: (1) update pull.json to reference dependencies/base.txt instead of config/requirements.txt; (2) add dependencies/app.txt to once.json; (3) update architecture; (4) finalize.",
                     "timestamp": "2026-06-04T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Done. Updated pull.json (config/requirements.txt → dependencies/base.txt), once.json (added dependencies/app.txt), and docs/architecture/base.json (removed Feature 2.3, updated Feature 2 description, added Feature 9 with 9.1 and 9.2). Bumped version to 26.06.04.06.",
+                    "timestamp": "2026-06-05T00:00:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260605-0001",
+            "uuid": "7a6b5c4d-3e2f-1g0h-9i8j-7k6l5m4n3o2p",
+            "title": "Add dependency installation to deployment process",
+            "description": [                
+                "Create a deploy script that can be powershell or python as best fits the implementation, that will run the build phase tests and handle dependency installation for deployment ceremonies.",
+                "Update the requirements and architecture documentation to include the new deployment script and its role in the deployment process.",
+                "Create the virtual environment if it does not already exist.",
+                "Install the dependencies from base.txt. The base.txt file will contain all the core dependencies required for BaseApp to function",
+                "Install the dependencies from app.txt. The app.txt file will include any additional dependencies specific to the application layer. Note that this file will only contain dependencies in the the variant app if the app requires additional dependencies beyond the base runtime dependencies.",
+                "Ensure that the installation process is efficient and does not significantly increase build times.",
+                "Install only the missing dependencies to optimize the installation process.",                                
+                "Activate the virtual environment before running the app to ensure it uses the correct dependencies.",
+                "Update the documentation to reflect the new dependency installation process and provide instructions for adding new dependencies.",
+                "Run test_deployment.ps1 as part of the deployment validation steps, reporting pass/fail results for each criterion.",
+                "Run the build phase tests as part of the deployment ceremony to validate the integrity of the deployment before it goes live."
+            ],
+            "priority": "Medium",
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Started work. Plan: (1) create scripts/deploy.ps1 (Feature 3.4) — venv setup, missing-package install from base.txt + app.txt, run test_deployment.ps1, run build tests; (2) add BASE-REQ-012; (3) update architecture; (4) finalize.",
+                    "timestamp": "2026-06-05T00:00:00Z"
                 }
             ]
         }

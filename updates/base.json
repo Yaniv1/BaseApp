@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260604-0012] [9.1, 9.2] [Dependencies Refactor] Moved requirements.txt to dependencies/base.txt and dependencies/app.txt.",
+        "version": "26.06.04.06",
+        "description": "Refactored config/requirements.txt into dependencies/base.txt (core runtime packages: numpy, scipy, pandas, tqdm) and dependencies/app.txt (empty; for variant app additions). Updated pull.json to pull dependencies/base.txt and once.json to copy dependencies/app.txt on instantiation. Added Feature 9 (dependencies folder with 9.1 base.txt and 9.2 app.txt) to the base architecture. Removed stale Feature 2.3 (config/requirements.txt) and updated the config folder description."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260604-0011] [5.3.2, 6.3.5] [Build Phase Tests] Added test/tests/build.py build runner and utils.testutils.test_deployment callable.",
         "version": "26.06.04.05",
         "description": "Added test/tests/build.py (Feature 5.3.2): a standalone build-phase test runner that loads runtime config and test config, merges them via build_test_config, creates a TestManager, runs run_phase('build'), stores outputs, and returns exit code 0 (pass) or 1 (fail). Added test_deployment (Feature 6.3.5) to utils/testutils.py: resolves script_path relative to base_dir, spawns pwsh -NonInteractive -File via subprocess, parses each [PASS]/[FAIL]/[WARN] output line as a structured criterion, and returns a TestManager-compatible result dict. Fixed TestManager.run_a_test to initialize the per-phase results slot on demand for any phase name not pre-seeded. Added BASE-REQ-007.5 requirement, TST008 message code, and architecture features 5.2.1.4, 5.3.2, 5.3.2.1, and 6.3.5."

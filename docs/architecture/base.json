@@ -36,7 +36,7 @@
         },
         "2": {
             "name": "config",
-            "description": "Layered JSON configuration and dependency declarations.",
+            "description": "Layered JSON configuration files for runtime settings.",
             "type": "Folder",
             "path": "config",
             "features": {
@@ -45,12 +45,6 @@
                     "description": "Base runtime configuration covering COMMON placeholder values, logging, input loading, processing, and output artifacts.",
                     "type": "Folder.JsonFile.DataSet",
                     "path": "config/base.json"
-                },
-                "2.3": {
-                    "name": "config.requirements.txt",
-                    "description": "Python dependency manifest for the runtime and tooling stack.",
-                    "type": "Folder.DataSet",
-                    "path": "config/requirements.txt"
                 }
             }
         },
@@ -918,6 +912,26 @@
             "description": "Top-level repository readme.",
             "type": "MdFile",
             "path": "README.md"
+        },
+        "9": {
+            "name": "dependencies",
+            "description": "Python dependency declaration files split by layer: base dependencies for the core framework and app dependencies for variant-specific additions.",
+            "type": "Folder",
+            "path": "dependencies",
+            "features": {
+                "9.1": {
+                    "name": "dependencies.base",
+                    "description": "Core Python package requirements for the BaseApp runtime and tooling stack (e.g. numpy, pandas). Pulled to every variant app on each base update.",
+                    "type": "Folder.TxtFile",
+                    "path": "dependencies/base.txt"
+                },
+                "9.2": {
+                    "name": "dependencies.app",
+                    "description": "App-specific Python package requirements added by the variant app designer. Copied once during instantiation.",
+                    "type": "Folder.TxtFile",
+                    "path": "dependencies/app.txt"
+                }
+            }
         }
     }
 }

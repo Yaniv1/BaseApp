@@ -31,6 +31,9 @@
             "source": "updates"
         },
         {
+            "source": "dependencies/app.txt"
+        },
+        {
             "source": "test"
         }
     ]    
