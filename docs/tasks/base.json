@@ -289,13 +289,62 @@
                 "Run the build phase tests as part of the deployment ceremony to validate the integrity of the deployment before it goes live."
             ],
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "GitHub Copilot",
                     "content": "Started work. Plan: (1) create scripts/deploy.ps1 (Feature 3.4) — venv setup, missing-package install from base.txt + app.txt, run test_deployment.ps1, run build tests; (2) add BASE-REQ-012; (3) update architecture; (4) finalize.",
                     "timestamp": "2026-06-05T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Implementation complete. Created scripts/setup_env.ps1 (Feature 3.4) and rewrote scripts/deploy.ps1 (Feature 3.5). Added run_setup_env() to scripts/instantiate.py (Feature 3.1.11) and scripts/pullbase.py (Feature 3.2.14). Updated docs/architecture/base.json with Features 3.4, 3.5, 3.1.11, 3.2.14. Merged BASE-REQ-011 into BASE-REQ-012 as 012.8. Build tests passed: 1 test, 0 failures (25/25 criteria PASS).",
+                    "timestamp": "2026-06-05T18:00:00Z"
                 }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260605-0002",
+            "uuid": "6f5e4d3c-2b1a-0h9i-8j7k-6l5m4n3o2p1q",
+            "title": "Refactor the file tree to consolidate build related resources, documentation resources, and data resources.",
+            "description": [
+                "Create a `build` directory under the root dir to house all build-related subfolders and files.",
+                "Move instructions, tasks, requirements, architecture, and updates under build. ",
+                "Create a `resources` directory under the root dir to house all data-related subfolders and files.",
+                "Move message_codes, templates, and manifests under resources.",
+                "Update all file paths in the codebase, manifests, and documentation to reflect the new directory structure.",
+                "Ensure that all scripts and processes that reference these files are updated to the new paths and that there are no broken references.",
+                "Update the documentation to reflect the new file tree structure and provide guidance on where to find different types of resources and documentation.",
+                "This refactor will help improve the organization of the codebase and make it easier for developers to find relevant files and resources based on their purpose (build-related vs data-related).",
+                "Keep app files that were in their old location during the pullbase process to ensure that the new structure is reflected in variant apps as well without destroying existing app files that are already in the variant app (similar to how once.json handles copying files).",
+                "For pullbase use the target field in the manifest to indicate where the file should be placed in the variant app, and for once.json use the destination field to indicate where the file should be copied in the variant app. This way, we can maintain the new organized structure in both the base and variant apps while ensuring that existing files in the variant app are not overwritten during the pullbase process."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Task Created",
+                    "timestamp": "2026-06-05T18:00:00Z"
+                }           
+            ]
+        },
+        {
+            "id": "BASE-TASK-260605-0003",
+            "uuid": "5e4d3c2b-1a0h-9i8j-7k6l-5m4n3o2p1q0r",
+            "title": "Move the function to_json_compatible under baseutils so that it can be used across the codebase for converting data to JSON-compatible formats.",
+            "description": [
+                "to_json_compatible is currently under baseutils.save(), limiting its accessibility and reusability across the codebase. Moving it to baseutils will allow it to be used more broadly for converting data to JSON-compatible formats.",
+                "Update the documentation, architecture, etc."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Task Created",
+                    "timestamp": "2026-06-05T18:00:00Z"
+                }           
             ]
         }
     ]

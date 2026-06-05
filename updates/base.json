@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260605-0001] [3.4, 3.5, 3.1.11, 3.2.14] [Deployment Automation] Added setup_env.ps1 for venv and dependency setup, deploy.ps1 for deployment ceremony, and automatic setup_env invocation from instantiate.py and pullbase.py.",
+        "version": "26.06.04.07",
+        "description": "Added scripts/setup_env.ps1 (Feature 3.4): creates or reuses .venv, installs only missing packages from dependencies/base.txt and dependencies/app.txt via pip (Get-InstalledPackageNames + Install-MissingPackages helpers). Added scripts/deploy.ps1 (Feature 3.5): deployment ceremony with three phases — ENVIRONMENT (calls setup_env.ps1), DEPLOYMENT TEST (calls test_deployment.ps1), BUILD TESTS (calls test/tests/build.py via venv Python); aborts on environment failure and reports per-criterion PASS/FAIL summary. Added run_setup_env() to scripts/instantiate.py (Feature 3.1.11) and scripts/pullbase.py (Feature 3.2.14): both now invoke setup_env.ps1 non-interactively after their file operations, keeping the venv up to date after every instantiation and base pull. Merged BASE-REQ-011 into BASE-REQ-012 as sub-requirement 012.8 with breakdown items 012.8.1–012.8.6; added Feature 3.3.1 to BASE-REQ-012 solution."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260604-0012] [9.1, 9.2] [Dependencies Refactor] Moved requirements.txt to dependencies/base.txt and dependencies/app.txt.",
         "version": "26.06.04.06",
         "description": "Refactored config/requirements.txt into dependencies/base.txt (core runtime packages: numpy, scipy, pandas, tqdm) and dependencies/app.txt (empty; for variant app additions). Updated pull.json to pull dependencies/base.txt and once.json to copy dependencies/app.txt on instantiation. Added Feature 9 (dependencies folder with 9.1 base.txt and 9.2 app.txt) to the base architecture. Removed stale Feature 2.3 (config/requirements.txt) and updated the config folder description."

@@ -25,6 +25,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from utils.baseutils import Logger, Params, get_config, load_message_lookup
 
 MANIFESTS_DIR_REL = Path("docs/manifests")
+SETUP_ENV_SCRIPT = Path("scripts/setup_env.ps1")
 
 EXCLUDED_DIRS = {"__pycache__", ".git", ".venv"}
 EXCLUDED_EXTENSIONS = {".pyc", ".pyo"}
@@ -428,7 +429,52 @@ def main() -> int:
         if html_path:
             print(f"Pullbase log html: {html_path}")
 
+    run_setup_env(local_root)
     return 0
+
+
+def run_setup_env(app_root: Path) -> None:
+    """Run setup_env.ps1 for the given app root to create the venv and install deps.
+
+    Locates setup_env.ps1 relative to this script's directory, then invokes it
+    non-interactively via pwsh targeting the specified app root. Prints a warning
+    if the script is not found or exits with a non-zero code; does not raise so
+    that pullbase output is always shown.
+    """
+    import subprocess
+    script_root = Path(__file__).resolve().parent
+    setup_env = script_root / SETUP_ENV_SCRIPT.name
+    if not setup_env.exists():
+        print(f"[WARN] setup_env.ps1 not found at {setup_env}; skipping environment setup.")
+        return
+    result = subprocess.run(
+        ["pwsh", "-NonInteractive", "-File", str(setup_env), "-AppRoot", str(app_root)],
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"[WARN] setup_env.ps1 exited with code {result.returncode} for {app_root}.")
+
+
+def run_setup_env(app_root: Path) -> None:
+    """Run setup_env.ps1 for the given app root to create the venv and install deps.
+
+    Locates setup_env.ps1 relative to this script's directory, then invokes it
+    non-interactively via pwsh targeting the specified app root. Prints a warning
+    if the script is not found or exits with a non-zero code; does not raise so
+    that pullbase output is always shown.
+    """
+    import subprocess
+    script_root = Path(__file__).resolve().parent
+    setup_env = script_root / SETUP_ENV_SCRIPT.name
+    if not setup_env.exists():
+        print(f"[WARN] setup_env.ps1 not found at {setup_env}; skipping environment setup.")
+        return
+    result = subprocess.run(
+        ["pwsh", "-NonInteractive", "-File", str(setup_env), "-AppRoot", str(app_root)],
+        check=False,
+    )
+    if result.returncode != 0:
+        print(f"[WARN] setup_env.ps1 exited with code {result.returncode} for {app_root}.")
 
 
 if __name__ == "__main__":

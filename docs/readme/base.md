@@ -1,4 +1,4 @@
-# BaseApp V-26.06.04.06
+# BaseApp V-26.06.04.07
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,14 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.04.07)
+
+- Added `scripts/setup_env.ps1` (Feature 3.4): creates or reuses the Python virtual environment (`.venv`) and installs only missing packages from `dependencies/base.txt` and `dependencies/app.txt` using pip. Helper functions `Get-InstalledPackageNames` (pip list → hashtable) and `Install-MissingPackages` (per-file delta install) keep install time minimal. Accepts `-AppRoot` and `-Python` parameters; exits 0 on success, 1 on failure.
+- Added `scripts/deploy.ps1` (Feature 3.5): deployment ceremony script with three sequential phases — ENVIRONMENT (delegates to `setup_env.ps1`), DEPLOYMENT TEST (runs `scripts/test_deployment.ps1`), and BUILD TESTS (runs `test/tests/build.py` via the venv Python). Reports per-criterion `[PASS]`/`[FAIL]` lines and an overall PASS/FAIL summary; aborts on environment failure. Accepts `-AppRoot`, `-Python`, and `-KeepTemp` parameters.
+- `scripts/instantiate.py` now calls `run_setup_env(target_root)` after completing file operations (Feature 3.1.11): resolves `setup_env.ps1` from the scripts folder and invokes it non-interactively; missing script logs a WARN and continues.
+- `scripts/pullbase.py` now calls `run_setup_env(local_root)` after completing pull operations (Feature 3.2.14): same pattern as instantiate, ensuring the virtual environment is refreshed after every base pull.
+- Merged `BASE-REQ-011` (deployment validation script) into `BASE-REQ-012` as sub-requirement `012.8` with breakdown items `012.8.1`–`012.8.6`; added Feature `3.3.1` to BASE-REQ-012 solution.
 
 ## Release Highlights (26.06.04.06)
 

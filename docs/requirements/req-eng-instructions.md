@@ -64,6 +64,7 @@ This file provides instructions for requirements engineering:
     - Decide how the requirement and its sub-requirements are going to be implemented using the architecture
     - Minimizing the architecture impact and avoiding the unnecessary creation of new items beyond what is necessary to complete the implementation, unless the requirement explicitly specifies what to build or how to build it.
     - Specify the features that are assigned to implement the requirement. Ideally each requirement should be implemented by a single feature. If multiple features are required to implement the requirement, it means that the requirement might need to be broken down into more basic requirements.
+    - New app features that are not enhancements of base features must be identified with the prefix `A` to avoid merging with base features that have no placeholders in the architecture/app.json file.
 6. Implement:
     - Adhere to the approved design and implement it in the features
     - Update the implementation status after each feature.

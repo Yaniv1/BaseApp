@@ -4,8 +4,15 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.04.06
-- App template version: A26.06.04.06
+- Base version: 26.06.04.07
+- App template version: A26.06.04.07
+
+## Highlights (26.06.04.07)
+
+- Added `scripts/setup_env.ps1` (Feature 3.4): creates or reuses the Python virtual environment and installs only the missing packages from `dependencies/base.txt` and `dependencies/app.txt` via pip.
+- Added `scripts/deploy.ps1` (Feature 3.5): deployment ceremony script that calls `setup_env.ps1` → `scripts/test_deployment.ps1` → `test/tests/build.py` in three sequential phases and reports per-criterion PASS/FAIL with an overall summary.
+- `scripts/instantiate.py` and `scripts/pullbase.py` now invoke `setup_env.ps1` automatically after their file operations (Features 3.1.11 and 3.2.14), so every fresh instantiation and every base pull ensures the virtual environment is up to date.
+- Merged `BASE-REQ-011` into `BASE-REQ-012` as sub-requirement `012.8` (deployment validation via `test_deployment.ps1`).
 
 ## Highlights (26.06.04.06)
 

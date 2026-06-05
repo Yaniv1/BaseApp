@@ -119,6 +119,12 @@
                             "description": "Expand a manifest entry (file or folder) into concrete source/target path pairs.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/instantiate.py::expand_manifest_entry"
+                        },
+                        "3.1.11": {
+                            "name": "scripts.instantiate.run_setup_env",
+                            "description": "Invoke setup_env.ps1 non-interactively for the target app root after instantiation to create the venv and install dependencies.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::run_setup_env"
                         }
                     }
                 },
@@ -205,6 +211,12 @@
                             "description": "Copy once-manifest files and directories from source into local app only when destination is absent, returning (copied, skipped, missing_sources) counts.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::pull_once_files"
+                        },
+                        "3.2.14": {
+                            "name": "scripts.pullbase.run_setup_env",
+                            "description": "Invoke setup_env.ps1 non-interactively for the local app root after a successful base pull to create the venv and install any newly declared dependencies.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::run_setup_env"
                         }
                     }
                 },
@@ -221,6 +233,32 @@
                             "path": "scripts/test_deployment.ps1"
                         }
                     }
+                },
+                "3.4": {
+                    "name": "scripts.setup_env",
+                    "description": "Environment setup script: creates the Python virtual environment when absent and installs missing packages from dependencies/base.txt and dependencies/app.txt. Called by instantiate.py, pullbase.py, and deploy.ps1.",
+                    "type": "Folder.Ps1File",
+                    "path": "scripts/setup_env.ps1",
+                    "features": {
+                        "3.4.1": {
+                            "name": "scripts.setup_env.Get-InstalledPackageNames",
+                            "description": "Returns a hashtable of normalised installed package names from pip list --format=freeze for O(1) missing-package detection.",
+                            "type": "Folder.Ps1File.Function",
+                            "path": "scripts/setup_env.ps1::Get-InstalledPackageNames"
+                        },
+                        "3.4.2": {
+                            "name": "scripts.setup_env.Install-MissingPackages",
+                            "description": "Reads a requirements file, compares specs against installed packages, and installs only the missing subset via pip.",
+                            "type": "Folder.Ps1File.Function",
+                            "path": "scripts/setup_env.ps1::Install-MissingPackages"
+                        }
+                    }
+                },
+                "3.5": {
+                    "name": "scripts.deploy",
+                    "description": "Deployment ceremony script: calls setup_env.ps1 for environment setup, then runs test_deployment.ps1 and the build phase tests to validate the deployment.",
+                    "type": "Folder.Ps1File",
+                    "path": "scripts/deploy.ps1"
                 }
             }
         },
