@@ -6,7 +6,10 @@ import tempfile
 import threading
 import time
 
-from utils.baseutils import AppManager
+import numpy as np
+import pandas as pd
+
+from utils.baseutils import AppManager, Params, to_json_compatible
 
 
 def _build_result(status, message, criteria, features, data=None):
@@ -183,8 +186,6 @@ def test_concurrent_store_outputs(manager=None, message=None, **kwargs):
       - 6.1.11    (AppManager.__init__: _output_manifest_lock initialised)
       - 6.1.11.7  (_save_output_artifact: manifest guarded by lock)
     """
-    from utils.baseutils import Params
-
     features = ["6.1.11.3", "6.1.11.9", "6.1.11", "6.1.11.7"]
     criteria = []
     workdir = tempfile.mkdtemp(prefix="baseconcur_out_")
@@ -354,3 +355,152 @@ def test_concurrent_store_outputs(manager=None, message=None, **kwargs):
         )
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
+
+
+# Feature 5.3.1.3.3
+def test_to_json_compatible(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.3.3. Pre-test for the module-level to_json_compatible serialization helper.
+
+    Covers features:
+      - 6.1.17  (to_json_compatible: module-level recursive JSON-serialization function)
+    """
+    features = ["6.1.17"]
+    criteria = []
+
+    # ------------------------------------------------------------------ #
+    # Pre-test: to_json_compatible is importable at module level.
+    # ------------------------------------------------------------------ #
+    import_ok = callable(to_json_compatible)
+    criteria.append({
+        "name": "to_json_compatible_importable_at_module_level",
+        "operator": "eq",
+        "actual": import_ok,
+        "expected": True,
+        "success": import_ok,
+        "status": "PASS" if import_ok else "FAIL",
+    })
+
+    # ------------------------------------------------------------------ #
+    # Live test: scalar and collection type conversions.
+    # ------------------------------------------------------------------ #
+
+    # Params instance expands to dict.
+    p = Params({"a": 1, "b": "x"})
+    result_params = to_json_compatible(p)
+    params_ok = isinstance(result_params, dict) and result_params.get("a") == 1
+    criteria.append({
+        "name": "params_expanded_to_dict",
+        "operator": "eq",
+        "actual": params_ok,
+        "expected": True,
+        "success": params_ok,
+        "status": "PASS" if params_ok else "FAIL",
+    })
+
+    # np.floating NaN → None; normal float32 → Python float.
+    nan_result = to_json_compatible(np.float32("nan"))
+    float_result = to_json_compatible(np.float32(3.14))
+    nan_ok = nan_result is None
+    float_ok = isinstance(float_result, float) and abs(float_result - 3.14) < 0.01
+    criteria.append({
+        "name": "np_floating_nan_becomes_none",
+        "operator": "eq",
+        "actual": nan_ok,
+        "expected": True,
+        "success": nan_ok,
+        "status": "PASS" if nan_ok else "FAIL",
+    })
+    criteria.append({
+        "name": "np_floating_value_becomes_python_float",
+        "operator": "eq",
+        "actual": float_ok,
+        "expected": True,
+        "success": float_ok,
+        "status": "PASS" if float_ok else "FAIL",
+    })
+
+    # np.integer → Python int.
+    int_result = to_json_compatible(np.int64(42))
+    int_ok = int_result == 42 and type(int_result) is int
+    criteria.append({
+        "name": "np_integer_becomes_python_int",
+        "operator": "eq",
+        "actual": int_ok,
+        "expected": True,
+        "success": int_ok,
+        "status": "PASS" if int_ok else "FAIL",
+    })
+
+    # np.bool_ → Python bool.
+    bool_result = to_json_compatible(np.bool_(True))
+    bool_ok = bool_result is True and type(bool_result) is bool
+    criteria.append({
+        "name": "np_bool_becomes_python_bool",
+        "operator": "eq",
+        "actual": bool_ok,
+        "expected": True,
+        "success": bool_ok,
+        "status": "PASS" if bool_ok else "FAIL",
+    })
+
+    # pd.NA → None.
+    na_result = to_json_compatible(pd.NA)
+    na_ok = na_result is None
+    criteria.append({
+        "name": "pd_na_becomes_none",
+        "operator": "eq",
+        "actual": na_ok,
+        "expected": True,
+        "success": na_ok,
+        "status": "PASS" if na_ok else "FAIL",
+    })
+
+    # DataFrame → list of record dicts with converted values.
+    df = pd.DataFrame({"col": [np.int64(1), np.int64(2)]})
+    df_result = to_json_compatible(df)
+    df_ok = (
+        isinstance(df_result, list)
+        and len(df_result) == 2
+        and type(df_result[0]["col"]) is int
+    )
+    criteria.append({
+        "name": "dataframe_converted_to_record_list",
+        "operator": "eq",
+        "actual": df_ok,
+        "expected": True,
+        "success": df_ok,
+        "status": "PASS" if df_ok else "FAIL",
+    })
+
+    # ------------------------------------------------------------------ #
+    # Post-test: result can be serialized to JSON without errors.
+    # ------------------------------------------------------------------ #
+    payload = {
+        "int": np.int64(7),
+        "float": np.float32(1.5),
+        "nan": np.float32("nan"),
+        "bool": np.bool_(False),
+        "na": pd.NA,
+        "df": pd.DataFrame({"x": [np.int64(0)]}),
+    }
+    try:
+        serialized = json.dumps(to_json_compatible(payload))
+        json_ok = isinstance(serialized, str)
+    except Exception:
+        json_ok = False
+    criteria.append({
+        "name": "converted_payload_json_serializable",
+        "operator": "eq",
+        "actual": json_ok,
+        "expected": True,
+        "success": json_ok,
+        "status": "PASS" if json_ok else "FAIL",
+    })
+
+    overall = "PASS" if all(c["success"] for c in criteria) else "FAIL"
+    return _build_result(
+        status=overall,
+        message=message or "Validated to_json_compatible module-level function: import, type conversions, and JSON serialization",
+        criteria=criteria,
+        features=features,
+    )

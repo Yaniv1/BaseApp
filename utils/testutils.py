@@ -7,6 +7,7 @@ import inspect
 import json
 import os
 import re
+import sys
 import threading
 import time
 import subprocess
@@ -841,7 +842,7 @@ def test_deployment(script_path="scripts/test_deployment.ps1", message=None, con
 
     try:
         proc = subprocess.run(
-            ["pwsh", "-NonInteractive", "-File", abs_script],
+            ["pwsh", "-NonInteractive", "-File", abs_script, "-Python", sys.executable],
             capture_output=True,
             text=True,
             timeout=300,

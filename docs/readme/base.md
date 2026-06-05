@@ -1,4 +1,4 @@
-# BaseApp V-26.06.04.07
+# BaseApp V-26.06.05.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,13 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.05.01)
+
+- `to_json_compatible` (Feature 6.1.17) is now a module-level function in `utils/baseutils.py`, promoted from a nested helper inside `save()`. It recursively converts `Params`, `dict`, `list`/`tuple`, `pd.DataFrame`, `np.ndarray`, NumPy scalars (`np.floating`, `np.integer`, `np.bool_`), `pd.NA`, and `float` NaN/Inf to JSON-serializable primitives. `save()` calls it unchanged. All code that needs this conversion can now import it directly.
+- Added prep test `test_to_json_compatible` (Feature 5.3.1.3.3) with 9 criteria covering: module-level import, `Params` expansion, `np.floating` NaN/value, `np.integer`, `np.bool_`, `pd.NA`, `DataFrame` conversion, and final `json.dumps` serializability — all PASS.
+- Fixed `test_deployment` (Feature 6.3.5) in `utils/testutils.py` to pass `sys.executable` as the `-Python` argument when spawning `test_deployment.ps1`, so the correct venv Python is used. Build test now 25/25 PASS.
+- Added `BASE-REQ-005.7` requirement capturing the serialization helper promotion.
 
 ## Release Highlights (26.06.04.07)
 

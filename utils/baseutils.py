@@ -820,46 +820,69 @@ class Logger:
       
 
 
+# Feature 6.1.17
+def to_json_compatible(value):
+    """Feature ID: 6.1.17. Recursively convert a value to a JSON-serializable primitive.
+
+    Handles the following non-primitive types that arise during BaseApp output serialization:
+
+    - ``Params`` instances are expanded to their underlying dict via ``get_dict()``.
+    - ``dict`` values are processed key-by-key.
+    - ``list`` / ``tuple`` values are processed element-by-element.
+    - ``pd.DataFrame`` is converted to a list of record dicts and then processed.
+    - ``np.ndarray`` is converted to a Python list and then processed.
+    - ``pd.NA`` is mapped to ``None``.
+    - ``np.floating`` values are mapped to Python ``float``; NaN/Inf become ``None``.
+    - ``np.integer`` values are mapped to Python ``int``.
+    - ``np.bool_`` values are mapped to Python ``bool``.
+    - Python ``float`` NaN/Inf values are mapped to ``None``.
+    - All other values are returned unchanged.
+
+    Args:
+        value: Any Python object.
+
+    Returns:
+        A JSON-serializable equivalent of ``value``.
+    """
+    if isinstance(value, Params):
+        value = value.get_dict()
+
+    if isinstance(value, dict):
+        return {k: to_json_compatible(v) for k, v in value.items()}
+
+    if isinstance(value, (list, tuple)):
+        return [to_json_compatible(v) for v in value]
+
+    if isinstance(value, pd.DataFrame):
+        return to_json_compatible(value.to_dict(orient="records"))
+
+    if isinstance(value, np.ndarray):
+        return [to_json_compatible(v) for v in value.tolist()]
+
+    if value is pd.NA:
+        return None
+
+    if isinstance(value, np.floating):
+        numeric = float(value)
+        if math.isnan(numeric) or math.isinf(numeric):
+            return None
+        return numeric
+
+    if isinstance(value, np.integer):
+        return int(value)
+
+    if isinstance(value, np.bool_):
+        return bool(value)
+
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return None
+
+    return value
+
+
 # Feature 6.1.10
 def save(data, path, format="json", **kwargs):
     """Feature ID: 6.1.10. Save data to a file in the specified format, supporting json, csv, and html."""
-
-    def to_json_compatible(value):
-        """Convert NaN-like and non-primitive values into JSON-compatible equivalents."""
-        if isinstance(value, Params):
-            value = value.get_dict()
-
-        if isinstance(value, dict):
-            return {k: to_json_compatible(v) for k, v in value.items()}
-
-        if isinstance(value, (list, tuple)):
-            return [to_json_compatible(v) for v in value]
-
-        if isinstance(value, pd.DataFrame):
-            return to_json_compatible(value.to_dict(orient="records"))
-
-        if isinstance(value, np.ndarray):
-            return [to_json_compatible(v) for v in value.tolist()]
-
-        if value is pd.NA:
-            return None
-
-        if isinstance(value, np.floating):
-            numeric = float(value)
-            if math.isnan(numeric) or math.isinf(numeric):
-                return None
-            return numeric
-
-        if isinstance(value, np.integer):
-            return int(value)
-
-        if isinstance(value, np.bool_):
-            return bool(value)
-
-        if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
-            return None
-
-        return value
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if format == "json":

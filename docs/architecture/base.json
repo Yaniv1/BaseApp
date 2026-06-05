@@ -717,6 +717,12 @@
                             "type": "Folder.PyFile.Function",
                             "path": "utils/baseutils.py::save"
                         },
+                        "6.1.17": {
+                            "name": "utils.baseutils.to_json_compatible",
+                            "description": "Recursively convert a value to a JSON-serializable primitive, handling Params, DataFrame, ndarray, NumPy scalars, and NaN/Inf.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "utils/baseutils.py::to_json_compatible"
+                        },
                         "6.1.12": {
                             "name": "utils.baseutils.get_config",
                             "description": "Convenience loader that returns an evaluated Params object for the given config path.",

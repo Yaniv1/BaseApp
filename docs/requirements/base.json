@@ -279,6 +279,12 @@
                             "comments": []
                         }
                     ]                    
+                },
+                {
+                    "id": "BASE-REQ-005.7",
+                    "description": "Code quality requirement: The JSON serialization helper to_json_compatible shall be promoted to a module-level function in baseutils so that it can be reused across the codebase independently of save().",
+                    "priority": "Medium",
+                    "comments": []
                 }
             ],
             "solution": [
@@ -294,6 +300,13 @@
                     "role": "save() persists artifacts in json/csv/html formats.",
                     "implementation": 1.0,
                     "verification": 0.9,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.17",
+                    "role": "to_json_compatible() provides module-level recursive JSON serialization, called by save() and available for reuse across the codebase.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
                     "deployment": 1.0
                 },
                 {

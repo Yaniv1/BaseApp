@@ -4,8 +4,13 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.04.07
-- App template version: A26.06.04.07
+- Base version: 26.06.05.01
+- App template version: A26.06.05.01
+
+## Highlights (26.06.05.01)
+
+- `to_json_compatible` is now a standalone module-level function (Feature 6.1.17) in `utils/baseutils.py`, importable from anywhere in the codebase.
+- Fixed the build-phase deployment test to pass `sys.executable` as the Python interpreter, ensuring the venv Python is used. Build test now 25/25 PASS.
 
 ## Highlights (26.06.04.07)
 

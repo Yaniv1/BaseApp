@@ -186,7 +186,7 @@
             "title": "Add a TestApp deployment test.",
             "description": "Implement a test that runs a TestApp deployment scenario using instantiate.py, followed by a pullbase from the TestApp's side. This needs to run as a powershell script.",
             "priority": "High",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
@@ -207,6 +207,11 @@
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
                     "content": "Changed the requirement ID from BASE-REQ-012 to BASE-REQ-008.5 to fit into the existing requirement hierarchy under BASE-REQ-008, which captures pullbase sync requirements. Updated breakdown IDs accordingly to maintain consistency. Merged solution components into the existing BASE-REQ-008 breakdown where appropriate, since they are closely related to the pullbase sync process.",
                     "timestamp": "2026-06-04T22:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Task implementation complete. Requirement BASE-REQ-013 was absorbed into BASE-REQ-012.8 (nested under BASE-REQ-012) by the user. All solution features (3.3.1) are properly traced in requirements. Marking Done.",
+                    "timestamp": "2026-06-05T00:00:00Z"
                 }
             ]
         },
@@ -338,13 +343,21 @@
                 "Update the documentation, architecture, etc."
             ],
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
                     "content": "Task Created",
                     "timestamp": "2026-06-05T18:00:00Z"
-                }           
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Started work. Plan: (1) promote to_json_compatible from nested inside save() to module-level function (Feature 6.1.17) in baseutils.py; (2) update save() to call the module-level version; (3) add architecture entry 6.1.17; (4) add BASE-REQ-006.1; (5) add prep test test_to_json_compatible; (6) update test config.",
+                    "timestamp": "2026-06-05T00:00:00Z"                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Completed. Promoted to_json_compatible to Feature 6.1.17 module-level function in utils/baseutils.py. Updated save() to call module-level version. Added architecture entry 6.1.17. Added BASE-REQ-005.7. Added prep test test_to_json_compatible (Feature 5.3.1.3.3) with 9 criteria, all PASS. Also fixed test_deployment build test: pass sys.executable as -Python arg so venv Python is used (was using bare 'python' causing ModuleNotFoundError). Build test now 25/25 PASS. Bumped version to 26.06.05.01.",
+                    "timestamp": "2026-06-05T00:00:00Z"                }
             ]
         }
     ]

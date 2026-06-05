@@ -103,6 +103,14 @@
                 }
             },
             {
+                "id": "prep_to_json_compatible",
+                "name": "Prep to_json_compatible",
+                "callable": "test.tests.base.output.test_to_json_compatible",
+                "inputs": {
+                    "message": "Validated to_json_compatible module-level function: import, type conversions, and JSON serialization"
+                }
+            },
+            {
                 "id": "prep_pullbase_once_sync",
                 "name": "Prep pullbase once sync",
                 "callable": "test.tests.base.pullbase.test_pullbase_once_sync",
