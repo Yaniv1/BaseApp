@@ -240,6 +240,31 @@
                     "timestamp": "2026-06-04T00:00:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260604-0012",
+            "uuid": "8b7c6d5e-4f3a-2b1c-0d9e-8f7a6b5c4d3e",
+            "title": "Refactor requirements.txt into dependencies/base.txt and dependencies/app.txt",
+            "description": [
+                "To improve clarity and organization of our dependency management, we will refactor the existing requirements.txt file into two separate files: dependencies/base.txt and dependencies/app.txt.",
+                "The base.txt file will contain all the core dependencies required for BaseApp to function, while app.txt will include any additional dependencies specific to the application layer.",
+                "This separation will help us manage dependencies more effectively and allow for clearer distinction between core and application-specific requirements.",
+                "Update the manifests and any relevant documentation to reflect this change, and ensure that the installation instructions are updated accordingly."
+            ],
+            "priority": "Medium",
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "Task created.",
+                    "content": "Created dependencies/base.txt and dependencies/app.txt and this task.",
+                    "timestamp": "2026-06-05T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Started work. dependencies/base.txt and dependencies/app.txt already exist. Plan: (1) update pull.json to reference dependencies/base.txt instead of config/requirements.txt; (2) add dependencies/app.txt to once.json; (3) update architecture; (4) finalize.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                }
+            ]
         }
     ]
 }
