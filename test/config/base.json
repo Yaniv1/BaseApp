@@ -30,6 +30,17 @@
             },
             "max_items": 10
         },
+        "build": [
+            {
+                "id": "test_deployment",
+                "name": "Test App Deployment",
+                "callable": "utils.testutils.test_deployment",
+                "inputs": {
+                    "message": "Run the app test deployment script and assert expected outcomes at each phase",
+                    "script_path": "scripts/test_deployment.ps1"
+                }
+            }
+        ],
         "prep": [
             {
                 "id": "prep_architecture_alignment",

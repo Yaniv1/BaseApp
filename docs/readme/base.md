@@ -1,4 +1,4 @@
-# BaseApp V-26.06.04.04
+# BaseApp V-26.06.04.05
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,15 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.04.05)
+
+- Added `test/tests/build.py` (Feature 5.3.2): a standalone build-phase test runner. It loads runtime config (`config/base.json`) and test config (`test/config/base.json`), merges them via `build_test_config`, creates a `TestManager`, runs `run_phase("build")`, stores test outputs, and returns exit code 0 on pass or 1 on failure. Designed to be invoked during deployment ceremonies.
+- Added `test_deployment` (Feature 6.3.5) to `utils/testutils.py`: resolves the configured `script_path` relative to `base_dir`, spawns `pwsh -NonInteractive -File <script>` via `subprocess`, parses each `  [PASS] name` / `  [FAIL] name -- detail` line from stdout as a structured criterion, and returns a `TestManager`-compatible result dict including `status`, `criteria`, `features`, and `data`.
+- Fixed `TestManager.run_a_test` to initialize the per-phase results slot on demand when the phase is not one of the pre-seeded names (`prep`, `live`, `post`, `monitor`). This allows any new phase (`build`, etc.) to store results without modification to `TestManager.__init__`.
+- Added `BASE-REQ-007.5` requirement capturing the build phase test runner capability.
+- Added `TST008` message code for build phase test runner messages.
+- Added architecture features `5.2.1.4` (build dataset in test config), `5.3.2` / `5.3.2.1` (build runner module and run function), and `6.3.5` (test_deployment function).
 
 ## Release Highlights (26.06.04.04)
 

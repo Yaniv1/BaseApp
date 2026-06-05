@@ -6,3 +6,4 @@ TST004,WARN,Test warning
 TST005,FAIL,Test failed
 TST006,INFO,Live test scheduler message
 TST007,INFO,Live test scheduler message
+TST008,INFO,Build phase test runner message

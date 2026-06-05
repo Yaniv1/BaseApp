@@ -9,6 +9,7 @@ import os
 import re
 import threading
 import time
+import subprocess
 import traceback
 from .baseutils import AppManager, Params, create_logger, get_config, resolve_dotted, as_list, dict_merge
 from utils import baseutils
@@ -362,6 +363,8 @@ class TestManager(AppManager):
             )
 
         with self._lock:
+            if not hasattr(self.RESULTS, phase):
+                self.RESULTS.set(**{phase: {}})
             phase_store = getattr(self.RESULTS, phase)
             existing = getattr(phase_store, test_id, []) if hasattr(phase_store, test_id) else []
             setattr(phase_store, test_id, existing + result_lines)
@@ -793,5 +796,105 @@ def monitor_activity(monitor=None, monitor_logger=None, min_history=1, **kwargs)
             }
         ],
         "data": {"history_count": history_count, "snapshot_keys": list(snapshot.keys())[:20]},
+    }
+
+
+# Feature 6.3.5
+def test_deployment(script_path="scripts/test_deployment.ps1", message=None, config=None, manager=None, **kwargs):
+    """Feature ID: 6.3.5. Run a PowerShell deployment test script and return per-criterion structured results.
+
+    Resolves script_path relative to manager.base_dir or config.base_dir, invokes pwsh
+    non-interactively, parses each [PASS]/[FAIL]/[WARN] output line as a criterion, and
+    returns a structured test result compatible with the TestManager result format.
+    """
+    features = ["3.3.1"]
+    _CRITERION_RE = re.compile(r"^\s+\[(PASS|FAIL|WARN)\]\s+(.+?)(?:\s+--\s+(.*))?$")
+
+    base_dir = (
+        getattr(manager, "base_dir", None)
+        or getattr(config, "base_dir", None)
+        or os.getcwd()
+    )
+    abs_script = (
+        script_path
+        if os.path.isabs(script_path)
+        else os.path.abspath(os.path.join(base_dir, script_path))
+    )
+
+    if not os.path.isfile(abs_script):
+        return {
+            "status": "FAIL",
+            "message": message or "Run deployment test script",
+            "criteria": [
+                {
+                    "name": "script_found",
+                    "success": False,
+                    "status": "FAIL",
+                    "actual": abs_script,
+                    "expected": "script file exists",
+                    "detail": "",
+                }
+            ],
+            "features": features,
+            "data": {"script_path": abs_script, "error": "Script file not found"},
+        }
+
+    try:
+        proc = subprocess.run(
+            ["pwsh", "-NonInteractive", "-File", abs_script],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+        stdout = proc.stdout or ""
+        stderr = proc.stderr or ""
+        exit_code = proc.returncode
+    except Exception as exc:
+        return {
+            "status": "FAIL",
+            "message": message or "Run deployment test script",
+            "criteria": [
+                {
+                    "name": "script_execution",
+                    "success": False,
+                    "status": "FAIL",
+                    "actual": str(exc),
+                    "expected": "script runs successfully",
+                    "detail": "",
+                }
+            ],
+            "features": features,
+            "data": {"script_path": abs_script, "error": str(exc)},
+        }
+
+    criteria = []
+    for line in stdout.splitlines():
+        match = _CRITERION_RE.match(line)
+        if match:
+            status, name, detail = match.group(1), match.group(2).strip(), match.group(3)
+            criteria.append({
+                "name": name,
+                "success": status == "PASS",
+                "status": status,
+                "detail": detail.strip() if detail else "",
+            })
+
+    pass_count = sum(1 for c in criteria if c["status"] == "PASS")
+    fail_count = sum(1 for c in criteria if c["status"] == "FAIL")
+    overall_status = "PASS" if fail_count == 0 and criteria else "FAIL"
+
+    return {
+        "status": overall_status,
+        "message": message or "Run deployment test script",
+        "criteria": criteria,
+        "features": features,
+        "data": {
+            "script_path": abs_script,
+            "exit_code": exit_code,
+            "pass_count": pass_count,
+            "fail_count": fail_count,
+            "stdout": stdout[:4000],
+            "stderr": stderr[:1000] if stderr else "",
+        },
     }
 

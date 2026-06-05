@@ -186,7 +186,7 @@
             "title": "Add a TestApp deployment test.",
             "description": "Implement a test that runs a TestApp deployment scenario using instantiate.py, followed by a pullbase from the TestApp's side. This needs to run as a powershell script.",
             "priority": "High",
-            "status": "Done",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
@@ -222,7 +222,7 @@
                 "Make sure you work according to the instructions when you plan, design, and implement the build test capability."
             ],
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Task created.",
@@ -232,6 +232,11 @@
                 {
                     "author": "GitHub Copilot",
                     "content": "Started work. Plan: (1) add test_deployment function (Feature 6.3.5) to testutils.py + fix run_a_test to initialize unknown phase slots; (2) create test/tests/build.py (Feature 5.3.2) as standalone build runner; (3) add TST008 message code; (4) add BASE-REQ-007.5; (5) update architecture.",
+                    "timestamp": "2026-06-04T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Completed. Created test/tests/build.py (Feature 5.3.2) and utils.testutils.test_deployment (Feature 6.3.5). Fixed run_a_test to initialize phase results slots on demand. All build phase tests pass (1 test, 0 failures). Added BASE-REQ-007.5, TST008, and architecture features 5.2.1.4/5.3.2/5.3.2.1/6.3.5. Version bumped to 26.06.04.05.",
                     "timestamp": "2026-06-04T00:00:00Z"
                 }
             ]

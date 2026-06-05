@@ -417,6 +417,12 @@
                                     "description": "Post test definitions in the base test configuration.",
                                     "type": "Folder.Folder.JsonFile.DataSet",
                                     "path": "test/config/base.json::TESTING.post"
+                                },
+                                "5.2.1.4": {
+                                    "name": "test.config.base.build",
+                                    "description": "Build phase test definitions in the base test configuration. These tests run during deployment ceremonies.",
+                                    "type": "Folder.Folder.JsonFile.DataSet",
+                                    "path": "test/config/base.json::TESTING.build"
                                 }
                             }
                         }
@@ -502,6 +508,20 @@
                                             "path": "test/tests/base/pullbase.py::test_pullbase_once_sync"
                                         }
                                     }
+                                }
+                            }
+                        },
+                        "5.3.2": {
+                            "name": "test.tests.build",
+                            "description": "Standalone build-phase test runner that loads runtime and test config, executes the build test phase, stores outputs, and returns an exit code for use in deployment ceremonies.",
+                            "type": "Folder.Folder.PyFile",
+                            "path": "test/tests/build.py",
+                            "features": {
+                                "5.3.2.1": {
+                                    "name": "test.tests.build.run",
+                                    "description": "Load config, execute the build test phase via TestManager, store outputs, and return exit code 0 (pass) or 1 (fail).",
+                                    "type": "Folder.Folder.PyFile.Function",
+                                    "path": "test/tests/build.py::run"
                                 }
                             }
                         }
@@ -868,6 +888,12 @@
                             "description": "Validate that runtime monitoring produced the expected amount of activity.",
                             "type": "Folder.PyFile.Function",
                             "path": "utils/testutils.py::monitor_activity"
+                        },
+                        "6.3.5": {
+                            "name": "utils.testutils.test_deployment",
+                            "description": "Run a PowerShell deployment test script non-interactively, parse each [PASS]/[FAIL]/[WARN] output line as a criterion, and return a structured result dict compatible with TestManager.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "utils/testutils.py::test_deployment"
                         }
                     }
                 }

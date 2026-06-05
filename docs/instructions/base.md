@@ -37,6 +37,7 @@ For maintenance requirements, there is typically no need to change the requireme
 ## Change Finalizing and Deployment
 
 When asked to finalize and deploy the code change:
+0. Run the `test/tests/build.py` script to execute the build tests, which include the build phase and app running in order to execute the prep/live/post tests once for the app.
 1. Increment the version id . No need to create a new version number for each small change.
 2. Update the readme base.md after every code change.
 3. Update the updates/base.json file updates array to include a name and description of the change. The name structure has to be "[{APP_NAME}] [{Task_ID}] [{Feature_ID}] [{Feature}] {change desctiption}. New updates should be prepended to tthe top of the list.

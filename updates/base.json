@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260604-0011] [5.3.2, 6.3.5] [Build Phase Tests] Added test/tests/build.py build runner and utils.testutils.test_deployment callable.",
+        "version": "26.06.04.05",
+        "description": "Added test/tests/build.py (Feature 5.3.2): a standalone build-phase test runner that loads runtime config and test config, merges them via build_test_config, creates a TestManager, runs run_phase('build'), stores outputs, and returns exit code 0 (pass) or 1 (fail). Added test_deployment (Feature 6.3.5) to utils/testutils.py: resolves script_path relative to base_dir, spawns pwsh -NonInteractive -File via subprocess, parses each [PASS]/[FAIL]/[WARN] output line as a structured criterion, and returns a TestManager-compatible result dict. Fixed TestManager.run_a_test to initialize the per-phase results slot on demand for any phase name not pre-seeded. Added BASE-REQ-007.5 requirement, TST008 message code, and architecture features 5.2.1.4, 5.3.2, 5.3.2.1, and 6.3.5."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260604-0003] [3.3.1] [Deployment Integration Test] Added scripts/test_deployment.ps1 PowerShell end-to-end deployment test.",
         "version": "26.06.04.04",
         "description": "Added scripts/test_deployment.ps1 (Feature 3.3.1): a standalone PowerShell integration test covering the full BaseApp deployment pipeline. Four phases: PRE validates required BaseApp source files; INSTANTIATE runs scripts/instantiate.py in a unique temp folder and verifies pull-manifest items, once-manifest items, and APP_NAME population; PULLBASE runs scripts/pullbase.py from the new TestApp pointing back to BaseApp as source; POST verifies final file layout and confirms config/app.json APP_NAME was not overwritten (once-manifest skip behavior). 25 per-criterion PASS/FAIL checks. Accepts -BaseAppRoot, -Python, and -KeepTemp parameters. Temp folder cleaned up automatically. Added BASE-REQ-013 requirement with breakdown and solution traceability. Updated architecture with feature 3.3 / 3.3.1."

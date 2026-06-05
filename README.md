@@ -4,12 +4,19 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.04.04
-- App template version: A26.06.04.04
+- Base version: 26.06.04.05
+- App template version: A26.06.04.05
+
+## Highlights (26.06.04.05)
+
+- Added `test/tests/build.py` (Feature 5.3.2): a standalone build-phase test runner that loads runtime and test configuration, executes the `build` phase via `TestManager`, stores outputs, and returns exit code 0 (pass) or 1 (fail).
+- Added `test_deployment` (Feature 6.3.5) to `utils/testutils.py`: runs a PowerShell deployment script non-interactively, parses each `[PASS]`/`[FAIL]`/`[WARN]` output line as a structured criterion, and returns a result dict compatible with `TestManager`.
+- Fixed `TestManager.run_a_test` to dynamically initialize the results slot for any phase name, enabling the extensible `build` phase.
+- Added requirement `BASE-REQ-007.5` and message code `TST008`.
 
 ## Highlights (26.06.04.04)
 
-- Added `scripts/test_deployment.ps1`: a standalone PowerShell integration test that verifies the end-to-end deployment pipeline (instantiate + pullbase) with 25 per-criterion PASS/FAIL checks.
+- Added a standalone PowerShell integration test that verifies the end-to-end deployment pipeline (instantiate + pullbase) with 25 per-criterion PASS/FAIL checks.
 
 ## Highlights (26.06.04.03)
 

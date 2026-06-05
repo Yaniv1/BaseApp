@@ -420,6 +420,12 @@
                     "description": "Safety requirement: Fail-fast behavior and fail-on statuses shall be configurable.",
                     "priority": "Medium",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-007.5",
+                    "description": "Deployment requirement: The framework shall support a standalone build phase test runner (test/tests/build.py) that executes build phase tests during deployment ceremonies, including running external deployment validation scripts and reporting per-criterion pass/fail results.",
+                    "priority": "High",
+                    "comments": []
                 }
             ],
             "solution": [
@@ -447,6 +453,20 @@
                 {
                     "feature": "6.3.4",
                     "role": "monitor_activity verifies runtime monitor behavior during live phase.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "5.3.2",
+                    "role": "test/tests/build.py is the standalone build phase runner that loads config, runs the build phase, and stores outputs.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.3.5",
+                    "role": "test_deployment runs a PowerShell deployment script and returns per-criterion structured results.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0
