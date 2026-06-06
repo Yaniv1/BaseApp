@@ -254,9 +254,9 @@ def pull_once_files(
 
 
 # Feature 3.2.15
-def load_drop_entries(manifest_paths: list[Path]) -> list[str]:
-    """Load all drop entries (deprecated paths) from copied manifest files."""
-    paths: list[str] = []
+def load_drop_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
+    """Load all drop entries (deprecated source→target path pairs) from copied manifest files."""
+    pairs: list[tuple[str, str]] = []
 
     for manifest_path in manifest_paths:
         with open(manifest_path, "r", encoding="utf-8") as f:
@@ -275,36 +275,50 @@ def load_drop_entries(manifest_paths: list[Path]) -> list[str]:
             if not isinstance(item, dict):
                 raise ValueError(f"Invalid manifest item at {manifest_path}:drop[{index}] - expected object")
 
-            path = item.get("path")
-            if not isinstance(path, str) or not path:
-                raise ValueError(f"Invalid manifest item at {manifest_path}:drop[{index}] - 'path' is required")
+            source = item.get("source")
+            target = item.get("target")
+            if not isinstance(source, str) or not source:
+                raise ValueError(f"Invalid manifest item at {manifest_path}:drop[{index}] - 'source' is required")
+            if not isinstance(target, str) or not target:
+                raise ValueError(f"Invalid manifest item at {manifest_path}:drop[{index}] - 'target' is required")
 
-            paths.append(path)
+            pairs.append((source, target))
 
-    return paths
+    return pairs
 
 
 # Feature 3.2.16
-def drop_deprecated_paths(local_root: Path, drop_paths: list[str]) -> tuple[int, int]:
-    """Remove deprecated files and folders from the local app.
+def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -> tuple[int, int, int]:
+    """Migrate or remove deprecated paths in the local app.
 
-    Returns (removed, skipped) where skipped counts paths that did not exist.
+    For each (source, target) pair where source exists locally:
+    - If target does not exist: move source to target, preserving data.
+    - If target already exists: delete source (target is the authoritative version).
+
+    Returns (moved, removed, skipped) where skipped counts absent source paths.
     """
+    moved = 0
     removed = 0
     skipped = 0
 
-    for rel in drop_paths:
-        target = local_root / rel
-        if not target.exists():
+    for source_rel, target_rel in drop_pairs:
+        source = local_root / source_rel
+        if not source.exists():
             skipped += 1
             continue
-        if target.is_dir():
-            shutil.rmtree(target)
+        target = local_root / target_rel
+        if not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(source), str(target))
+            moved += 1
         else:
-            target.unlink()
-        removed += 1
+            if source.is_dir():
+                shutil.rmtree(source)
+            else:
+                source.unlink()
+            removed += 1
 
-    return removed, skipped
+    return moved, removed, skipped
 
 
 def load_runtime_config(app_root: Path) -> Params:
@@ -454,16 +468,16 @@ def main() -> int:
         drop_list = load_drop_entries(manifest_paths)
         if logger:
             logger.log(message_code="PULL009", data={"entry_count": len(drop_list)})
-        drop_removed, drop_skipped = drop_deprecated_paths(local_root, drop_list)
+        drop_moved, drop_removed, drop_skipped = drop_deprecated_paths(local_root, drop_list)
         if logger:
-            logger.log(message_code="PULL010", data={"removed": drop_removed, "skipped": drop_skipped})
+            logger.log(message_code="PULL010", data={"moved": drop_moved, "removed": drop_removed, "skipped": drop_skipped})
 
     print(f"Source: {source_root}")
     print(f"Local app: {local_root}")
     print(f"Base files updated: {copied}")
     if not args.hard:
         print(f"Once files synced: {once_copied} new (skipped {once_skipped} existing)")
-        print(f"Deprecated paths removed: {drop_removed} (skipped {drop_skipped} already absent)")
+        print(f"Deprecated paths: {drop_moved} moved, {drop_removed} removed (skipped {drop_skipped} already absent)")
 
     if missing_sources:
         if logger:

@@ -1,13 +1,13 @@
 {
     "drop": [
-        { "path": "docs/instructions" },
-        { "path": "docs/tasks" },
-        { "path": "docs/requirements" },
-        { "path": "docs/architecture" },
-        { "path": "docs/message_codes" },
-        { "path": "docs/templates" },
-        { "path": "docs/manifests" },
-        { "path": "docs/version" },
-        { "path": "updates" }
+        { "source": "docs/instructions",   "target": "build/instructions" },
+        { "source": "docs/tasks",          "target": "build/tasks" },
+        { "source": "docs/requirements",   "target": "build/requirements" },
+        { "source": "docs/architecture",   "target": "build/architecture" },
+        { "source": "docs/message_codes",  "target": "resources/message_codes" },
+        { "source": "docs/templates",      "target": "resources/templates" },
+        { "source": "docs/manifests",      "target": "resources/manifests" },
+        { "source": "docs/version",        "target": "resources/version" },
+        { "source": "updates",             "target": "build/updates" }
     ]
 }

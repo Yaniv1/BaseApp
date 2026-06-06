@@ -220,13 +220,13 @@
                         },
                         "3.2.15": {
                             "name": "scripts.pullbase.load_drop_entries",
-                            "description": "Load all drop entries (deprecated paths to remove) from copied manifest files under the 'drop' key.",
+                            "description": "Load all drop entries (deprecated source→target path pairs) from copied manifest files under the 'drop' key. Returns list of (source, target) tuples.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::load_drop_entries"
                         },
                         "3.2.16": {
                             "name": "scripts.pullbase.drop_deprecated_paths",
-                            "description": "Remove deprecated files and folders from the local app root as listed in drop manifest entries. Returns (removed, skipped).",
+                            "description": "Migrate or remove deprecated paths in the local app. For each (source, target) pair: if target is absent, move source to target preserving data; if target exists, delete source. Returns (moved, removed, skipped).",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::drop_deprecated_paths"
                         }
