@@ -489,6 +489,15 @@ def main() -> int:
         if logger:
             logger.log(message_code="PULL006", data={"copied": copied})
 
+        # If this script was updated by the pull, re-exec with the fresh version
+        # so that drop and once run under the newly pulled code, not the old in-memory version.
+        this_script = Path(__file__).resolve()
+        local_script = local_root / "scripts" / "pullbase.py"
+        if local_script.resolve() != this_script and local_script.is_file():
+            if local_script.read_bytes() != this_script.read_bytes():
+                print("pullbase.py was updated — restarting with new version...")
+                os.execv(sys.executable, [sys.executable, str(local_script)] + sys.argv[1:])
+
         drop_list = load_drop_entries(manifest_paths)
         if logger:
             logger.log(message_code="PULL009", data={"entry_count": len(drop_list)})
