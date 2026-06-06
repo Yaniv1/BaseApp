@@ -297,19 +297,22 @@ def load_drop_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
 def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -> tuple[int, int, int]:
     """Migrate deprecated paths to their new locations in the local app.
 
-    Processes each (source, target) pair file-by-file:
-    - If the target file is absent: move the source file there, preserving data.
-    - If the target file already exists: leave the source file in place (never
-      overwrite or delete content at either location).
-    After processing, any source directories that are now empty are removed.
+    This runs AFTER pull_base_files, so any file already at the target path
+    was just placed there by the pull step and is the authoritative version.
 
-    Returns (moved, kept, skipped) where:
+    Processes each (source, target) pair file-by-file:
+    - If the target file is absent: move the source file to the target.
+    - If the target file already exists: delete the stale old-location copy
+      (the target is already the authoritative version, placed by the pull).
+    After processing all files, empty source directories are removed.
+
+    Returns (moved, removed, skipped) where:
       moved   = files relocated to their new path
-      kept    = files left in old location because target already had content
+      removed = stale old-location copies deleted (target already had content)
       skipped = source paths that did not exist
     """
     moved = 0
-    kept = 0
+    removed = 0
     skipped = 0
 
     for source_rel, target_rel in drop_pairs:
@@ -325,7 +328,8 @@ def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -
                 shutil.move(str(source), str(target))
                 moved += 1
             else:
-                kept += 1
+                source.unlink()
+                removed += 1
             continue
 
         if source.is_dir():
@@ -339,7 +343,8 @@ def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -
                     shutil.move(str(child), str(target_file))
                     moved += 1
                 else:
-                    kept += 1
+                    child.unlink()
+                    removed += 1
             # Remove empty subdirectories bottom-up, then the root
             for dirpath in sorted(source.rglob("*"), reverse=True):
                 if dirpath.is_dir():
@@ -352,7 +357,7 @@ def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -
             except OSError:
                 pass
 
-    return moved, kept, skipped
+    return moved, removed, skipped
 
 
 def load_runtime_config(app_root: Path) -> Params:
@@ -501,9 +506,9 @@ def main() -> int:
         drop_list = load_drop_entries(manifest_paths)
         if logger:
             logger.log(message_code="PULL009", data={"entry_count": len(drop_list)})
-        drop_moved, drop_kept, drop_skipped = drop_deprecated_paths(local_root, drop_list)
+        drop_moved, drop_removed, drop_skipped = drop_deprecated_paths(local_root, drop_list)
         if logger:
-            logger.log(message_code="PULL010", data={"moved": drop_moved, "kept": drop_kept, "skipped": drop_skipped})
+            logger.log(message_code="PULL010", data={"moved": drop_moved, "removed": drop_removed, "skipped": drop_skipped})
 
         once_map = load_once_entries(manifest_paths)
         if logger:
@@ -521,7 +526,7 @@ def main() -> int:
     print(f"Base files updated: {copied}")
     if not args.hard:
         print(f"Once files synced: {once_copied} new (skipped {once_skipped} existing)")
-        print(f"Deprecated paths: {drop_moved} moved, {drop_kept} left in place (skipped {drop_skipped} already absent)")
+        print(f"Deprecated paths: {drop_moved} moved, {drop_removed} removed (skipped {drop_skipped} already absent)")
 
     if missing_sources:
         if logger:
