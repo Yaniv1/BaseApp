@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [3.4] [setup_env] Use 'python -m pip' instead of pip.exe to avoid broken launcher when venv Python path has changed.",
+        "version": "26.06.06.04",
+        "description": "Replaced all pip.exe invocations in scripts/setup_env.ps1 with 'python -m pip'. The pip.exe launcher embeds the absolute path to the Python interpreter used when the venv was created; if that path changes (e.g. OneDrive sync moves the folder) the launcher fails with 'Unable to create process'. Using 'python -m pip' bypasses the launcher entirely and always invokes pip through the venv's own python.exe. Renamed the PipExe parameter to PythonExe in both Get-InstalledPackageNames and Install-MissingPackages helpers; removed the $venvPip variable."
+    },
+    {
         "name": "[BaseApp] [10.7] [Architecture] Renumbered build.updates from Feature 7 to Feature 10.7; Unicode stdout/stderr fix in baseutils.py.",
         "version": "26.06.06.03",
         "description": "Removed the duplicate top-level Feature 7 (build.updates) from build/architecture/base.json; the canonical location is now Feature 10.7 (renamed from 10.5) under the build Feature 10. Sub-features renumbered 10.7.1 (base.json) and 10.7.2 (app.json). Updated build/architecture/app.json to match (10.7 with 10.7.2; legacy Feature 7 scaffold removed). Added Unicode stdout/stderr reconfiguration to utils/baseutils.py so log output is safe on Windows cp1252 consoles. Build test 25/25 PASS."

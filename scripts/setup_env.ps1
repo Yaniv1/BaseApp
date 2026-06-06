@@ -68,14 +68,14 @@ function Get-InstalledPackageNames {
     .SYNOPSIS
         Returns a hashtable of normalised installed package names from pip list.
     .DESCRIPTION
-        Runs 'pip list --format=freeze' and extracts the bare package name
+        Runs 'python -m pip list --format=freeze' and extracts the bare package name
         (lowercased, hyphens converted to underscores) for O(1) membership testing.
-    .PARAMETER PipExe
-        Full path to the pip executable inside the virtual environment.
+    .PARAMETER PythonExe
+        Full path to the Python executable inside the virtual environment.
     #>
-    param([string]$PipExe)
+    param([string]$PythonExe)
 
-    $output = & $PipExe list --format=freeze 2>$null
+    $output = & $PythonExe -m pip list --format=freeze 2>$null
     $names  = @{}
     foreach ($line in $output) {
         if ($line -match '^([A-Za-z0-9_\-\.]+)') {
@@ -96,12 +96,12 @@ function Install-MissingPackages {
         pip only for the missing subset. Returns $true on success.
     .PARAMETER ReqFile
         Absolute path to the requirements text file (e.g. dependencies/base.txt).
-    .PARAMETER PipExe
-        Full path to the pip executable inside the virtual environment.
+    .PARAMETER PythonExe
+        Full path to the Python executable inside the virtual environment.
     #>
     param(
         [string]$ReqFile,
-        [string]$PipExe
+        [string]$PythonExe
     )
 
     if (-not (Test-Path $ReqFile)) {
@@ -122,7 +122,7 @@ function Install-MissingPackages {
     }
 
     # Identify missing packages
-    $installed = Get-InstalledPackageNames -PipExe $PipExe
+    $installed = Get-InstalledPackageNames -PythonExe $PythonExe
     $missing   = @()
 
     foreach ($spec in $specs) {
@@ -139,7 +139,7 @@ function Install-MissingPackages {
     }
 
     Write-Host "  Installing $($missing.Count) missing package(s) from $([System.IO.Path]::GetFileName($ReqFile)): $($missing -join ', ')" -ForegroundColor Yellow
-    & $PipExe install @missing
+    & $PythonExe -m pip install @missing
     return ($LASTEXITCODE -eq 0)
 }
 
@@ -147,7 +147,6 @@ function Install-MissingPackages {
 
 $venvDir    = Join-Path $AppRoot ".venv"
 $venvPython = Join-Path $venvDir "Scripts\python.exe"
-$venvPip    = Join-Path $venvDir "Scripts\pip.exe"
 $baseDeps   = Join-Path $AppRoot "dependencies\base.txt"
 $appDeps    = Join-Path $AppRoot "dependencies\app.txt"
 
@@ -175,10 +174,10 @@ if ($script:failCount -gt 0) {
 
 Write-Phase "DEPENDENCIES"
 
-$baseOk = Install-MissingPackages -ReqFile $baseDeps -PipExe $venvPip
+$baseOk = Install-MissingPackages -ReqFile $baseDeps -PythonExe $venvPython
 Register-Criterion "base dependencies installed" $baseOk
 
-$appOk = Install-MissingPackages -ReqFile $appDeps -PipExe $venvPip
+$appOk = Install-MissingPackages -ReqFile $appDeps -PythonExe $venvPython
 Register-Criterion "app dependencies installed" $appOk
 
 # ---------- summary ----------

@@ -1,4 +1,4 @@
-# BaseApp V-26.06.06.03
+# BaseApp V-26.06.06.04
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.06.04)
+
+- Fixed `scripts/setup_env.ps1` (Feature 3.4): replaced `pip.exe` with `python -m pip` in both `Get-InstalledPackageNames` and `Install-MissingPackages`. The `pip.exe` launcher embeds the absolute path to the Python interpreter used at venv creation time; if that path changes (e.g. an OneDrive folder sync moves the source), the launcher fails with *Unable to create process*. Using `python -m pip` bypasses the launcher entirely. Renamed the `PipExe` parameter to `PythonExe`; removed the `$venvPip` variable.
 
 ## Release Highlights (26.06.06.03)
 
