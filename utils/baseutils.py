@@ -21,6 +21,14 @@ from functools import wraps
 import math
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+
+# Ensure stdout/stderr can handle Unicode on Windows (e.g. when the console is cp1252).
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+    
 try:
     from .datautils import DataFrameConverter, DataLoader
 except ImportError:

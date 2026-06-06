@@ -1,4 +1,4 @@
-# BaseApp V-26.06.06.02
+# BaseApp V-26.06.06.03
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,12 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.06.03)
+
+- `build.updates` renumbered from Feature 7 to Feature 10.7 in the architecture inventory, placing it correctly under the `build` Feature 10. Sub-features are now 10.7.1 (`build/updates/base.json`) and 10.7.2 (`build/updates/app.json`). The duplicate top-level Feature 7 is removed.
+- Added Unicode stdout/stderr reconfiguration to `utils/baseutils.py` so log output is safe on Windows cp1252 consoles.
+- Build test 25/25 PASS.
 
 ## Release Highlights (26.06.06.02)
 

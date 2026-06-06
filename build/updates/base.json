@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [10.7] [Architecture] Renumbered build.updates from Feature 7 to Feature 10.7; Unicode stdout/stderr fix in baseutils.py.",
+        "version": "26.06.06.03",
+        "description": "Removed the duplicate top-level Feature 7 (build.updates) from build/architecture/base.json; the canonical location is now Feature 10.7 (renamed from 10.5) under the build Feature 10. Sub-features renumbered 10.7.1 (base.json) and 10.7.2 (app.json). Updated build/architecture/app.json to match (10.7 with 10.7.2; legacy Feature 7 scaffold removed). Added Unicode stdout/stderr reconfiguration to utils/baseutils.py so log output is safe on Windows cp1252 consoles. Build test 25/25 PASS."
+    },
+    {
         "name": "[BaseApp] [11.4] [File Tree Refactor] Moved docs/version to resources/version; updated manifests, architecture, and all references.",
         "version": "26.06.06.02",
         "description": "Moved docs/version/base.txt and docs/version/app.txt to resources/version/, completing the consolidation of all shared runtime data under resources/. docs/ now holds only readme/. Updated resources/manifests/pull.json source to resources/version/base.txt and resources/manifests/once.json source to resources/version/app.txt. Added Feature 11.4 (resources.version) with 11.4.1 (base.txt) to build/architecture/base.json and 11.4.2 (app.txt) to build/architecture/app.json. Removed Feature 4.6 (docs.version) from both architecture files. Updated build/instructions/base.md and docs/readme/base.md text references. Build test 25/25 PASS."

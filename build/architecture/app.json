@@ -76,17 +76,6 @@
             },
             "path": "utils"
         },
-        "7": {
-            "features": {
-                "7.2": {
-                    "name": "build.updates.app",
-                    "description": "App-layer update payload consumed by pullbase tooling.",
-                    "type": "Folder.Folder.JsonFile",
-                    "path": "build/updates/app.json"
-                }
-            },
-            "path": "build/updates"
-        },
         "10": {
             "features": {
                 "10.1": {
@@ -126,8 +115,15 @@
                     "features": {},
                     "path": "build/architecture"
                 },
-                "10.5": {
-                    "features": {},
+                "10.7": {
+                    "features": {
+                        "10.7.2": {
+                            "name": "build.updates.app",
+                            "description": "App-layer update payload consumed by pullbase tooling.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "build/updates/app.json"
+                        }
+                    },
                     "path": "build/updates"
                 }
             },
@@ -148,6 +144,12 @@
                 },
                 "11.4": {
                     "features": {
+                        "11.4.1": {
+                            "name": "resources.version.base",
+                            "description": "Base-layer version record.",
+                            "type": "Folder.Folder.TxtFile",
+                            "path": "resources/version/base.txt"
+                        },
                         "11.4.2": {
                             "name": "resources.version.app",
                             "description": "App version record that should be updated with each pull of base updates and app changes.",

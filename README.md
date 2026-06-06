@@ -4,13 +4,17 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.06.02
-- App template version: A26.06.06.02
+- Base version: 26.06.06.03
+- App template version: A26.06.06.03
+
+## Highlights (26.06.06.03)
+
+- Architecture: `build.updates` renumbered to Feature 10.7 (was Feature 7); sub-features 10.7.1/10.7.2.
+- `utils/baseutils.py`: Unicode stdout/stderr reconfiguration for safe output on Windows cp1252 consoles.
 
 ## Highlights (26.06.06.02)
 
-- Moved `docs/version/` to `resources/version/`, completing the consolidation of all shared runtime data under `resources/`. `docs/` now holds only `readme/`.
-- Architecture inventory updated with Feature 11.4 (`resources.version`).
+- Moved `docs/version/` to `resources/version/`, completing the consolidation of shared runtime data under `resources/`.
 
 ## Highlights (26.06.06.01)
 

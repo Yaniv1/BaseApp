@@ -264,7 +264,7 @@
         },
         "4": {
             "name": "docs",
-            "description": "Human-readable readme documents for base and app layers.",
+            "description": "Human-readable documents for base and app layers.",
             "type": "Folder",
             "path": "docs",
             "features": {
@@ -827,20 +827,6 @@
                 }
             }
         },
-        "7": {
-            "name": "build.updates",
-            "description": "Pending update payloads applied to instantiated apps during base pulls.",
-            "type": "Folder.Folder",
-            "path": "build/updates",
-            "features": {
-                "7.1": {
-                    "name": "build.updates.base",
-                    "description": "Base-layer update payload consumed by pullbase tooling.",
-                    "type": "Folder.Folder.JsonFile",
-                    "path": "build/updates/base.json"
-                }
-            }
-        },
         "8": {
             "name": "README",
             "description": "Top-level repository readme.",
@@ -947,13 +933,13 @@
                         }
                     }
                 },
-                "10.5": {
+                "10.7": {
                     "name": "build.updates",
                     "description": "Pending update payloads applied to instantiated apps during base pulls.",
                     "type": "Folder.Folder",
                     "path": "build/updates",
                     "features": {
-                        "10.5.1": {
+                        "10.7.1": {
                             "name": "build.updates.base",
                             "description": "Base-layer update payload consumed by pullbase tooling.",
                             "type": "Folder.Folder.JsonFile",
