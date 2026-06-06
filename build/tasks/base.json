@@ -325,7 +325,7 @@
                 "For pullbase use the target field in the manifest to indicate where the file should be placed in the variant app, and for once.json use the destination field to indicate where the file should be copied in the variant app. This way, we can maintain the new organized structure in both the base and variant apps while ensuring that existing files in the variant app are not overwritten during the pullbase process."
             ],
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
@@ -336,7 +336,12 @@
                     "author": "GitHub Copilot",
                     "content": "Starting. Plan: (1) create build/ with instructions, tasks, requirements, architecture, updates; (2) create resources/ with message_codes, templates, manifests; (3) move all files; (4) update config/base.json, manifests, scripts/pullbase.py, scripts/instantiate.py, scripts/test_deployment.ps1, test/config/base.json, test/tests; (5) update architecture features 4, 7, add 10 (build), 11 (resources); (6) add BASE-REQ-014; (7) run build tests; (8) finalize.",
                     "timestamp": "2026-06-05T00:00:00Z"
-                }           
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Completed. Created build/ (instructions, tasks, requirements, architecture, updates) and resources/ (message_codes, templates, manifests). Removed old docs/instructions, docs/tasks, docs/requirements, docs/architecture, docs/message_codes, docs/templates, docs/manifests, updates/. Updated config/base.json, resources/manifests/pull.json (target field), resources/manifests/once.json (destination field), scripts/pullbase.py (load_once_entries reads destination), scripts/instantiate.py (load_manifest_entries reads destination for once), scripts/test_deployment.ps1, test/config/base.json, test/tests/base/base.py, test/tests/base/pullbase.py. Restructured build/architecture/base.json: Feature 4 (docs) stripped to readme+version only; Feature 7 updated to build/updates; Features 10 (build) and 11 (resources) added. Updated build/architecture/app.json to match. Added BASE-REQ-013 with 7 breakdown items and full solution traceability. Build test 25/25 PASS. Bumped version to 26.06.06.01.",
+                    "timestamp": "2026-06-06T00:00:00Z"
+                }
             ]
         },
         {

@@ -29,8 +29,8 @@ class ArchitectureAlignmentTest(AppManager):
         "utils/apputils.py",
         "docs/readme/app.md",
         "docs/version/app.txt",
-        "docs/message_codes/app.csv",
-        "docs/architecture/app.json",
+        "resources/message_codes/app.csv",
+        "build/architecture/app.json",
         "test/config/app.json",
     }
 
@@ -50,7 +50,7 @@ class ArchitectureAlignmentTest(AppManager):
         """Initialize the architecture alignment test with shared runtime context."""
         super().__init__(config=config, logger=logger, results=results)
         self.test_logger = test_logger
-        self.architecture_dir = Path(self.base_dir) / "docs" / "architecture"
+        self.architecture_dir = Path(self.base_dir) / "build" / "architecture"
         self.temp_dir = self.architecture_dir / "temp"
         self.temp_dir.mkdir(parents=True, exist_ok=True)
         self._result = self._execute(
@@ -108,7 +108,7 @@ class ArchitectureAlignmentTest(AppManager):
         return f"Code item '{name}'."
 
     def _resolve_template_path(self):
-        template_value = getattr(getattr(self.config, "COMMON", object()), "HTML_TEMPLATE", "../docs/templates/dataset_table.html")
+        template_value = getattr(getattr(self.config, "COMMON", object()), "HTML_TEMPLATE", "../resources/templates/dataset_table.html")
         template_path = Path(str(template_value))
         if template_path.is_absolute():
             return str(template_path)
@@ -218,7 +218,7 @@ class ArchitectureAlignmentTest(AppManager):
             dirs[:] = [
                 name
                 for name in dirs
-                if name not in self.EXCLUDED_DIRS and not (rel_root_text == "docs/architecture" and name == "temp")
+                if name not in self.EXCLUDED_DIRS and not (rel_root_text == "build/architecture" and name == "temp")
             ]
             stem_counts = {}
             stem_exts = {}
@@ -364,7 +364,7 @@ class ArchitectureAlignmentTest(AppManager):
                 for name in dirs
                 if name not in self.EXCLUDED_DIRS
                 and not name.startswith(".")
-                and not (rel_root_text == "docs/architecture" and name == "temp")
+                and not (rel_root_text == "build/architecture" and name == "temp")
             ]
 
             if rel_root_text:
@@ -382,7 +382,7 @@ class ArchitectureAlignmentTest(AppManager):
             for file_name in sorted(files):
                 rel_path = rel_root / file_name if rel_root_text else Path(file_name)
                 rel_path_text = rel_path.as_posix()
-                if rel_path_text.startswith("docs/architecture/temp/"):
+                if rel_path_text.startswith("build/architecture/temp/"):
                     continue
                 if file_name == "__init__.py":
                     continue
@@ -684,7 +684,7 @@ class ArchitectureAlignmentTest(AppManager):
         }
         for source_key, document in architecture["documents"].items():
             review["sources"][source_key] = {
-                "source": f"docs/architecture/{source_key}.json",
+                "source": f"build/architecture/{source_key}.json",
                 "features": {
                     feature_id: self._build_architecture_review_node(feature_id, feature_value, codebase, comparison)
                     for feature_id, feature_value in (document.get("features", {}) or {}).items()

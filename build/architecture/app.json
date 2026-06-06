@@ -24,17 +24,6 @@
         },
         "4": {
             "features": {
-                "4.2": {
-                    "features": {
-                        "4.2.2": {
-                            "name": "docs.instructions.app",
-                            "description": "App-owned generic instruction file created during instantiation for variant-specific guidance.",
-                            "type": "Folder.Folder.MdFile",
-                            "path": "docs/instructions/app.md"
-                        }
-                    },
-                    "path": "docs/instructions"
-                },
                 "4.6": {
                     "features": {
                         "4.6.2": {
@@ -102,13 +91,73 @@
         "7": {
             "features": {
                 "7.2": {
-                    "name": "updates.app",
+                    "name": "build.updates.app",
                     "description": "App-layer update payload consumed by pullbase tooling.",
-                    "type": "Folder.JsonFile",
-                    "path": "updates/app.json"
+                    "type": "Folder.Folder.JsonFile",
+                    "path": "build/updates/app.json"
                 }
             },
-            "path": "updates"
+            "path": "build/updates"
+        },
+        "10": {
+            "features": {
+                "10.1": {
+                    "features": {
+                        "10.1.2": {
+                            "name": "build.instructions.app",
+                            "description": "App-owned instruction file created during instantiation for variant-specific guidance.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "build/instructions/app.md"
+                        }
+                    },
+                    "path": "build/instructions"
+                },
+                "10.2": {
+                    "features": {
+                        "10.2.3": {
+                            "name": "build.tasks.app",
+                            "description": "App-layer task list for variant-specific tasks.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "build/tasks/app.json"
+                        }
+                    },
+                    "path": "build/tasks"
+                },
+                "10.3": {
+                    "features": {
+                        "10.3.3": {
+                            "name": "build.requirements.app",
+                            "description": "App-layer requirements for variant-specific features.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "build/requirements/app.json"
+                        }
+                    },
+                    "path": "build/requirements"
+                },
+                "10.4": {
+                    "features": {},
+                    "path": "build/architecture"
+                },
+                "10.5": {
+                    "features": {},
+                    "path": "build/updates"
+                }
+            },
+            "path": "build"
+        },
+        "11": {
+            "features": {
+                "11.1": {
+                    "features": {
+                        "11.1.2": {
+                            "name": "resources.message_codes.app",
+                            "description": "App-layer message codes for variant-specific messages.",
+                            "type": "Folder.Folder.CsvFile",
+                            "path": "resources/message_codes/app.csv"
+                        }
+                    },
+                    "path": "resources/message_codes"
+                }
+            },
+            "path": "resources"
         }
-    }
-}

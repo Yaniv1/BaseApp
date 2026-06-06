@@ -1,0 +1,93 @@
+{
+    "pull": [
+        {
+            "source": "app/base.py"
+        },
+        {
+            "source": "config/base.json"
+        },
+        {
+            "source": "build/updates/base.json",
+            "target": "build/updates/base.json"
+        },
+        {
+            "source": "resources/manifests",
+            "target": "resources/manifests"
+        },
+        {
+            "source": "scripts/pullbase.py"
+        },
+        {
+            "source": "utils/baseutils.py"
+        },
+        {
+            "source": "utils/datautils.py"
+        },
+        {
+            "source": "utils/testutils.py"
+        },
+        {
+            "source": "build/instructions/base.md",
+            "target": "build/instructions/base.md"
+        },        
+        {
+            "source": "build/instructions/app.md",
+            "target": "build/instructions/app.md"
+        }, 
+        {
+            "source": "docs/readme/base.md"
+        },
+        {
+            "source": "build/requirements/base.json",
+            "target": "build/requirements/base.json"
+        },
+        {
+            "source": "build/requirements/req-eng-instructions.md",
+            "target": "build/requirements/req-eng-instructions.md"
+        },
+        {
+            "source": "build/tasks/base.json",
+            "target": "build/tasks/base.json"
+        },
+        {
+            "source": "build/tasks/template.json",
+            "target": "build/tasks/template.json"
+        },
+        {
+            "source": "build/architecture/base.json",
+            "target": "build/architecture/base.json"
+        },
+        {
+            "source": "resources/templates",
+            "target": "resources/templates"
+        },
+        {
+            "source": "resources/message_codes/base.csv",
+            "target": "resources/message_codes/base.csv"
+        },
+        {
+            "source": "resources/message_codes/logger.csv",
+            "target": "resources/message_codes/logger.csv"
+        },
+        {
+            "source": "resources/message_codes/test.csv",
+            "target": "resources/message_codes/test.csv"
+        },
+        {
+            "source": "dependencies/base.txt"
+        },
+        {
+            "source": "docs/version/base.txt"
+        },
+        {
+            "source": "scripts"
+        },
+        {
+            "source": "test/config/base.json"
+        },
+        {
+            "source": "test/tests/base"
+        }
+    ]
+        
+}

@@ -714,12 +714,12 @@ class Logger:
         try:
             if append:
                 pd.DataFrame(rows, columns=self.log_columns).to_csv(
-                    self.log_path, mode='a', header=write_header, index=False
+                    self.log_path, mode='a', header=write_header, index=False, encoding='utf-8'
                 )
                 self._csv_written_count += len(rows)
             else:
                 pd.DataFrame(rows, columns=self.log_columns).to_csv(
-                    self.log_path, mode='w', header=True, index=False
+                    self.log_path, mode='w', header=True, index=False, encoding='utf-8'
                 )
                 self._csv_written_count = len(rows)
         except Exception:
@@ -889,10 +889,10 @@ def save(data, path, format="json", **kwargs):
         kwargs1 = {"indent": 4, "default": str, "allow_nan": False}
         kwargs1.update(kwargs)
         data = to_json_compatible(data)
-        with open(path, "w") as f:
+        with open(path, "w", encoding="utf-8") as f:
             json.dump(data, f, **kwargs1)
     elif format == "csv":
-        kwargs1 = {"index": False}
+        kwargs1 = {"index": False, "encoding": "utf-8"}
         kwargs1.update(kwargs)
         if isinstance(data, pd.DataFrame):
             data.to_csv(path, **kwargs1)

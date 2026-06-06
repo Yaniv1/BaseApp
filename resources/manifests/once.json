@@ -13,22 +13,27 @@
             "source": "docs/readme/app.md"
         },
         {
-            "source": "docs/requirements/app.json"
+            "source": "build/requirements/app.json",
+            "destination": "build/requirements/app.json"
         },
         {
-            "source": "docs/tasks/app.json"
+            "source": "build/tasks/app.json",
+            "destination": "build/tasks/app.json"
         },
         {
             "source": "docs/version/app.txt"
         },
         {
-            "source": "docs/message_codes/app.csv"
+            "source": "resources/message_codes/app.csv",
+            "destination": "resources/message_codes/app.csv"
         },
         {
-            "source": "docs/architecture"
+            "source": "build/architecture",
+            "destination": "build/architecture"
         },
         {
-            "source": "updates"
+            "source": "build/updates",
+            "destination": "build/updates"
         },
         {
             "source": "dependencies/app.txt"

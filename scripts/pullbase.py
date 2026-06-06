@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Pull base updates from a BaseApp source into an instantiated app.
 
-Normal mode: syncs BaseApp docs/manifests folder locally, then applies entries
+Normal mode: syncs BaseApp resources/manifests folder locally, then applies entries
 under the 'pull' behavior key from all manifest files in that folder.
 
 Hard mode (--hard): copies every file from BaseApp, overwriting all local files
@@ -24,7 +24,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from utils.baseutils import Logger, Params, get_config, load_message_lookup
 
-MANIFESTS_DIR_REL = Path("docs/manifests")
+MANIFESTS_DIR_REL = Path("resources/manifests")
 SETUP_ENV_SCRIPT = Path("scripts/setup_env.ps1")
 
 EXCLUDED_DIRS = {"__pycache__", ".git", ".venv"}
@@ -81,7 +81,7 @@ def resolve_source(script_root: Path, source_arg: str) -> Path:
 
 
 def sync_manifests(source_root: Path, local_root: Path) -> list[Path]:
-    """Copy all JSON manifests from source docs/manifests into local docs/manifests."""
+    """Copy all JSON manifests from source resources/manifests into local resources/manifests."""
     src_dir = source_root / MANIFESTS_DIR_REL
     dst_dir = local_root / MANIFESTS_DIR_REL
 
@@ -156,7 +156,7 @@ def load_once_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
                 raise ValueError(f"Invalid manifest item at {manifest_path}:once[{index}] - expected object")
 
             source = item.get("source")
-            target = item.get("target", source)
+            target = item.get("destination", item.get("target", source))
             if not isinstance(source, str) or not source:
                 raise ValueError(f"Invalid manifest item at {manifest_path}:once[{index}] - 'source' is required")
             if not isinstance(target, str) or not target:
@@ -270,7 +270,7 @@ def load_runtime_config(app_root: Path) -> Params:
 
 def resolve_template_path(app_root: Path, config: Params) -> str:
     """Resolve HTML template path from config COMMON.HTML_TEMPLATE."""
-    template_value = getattr(getattr(config, "COMMON", Params()), "HTML_TEMPLATE", "../docs/templates/dataset_table.html")
+    template_value = getattr(getattr(config, "COMMON", Params()), "HTML_TEMPLATE", "../resources/templates/dataset_table.html")
     template_path = Path(str(template_value))
     if template_path.is_absolute():
         return str(template_path)
@@ -287,7 +287,7 @@ def create_pullbase_logger(local_root: Path, local_app_name: str, timestamp: str
     log_file = log_dir / f"{local_app_name}_{timestamp}.csv"
     template = resolve_template_path(local_root, local_config)
 
-    messages_dir_value = getattr(local_config.LOG, "messages_dir", "../docs/message_codes")
+    messages_dir_value = getattr(local_config.LOG, "messages_dir", "resources/message_codes")
     messages_dir_path = Path(str(messages_dir_value))
     if not messages_dir_path.is_absolute():
         messages_dir_path = (local_root / messages_dir_path).resolve()

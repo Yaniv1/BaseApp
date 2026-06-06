@@ -2,10 +2,10 @@
 """Instantiate BaseApp into a target path.
 
 Rules:
-- Read all manifest files from docs/manifests.
+- Read all manifest files from resources/manifests.
 - Apply entries under 'pull' by copying on every instantiate run.
 - Apply entries under 'once' by copying only when destination is missing.
-- Create docs/instructions/{APP_NAME}.md only if missing.
+- Create build/instructions/{APP_NAME}.md only if missing.
 """
 
 from __future__ import annotations
@@ -25,13 +25,13 @@ if str(PROJECT_ROOT) not in sys.path:
 from utils.baseutils import Logger, Params, get_config, load_message_lookup
 
 
-MANIFESTS_DIR_REL = Path("docs/manifests")
+MANIFESTS_DIR_REL = Path("resources/manifests")
 SETUP_ENV_SCRIPT = Path("scripts/setup_env.ps1")
 
 
 # Feature 3.1.1
 def load_manifest_entries(source_root: Path, behaviors: set[str]) -> dict[str, list[tuple[Path, Path]]]:
-    """Load entries from all manifests in docs/manifests grouped by behavior key."""
+    """Load entries from all manifests in resources/manifests grouped by behavior key."""
     manifests_dir = source_root / MANIFESTS_DIR_REL
     if not manifests_dir.is_dir():
         raise FileNotFoundError(f"Manifests folder not found: {manifests_dir}")
@@ -57,7 +57,10 @@ def load_manifest_entries(source_root: Path, behaviors: set[str]) -> dict[str, l
                     raise ValueError(f"Invalid manifest item at {manifest_path}:{behavior}[{index}] - expected object")
 
                 source = item.get("source")
-                target = item.get("target", source)
+                if behavior == "once":
+                    target = item.get("destination", item.get("target", source))
+                else:
+                    target = item.get("target", source)
                 if not isinstance(source, str) or not source:
                     raise ValueError(
                         f"Invalid manifest item at {manifest_path}:{behavior}[{index}] - 'source' is required"
@@ -89,8 +92,8 @@ def populate_app_config(app_config_path: Path, target_value: str):
 
 
 def ensure_app_instruction_file(target_root: Path, app_name: str) -> bool:
-    """Create docs/instructions/{APP_NAME}.md for app-specific guidance if missing."""
-    app_instructions_path = target_root / "docs" / "instructions" / f"{app_name}.md"
+    """Create build/instructions/{APP_NAME}.md for app-specific guidance if missing."""
+    app_instructions_path = target_root / "build" / "instructions" / f"{app_name}.md"
     if app_instructions_path.exists():
         return False
 
@@ -142,7 +145,7 @@ def load_runtime_config(app_root: Path) -> Params:
 
 def resolve_template_path(app_root: Path, config: Params) -> str:
     """Resolve HTML template path from config COMMON.HTML_TEMPLATE."""
-    template_value = getattr(getattr(config, "COMMON", Params()), "HTML_TEMPLATE", "../docs/templates/dataset_table.html")
+    template_value = getattr(getattr(config, "COMMON", Params()), "HTML_TEMPLATE", "../resources/templates/dataset_table.html")
     template_path = Path(str(template_value))
     if template_path.is_absolute():
         return str(template_path)
@@ -158,7 +161,7 @@ def create_instantiate_logger(source_root: Path, target_app: str, timestamp: str
     log_file = log_dir / f"{target_app}_{timestamp}.csv"
     template = resolve_template_path(source_root, config)
 
-    messages_dir_value = getattr(config.LOG, "messages_dir", "../docs/message_codes")
+    messages_dir_value = getattr(config.LOG, "messages_dir", "resources/message_codes")
     messages_dir_path = Path(str(messages_dir_value))
     if not messages_dir_path.is_absolute():
         messages_dir_path = (source_root / messages_dir_path).resolve()

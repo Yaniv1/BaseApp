@@ -2,12 +2,12 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.06.05.01",
+        "VERSION": "26.06.06.01",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
         "RUN_ID": "str(uuid.uuid4().hex[:6]).upper()",
-        "HTML_TEMPLATE": "../docs/templates/dataset_table.html",
+        "HTML_TEMPLATE": "../resources/templates/dataset_table.html",
         "HTML_WRAPPERS": ["{$", "$}"],        
         "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}",
         "OUTPUT_VERSION": "dt.datetime.utcnow().strftime('%Y%m%d')",
@@ -24,7 +24,7 @@
             "config": "config",
             "tests": "test",
             "utils": "utils",
-            "templates": "docs/templates"
+            "templates": "resources/templates"
         },
         "verbose": true
     },
@@ -33,7 +33,7 @@
         
         "start_time": "{$START_TIME$}",
         "path": "{$OUTPUT_PATH$}/logs",
-        "messages_dir": "docs/message_codes",
+        "messages_dir": "resources/message_codes",
         "verbose": "INFO",
         "types": {
             "0": "NONE",
@@ -56,25 +56,25 @@
         
         "message_codes": {
             "load": true,
-            "path": "docs/message_codes",
+            "path": "resources/message_codes",
             "target": "message_codes",
             "format": "csv"
         },
         "updates": {
             "load": true,
-            "path": "updates/base.json",
+            "path": "build/updates/base.json",
             "target": "updates",
             "format": "json"
         },
         "requirements": {
             "load": true,
-            "path": "docs/requirements",
+            "path": "build/requirements",
             "target": "requirements",
             "format": "json"
         },
         "tasks": {
             "load": true,
-            "path": "docs/tasks",
+            "path": "build/tasks",
             "target": "tasks",
             "format": "json"
         }

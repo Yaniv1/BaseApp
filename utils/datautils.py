@@ -190,7 +190,7 @@ class DataLoader:
         data = None
         try:
             if self.format == "csv":
-                data = pd.read_csv(file_path)
+                data = pd.read_csv(file_path, encoding="utf-8")
             elif self.format == "json":
                 with open(file_path, "r", encoding="utf-8") as f:
                     data = json.load(f)

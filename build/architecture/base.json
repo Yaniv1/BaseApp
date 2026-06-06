@@ -62,7 +62,7 @@
                     "features": {
                         "3.1.1": {
                             "name": "scripts.instantiate.load_manifest_entries",
-                            "description": "Load entries from all manifests in docs/manifests grouped by behavior key.",
+                            "description": "Load entries from all manifests in resources/manifests grouped by behavior key.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/instantiate.py::load_manifest_entries"
                         },
@@ -264,44 +264,10 @@
         },
         "4": {
             "name": "docs",
-            "description": "Human-readable documentation, manifests, message code catalogs, templates, and version records.",
+            "description": "Human-readable readme documents and version marker files.",
             "type": "Folder",
             "path": "docs",
             "features": {
-                "4.1": {
-                    "name": "docs.manifests",
-                    "description": "Manifest files that declare instantiate-once and pull-on-update file mappings.",
-                    "type": "Folder.Folder",
-                    "path": "docs/manifests",
-                    "features": {
-                        "4.1.1": {
-                            "name": "docs.manifests.once",
-                            "description": "Manifest of files copied once during instantiation only.",
-                            "type": "Folder.Folder.JsonFile",
-                            "path": "docs/manifests/once.json"
-                        },
-                        "4.1.2": {
-                            "name": "docs.manifests.pull",
-                            "description": "Manifest of files refreshed on every base pull.",
-                            "type": "Folder.Folder.JsonFile",
-                            "path": "docs/manifests/pull.json"
-                        }
-                    }
-                },
-                "4.2": {
-                    "name": "docs.instructions",
-                    "description": "Agent and developer guidance for the base and app layers.",
-                    "type": "Folder.Folder",
-                    "path": "docs/instructions",
-                    "features": {
-                        "4.2.1": {
-                            "name": "docs.instructions.base",
-                            "description": "Base-layer agent and developer instructions.",
-                            "type": "Folder.Folder.MdFile",
-                            "path": "docs/instructions/base.md"
-                        }
-                    }
-                },
                 "4.3": {
                     "name": "docs.readme",
                     "description": "End-user and maintainer readme documents for base and app layers.",
@@ -322,48 +288,6 @@
                         }
                     }
                 },
-                "4.4": {
-                    "name": "docs.message_codes",
-                    "description": "CSV catalogs of structured message codes used by runtime, logging, and tests.",
-                    "type": "Folder.Folder",
-                    "path": "docs/message_codes",
-                    "features": {
-                        "4.4.1": {
-                            "name": "docs.message_codes.base",
-                            "type": "Folder.Folder.CsvFile",
-                            "path": "docs/message_codes/base.csv"
-                        },
-                        "4.4.2": {
-                            "name": "docs.message_codes.app",
-                            "type": "Folder.Folder.CsvFile",
-                            "path": "docs/message_codes/app.csv"
-                        },
-                        "4.4.3": {
-                            "name": "docs.message_codes.logger",
-                            "type": "Folder.Folder.CsvFile",
-                            "path": "docs/message_codes/logger.csv"
-                        },
-                        "4.4.4": {
-                            "name": "docs.message_codes.test",
-                            "type": "Folder.Folder.CsvFile",
-                            "path": "docs/message_codes/test.csv"
-                        }
-                    }
-                },
-                "4.5": {
-                    "name": "docs.templates",
-                    "description": "Default HTML table template used to render results, config, and logs.",
-                    "type": "Folder.Folder",
-                    "path": "docs/templates",
-                    "features": {
-                        "4.5.1": {
-                            "name": "docs.templates.html_table",
-                            "description": "Default HTML template for rendering tables with optional titles and captions.",
-                            "type": "Folder.Folder.HtmlFile",
-                            "path": "docs/templates/dataset_table.html"
-                        }
-                    }
-                },
                 "4.6": {
                     "name": "docs.version",
                     "description": "Base and app version marker files that track release state across pulls and instantiation.",
@@ -375,26 +299,6 @@
                             "description": "Base version record that should be updated with each pull of base updates.",
                             "type": "Folder.Folder.TxtFile",
                             "path": "docs/version/base.txt"
-                        }
-                    }
-                },
-                "4.7": {
-                    "name": "docs.architecture",
-                    "description": "Structured feature inventory for the reusable architecture.",
-                    "type": "Folder.JsonFile.DataSet",
-                    "path": "docs/architecture",
-                    "features": {
-                        "4.7.1": {
-                            "name": "docs.architecture.base",
-                            "description": "Structured base feature inventory for the reusable architecture.",
-                            "type": "Folder.JsonFile.DataSet",
-                            "path": "docs/architecture/base.json"
-                        },
-                        "4.7.2": {
-                            "name": "docs.architecture.app",
-                            "description": "Structured variant-layer feature inventory for app-owned architecture.",
-                            "type": "Folder.JsonFile.DataSet",
-                            "path": "docs/architecture/app.json"
                         }
                     }
                 }
@@ -938,16 +842,16 @@
             }
         },
         "7": {
-            "name": "updates",
+            "name": "build.updates",
             "description": "Pending update payloads applied to instantiated apps during base pulls.",
-            "type": "Folder",
-            "path": "updates",
+            "type": "Folder.Folder",
+            "path": "build/updates",
             "features": {
                 "7.1": {
-                    "name": "updates.base",
+                    "name": "build.updates.base",
                     "description": "Base-layer update payload consumed by pullbase tooling.",
-                    "type": "Folder.JsonFile",
-                    "path": "updates/base.json"
+                    "type": "Folder.Folder.JsonFile",
+                    "path": "build/updates/base.json"
                 }
             }
         },
@@ -974,6 +878,176 @@
                     "description": "App-specific Python package requirements added by the variant app designer. Copied once during instantiation.",
                     "type": "Folder.TxtFile",
                     "path": "dependencies/app.txt"
+                }
+            }
+        },
+        "10": {
+            "name": "build",
+            "description": "Build-related resources: agent instructions, task tracking, requirements, architecture inventory, and update payloads.",
+            "type": "Folder",
+            "path": "build",
+            "features": {
+                "10.1": {
+                    "name": "build.instructions",
+                    "description": "Agent and developer guidance for the base and app layers.",
+                    "type": "Folder.Folder",
+                    "path": "build/instructions",
+                    "features": {
+                        "10.1.1": {
+                            "name": "build.instructions.base",
+                            "description": "Base-layer agent and developer instructions.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "build/instructions/base.md"
+                        }
+                    }
+                },
+                "10.2": {
+                    "name": "build.tasks",
+                    "description": "Task tracking files for base and app layers.",
+                    "type": "Folder.Folder",
+                    "path": "build/tasks",
+                    "features": {
+                        "10.2.1": {
+                            "name": "build.tasks.base",
+                            "description": "Base-layer task list tracking all active and completed tasks.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "build/tasks/base.json"
+                        },
+                        "10.2.2": {
+                            "name": "build.tasks.template",
+                            "description": "Template for creating new task entries.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "build/tasks/template.json"
+                        }
+                    }
+                },
+                "10.3": {
+                    "name": "build.requirements",
+                    "description": "Requirements definition files for base and app layers.",
+                    "type": "Folder.Folder",
+                    "path": "build/requirements",
+                    "features": {
+                        "10.3.1": {
+                            "name": "build.requirements.base",
+                            "description": "Base-layer requirements with breakdown and solution traceability.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "build/requirements/base.json"
+                        },
+                        "10.3.2": {
+                            "name": "build.requirements.req-eng-instructions",
+                            "description": "Requirements engineering instructions for how to write and maintain requirements.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "build/requirements/req-eng-instructions.md"
+                        }
+                    }
+                },
+                "10.4": {
+                    "name": "build.architecture",
+                    "description": "Structured feature inventory for the reusable architecture.",
+                    "type": "Folder.Folder",
+                    "path": "build/architecture",
+                    "features": {
+                        "10.4.1": {
+                            "name": "build.architecture.base",
+                            "description": "Structured base feature inventory for the reusable architecture.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "build/architecture/base.json"
+                        },
+                        "10.4.2": {
+                            "name": "build.architecture.app",
+                            "description": "Structured variant-layer feature inventory for app-owned architecture.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "build/architecture/app.json"
+                        }
+                    }
+                },
+                "10.5": {
+                    "name": "build.updates",
+                    "description": "Pending update payloads applied to instantiated apps during base pulls.",
+                    "type": "Folder.Folder",
+                    "path": "build/updates",
+                    "features": {
+                        "10.5.1": {
+                            "name": "build.updates.base",
+                            "description": "Base-layer update payload consumed by pullbase tooling.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "build/updates/base.json"
+                        }
+                    }
+                }
+            }
+        },
+        "11": {
+            "name": "resources",
+            "description": "Shared runtime data resources: message code catalogs, HTML templates, and manifest files.",
+            "type": "Folder",
+            "path": "resources",
+            "features": {
+                "11.1": {
+                    "name": "resources.message_codes",
+                    "description": "CSV catalogs of structured message codes used by runtime, logging, and tests.",
+                    "type": "Folder.Folder",
+                    "path": "resources/message_codes",
+                    "features": {
+                        "11.1.1": {
+                            "name": "resources.message_codes.base",
+                            "description": "Base-layer runtime and logging message codes.",
+                            "type": "Folder.Folder.CsvFile",
+                            "path": "resources/message_codes/base.csv"
+                        },
+                        "11.1.2": {
+                            "name": "resources.message_codes.app",
+                            "description": "App-layer message codes for variant-specific messages.",
+                            "type": "Folder.Folder.CsvFile",
+                            "path": "resources/message_codes/app.csv"
+                        },
+                        "11.1.3": {
+                            "name": "resources.message_codes.logger",
+                            "description": "Logger subsystem message codes.",
+                            "type": "Folder.Folder.CsvFile",
+                            "path": "resources/message_codes/logger.csv"
+                        },
+                        "11.1.4": {
+                            "name": "resources.message_codes.test",
+                            "description": "Test subsystem message codes.",
+                            "type": "Folder.Folder.CsvFile",
+                            "path": "resources/message_codes/test.csv"
+                        }
+                    }
+                },
+                "11.2": {
+                    "name": "resources.templates",
+                    "description": "Default HTML table template used to render results, config, and logs.",
+                    "type": "Folder.Folder",
+                    "path": "resources/templates",
+                    "features": {
+                        "11.2.1": {
+                            "name": "resources.templates.dataset_table",
+                            "description": "Default HTML template for rendering tables with optional titles and captions.",
+                            "type": "Folder.Folder.HtmlFile",
+                            "path": "resources/templates/dataset_table.html"
+                        }
+                    }
+                },
+                "11.3": {
+                    "name": "resources.manifests",
+                    "description": "Manifest files that declare instantiate-once and pull-on-update file mappings.",
+                    "type": "Folder.Folder",
+                    "path": "resources/manifests",
+                    "features": {
+                        "11.3.1": {
+                            "name": "resources.manifests.once",
+                            "description": "Manifest of files copied once during instantiation only.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "resources/manifests/once.json"
+                        },
+                        "11.3.2": {
+                            "name": "resources.manifests.pull",
+                            "description": "Manifest of files refreshed on every base pull.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "resources/manifests/pull.json"
+                        }
+                    }
                 }
             }
         }

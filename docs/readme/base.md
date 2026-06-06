@@ -1,4 +1,4 @@
-# BaseApp V-26.06.05.01
+# BaseApp V-26.06.06.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,16 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.06.01)
+
+- Refactored the workspace file tree to consolidate build-related and runtime data resources into dedicated top-level directories (`BASE-REQ-013`).
+- New `build/` directory consolidates: `instructions/` (agent/developer guidance), `tasks/` (task tracking), `requirements/` (requirements definitions), `architecture/` (feature inventory), and `updates/` (update payloads). These were previously scattered under `docs/` and the root `updates/` folder.
+- New `resources/` directory consolidates: `message_codes/` (CSV catalogs), `templates/` (HTML rendering templates), and `manifests/` (pull and once manifests). These were previously under `docs/`.
+- `docs/` now holds only `readme/` and `version/`, keeping it focused on human-readable documentation and version markers.
+- `pull.json` entries use a `target` field for destination overrides; `once.json` entries use a `destination` field.
+- `scripts/pullbase.py` and `scripts/instantiate.py` now read `destination` (with fallback to `target`) for once-manifest entries, so existing variant app files are never overwritten on pull.
+- All configuration paths, manifest entries, test fixtures, and architecture inventory updated to the new locations. Build test 25/25 PASS.
 
 ## Release Highlights (26.06.05.01)
 

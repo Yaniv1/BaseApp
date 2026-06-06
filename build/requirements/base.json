@@ -889,6 +889,94 @@
                     "deployment": 1.0
                 }
             ]
+        },
+        {
+            "id": "BASE-REQ-013",
+            "title": "Consolidate Build, Documentation, and Data Resources into Dedicated Directories",
+            "description": "The workspace file tree shall be reorganised so that build-related assets reside under build/ and shared runtime data resources reside under resources/, keeping docs/ exclusively for human-readable readme and version files.",
+            "priority": "Medium",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-013.1",
+                    "description": "Structure requirement: A build/ directory shall contain instructions/, tasks/, requirements/, architecture/, and updates/ sub-folders, consolidating all build-related assets previously scattered under docs/ and the root updates/ folder.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-013.2",
+                    "description": "Structure requirement: A resources/ directory shall contain message_codes/, templates/, and manifests/ sub-folders, consolidating all shared runtime data assets previously held under docs/.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-013.3",
+                    "description": "Structure requirement: The docs/ directory shall retain only readme/ and version/ sub-folders after the consolidation.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-013.4",
+                    "description": "Manifest requirement: pull.json entries shall use a target field to specify the destination path when it differs from the source path.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-013.5",
+                    "description": "Manifest requirement: once.json entries shall use a destination field to specify the destination path when it differs from the source path.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-013.6",
+                    "description": "Compatibility requirement: pullbase.py shall read the destination field (with fallback to target, then source) for once-manifest entries so that existing variant app files are not overwritten.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-013.7",
+                    "description": "Compatibility requirement: instantiate.py shall read the destination field (with fallback to target, then source) for once-manifest entries.",
+                    "priority": "Medium",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "10",
+                    "role": "build/ directory consolidates instructions, tasks, requirements, architecture, and updates.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "11",
+                    "role": "resources/ directory consolidates message_codes, templates, and manifests.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "11.3",
+                    "role": "resources/manifests/ holds once.json (destination field) and pull.json (target field).",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.2.12",
+                    "role": "load_once_entries reads destination field (fallback to target) for once-manifest entries.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.1.1",
+                    "role": "load_manifest_entries reads destination field (fallback to target) for once-behavior entries.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                }
+            ]
         }
     ]
 }

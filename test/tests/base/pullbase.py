@@ -49,17 +49,17 @@ def test_pullbase_once_sync(manager=None, message=None, **kwargs):
     try:
         source_root = Path(workdir) / "source"
         local_root = Path(workdir) / "local"
-        manifests_dir = local_root / "docs" / "manifests"
+        manifests_dir = local_root / "resources" / "manifests"
         source_root.mkdir(parents=True)
         local_root.mkdir(parents=True)
         manifests_dir.mkdir(parents=True)
 
         # Create source files
-        (source_root / "docs").mkdir(parents=True)
-        (source_root / "docs" / "requirements").mkdir(parents=True)
-        req_src = source_root / "docs" / "requirements" / "app.json"
+        (source_root / "build").mkdir(parents=True)
+        (source_root / "build" / "requirements").mkdir(parents=True)
+        req_src = source_root / "build" / "requirements" / "app.json"
         req_src.write_text('{"REQUIREMENTS":[]}', encoding="utf-8")
-        task_src = source_root / "docs" / "tasks" / "app.json"
+        task_src = source_root / "build" / "tasks" / "app.json"
         task_src.parent.mkdir(parents=True)
         task_src.write_text('{"TASKS":[]}', encoding="utf-8")
 
@@ -67,8 +67,8 @@ def test_pullbase_once_sync(manager=None, message=None, **kwargs):
         _write_manifest(
             manifests_dir,
             [
-                {"source": "docs/requirements/app.json"},
-                {"source": "docs/tasks/app.json"},
+                {"source": "build/requirements/app.json"},
+                {"source": "build/tasks/app.json"},
             ],
         )
 
@@ -89,9 +89,9 @@ def test_pullbase_once_sync(manager=None, message=None, **kwargs):
             "name": "load_once_entries_sources",
             "operator": "eq",
             "actual": sorted(sources),
-            "expected": sorted(["docs/requirements/app.json", "docs/tasks/app.json"]),
-            "success": sorted(sources) == sorted(["docs/requirements/app.json", "docs/tasks/app.json"]),
-            "status": "PASS" if sorted(sources) == sorted(["docs/requirements/app.json", "docs/tasks/app.json"]) else "FAIL",
+            "expected": sorted(["build/requirements/app.json", "build/tasks/app.json"]),
+            "success": sorted(sources) == sorted(["build/requirements/app.json", "build/tasks/app.json"]),
+            "status": "PASS" if sorted(sources) == sorted(["build/requirements/app.json", "build/tasks/app.json"]) else "FAIL",
         })
 
         # --- LIVE: pull_once_files copies missing, skips existing ---
@@ -123,8 +123,8 @@ def test_pullbase_once_sync(manager=None, message=None, **kwargs):
         })
 
         # Verify files actually landed at destinations
-        req_dst = local_root / "docs" / "requirements" / "app.json"
-        task_dst = local_root / "docs" / "tasks" / "app.json"
+        req_dst = local_root / "build" / "requirements" / "app.json"
+        task_dst = local_root / "build" / "tasks" / "app.json"
         criteria.append({
             "name": "pull_once_destinations_exist",
             "operator": "eq",

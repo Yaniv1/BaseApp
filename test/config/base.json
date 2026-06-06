@@ -14,7 +14,7 @@
         },
         "test_logger": {
             "path": "{$OUTPUT_PATH$}/test_results",
-            "messages_dir": "docs/message_codes",
+            "messages_dir": "resources/message_codes",
             "verbose": "PASS",
             "types": {
                 "0": "NONE",

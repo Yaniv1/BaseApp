@@ -92,8 +92,8 @@ $sourceChecks = @(
     "scripts/instantiate.py",
     "scripts/pullbase.py",
     "config/base.json",
-    "docs/manifests/pull.json",
-    "docs/manifests/once.json"
+    "resources/manifests/pull.json",
+    "resources/manifests/once.json"
 )
 
 foreach ($rel in $sourceChecks) {
@@ -137,7 +137,7 @@ $pullItems = @(
     "scripts/pullbase.py",
     "utils/baseutils.py",
     "utils/datautils.py",
-    "docs/manifests/pull.json"
+    "resources/manifests/pull.json"
 )
 foreach ($rel in $pullItems) {
     $full = Join-Path $testAppDir ($rel -replace '/', [System.IO.Path]::DirectorySeparatorChar)
@@ -205,8 +205,8 @@ $postPullItems = @(
     "utils/baseutils.py",
     "utils/datautils.py",
     "utils/testutils.py",
-    "docs/tasks/base.json",
-    "docs/requirements/base.json",
+    "build/tasks/base.json",
+    "build/requirements/base.json",
     "scripts/pullbase.py"
 )
 foreach ($rel in $postPullItems) {

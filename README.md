@@ -4,8 +4,15 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.05.01
-- App template version: A26.06.05.01
+- Base version: 26.06.06.01
+- App template version: A26.06.06.01
+
+## Highlights (26.06.06.01)
+
+- Refactored the workspace file tree: build-related assets moved to `build/` (instructions, tasks, requirements, architecture, updates) and runtime data resources moved to `resources/` (message_codes, templates, manifests). `docs/` now holds only `readme/` and `version/`.
+- `once.json` entries use a `destination` field for path overrides; `pull.json` entries use `target`. `pullbase.py` and `instantiate.py` now read `destination` (fallback to `target`) for once-manifest entries.
+- All configuration paths, manifests, test fixtures, and architecture inventory updated. Build test 25/25 PASS.
+- Added `BASE-REQ-013` with full breakdown and solution traceability.
 
 ## Highlights (26.06.05.01)
 
