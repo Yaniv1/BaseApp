@@ -295,16 +295,21 @@ def load_drop_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
 
 # Feature 3.2.16
 def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -> tuple[int, int, int]:
-    """Migrate or remove deprecated paths in the local app.
+    """Migrate deprecated paths to their new locations in the local app.
 
-    For each (source, target) pair where source exists locally:
-    - If target does not exist: move source to target, preserving data.
-    - If target already exists: delete source (target is the authoritative version).
+    Processes each (source, target) pair file-by-file:
+    - If the target file is absent: move the source file there, preserving data.
+    - If the target file already exists: leave the source file in place (never
+      overwrite or delete content at either location).
+    After processing, any source directories that are now empty are removed.
 
-    Returns (moved, removed, skipped) where skipped counts absent source paths.
+    Returns (moved, kept, skipped) where:
+      moved   = files relocated to their new path
+      kept    = files left in old location because target already had content
+      skipped = source paths that did not exist
     """
     moved = 0
-    removed = 0
+    kept = 0
     skipped = 0
 
     for source_rel, target_rel in drop_pairs:
@@ -312,29 +317,42 @@ def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -
         if not source.exists():
             skipped += 1
             continue
-        target = local_root / target_rel
-        if not target.exists():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(source), str(target))
-            moved += 1
-        else:
-            if source.is_dir():
-                shutil.rmtree(source, onexc=_force_remove)
+
+        if source.is_file():
+            target = local_root / target_rel
+            if not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(str(source), str(target))
+                moved += 1
             else:
-                _force_remove(None, source, None)
-            removed += 1
+                kept += 1
+            continue
 
-    return moved, removed, skipped
+        if source.is_dir():
+            for child in sorted(source.rglob("*")):
+                if not child.is_file():
+                    continue
+                child_rel = child.relative_to(source)
+                target_file = local_root / target_rel / child_rel
+                if not target_file.exists():
+                    target_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(child), str(target_file))
+                    moved += 1
+                else:
+                    kept += 1
+            # Remove empty subdirectories bottom-up, then the root
+            for dirpath in sorted(source.rglob("*"), reverse=True):
+                if dirpath.is_dir():
+                    try:
+                        dirpath.rmdir()
+                    except OSError:
+                        pass
+            try:
+                source.rmdir()
+            except OSError:
+                pass
 
-
-def _force_remove(func, path, exc_info) -> None:
-    """onexc handler for shutil.rmtree: clear read-only flag and retry."""
-    import stat
-    os.chmod(path, stat.S_IWRITE)
-    if os.path.isdir(path):
-        os.rmdir(path)
-    else:
-        os.remove(path)
+    return moved, kept, skipped
 
 
 def load_runtime_config(app_root: Path) -> Params:
@@ -474,9 +492,9 @@ def main() -> int:
         drop_list = load_drop_entries(manifest_paths)
         if logger:
             logger.log(message_code="PULL009", data={"entry_count": len(drop_list)})
-        drop_moved, drop_removed, drop_skipped = drop_deprecated_paths(local_root, drop_list)
+        drop_moved, drop_kept, drop_skipped = drop_deprecated_paths(local_root, drop_list)
         if logger:
-            logger.log(message_code="PULL010", data={"moved": drop_moved, "removed": drop_removed, "skipped": drop_skipped})
+            logger.log(message_code="PULL010", data={"moved": drop_moved, "kept": drop_kept, "skipped": drop_skipped})
 
         once_map = load_once_entries(manifest_paths)
         if logger:
@@ -494,7 +512,7 @@ def main() -> int:
     print(f"Base files updated: {copied}")
     if not args.hard:
         print(f"Once files synced: {once_copied} new (skipped {once_skipped} existing)")
-        print(f"Deprecated paths: {drop_moved} moved, {drop_removed} removed (skipped {drop_skipped} already absent)")
+        print(f"Deprecated paths: {drop_moved} moved, {drop_kept} left in place (skipped {drop_skipped} already absent)")
 
     if missing_sources:
         if logger:
