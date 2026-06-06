@@ -470,6 +470,14 @@ def main() -> int:
         copied, missing_sources = pull_base_files(local_root, source_root, file_map)
         if logger:
             logger.log(message_code="PULL006", data={"copied": copied})
+
+        drop_list = load_drop_entries(manifest_paths)
+        if logger:
+            logger.log(message_code="PULL009", data={"entry_count": len(drop_list)})
+        drop_moved, drop_removed, drop_skipped = drop_deprecated_paths(local_root, drop_list)
+        if logger:
+            logger.log(message_code="PULL010", data={"moved": drop_moved, "removed": drop_removed, "skipped": drop_skipped})
+
         once_map = load_once_entries(manifest_paths)
         if logger:
             logger.log(
@@ -480,13 +488,6 @@ def main() -> int:
         if logger:
             logger.log(message_code="PULL008", data={"copied": once_copied, "skipped": once_skipped})
         missing_sources.extend(once_missing)
-
-        drop_list = load_drop_entries(manifest_paths)
-        if logger:
-            logger.log(message_code="PULL009", data={"entry_count": len(drop_list)})
-        drop_moved, drop_removed, drop_skipped = drop_deprecated_paths(local_root, drop_list)
-        if logger:
-            logger.log(message_code="PULL010", data={"moved": drop_moved, "removed": drop_removed, "skipped": drop_skipped})
 
     print(f"Source: {source_root}")
     print(f"Local app: {local_root}")
