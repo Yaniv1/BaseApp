@@ -139,7 +139,7 @@ function Install-MissingPackages {
     }
 
     Write-Host "  Installing $($missing.Count) missing package(s) from $([System.IO.Path]::GetFileName($ReqFile)): $($missing -join ', ')" -ForegroundColor Yellow
-    & $PythonExe -m pip install @missing
+    & $PythonExe -m pip install @missing | Out-Host
     return ($LASTEXITCODE -eq 0)
 }
 
