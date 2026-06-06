@@ -30,6 +30,9 @@ from utils.baseutils import Logger, Params, get_config, load_message_lookup
 MANIFESTS_DIR_REL = Path("resources/manifests")
 SETUP_ENV_SCRIPT = Path("scripts/setup_env.ps1")
 
+EXCLUDED_DIRS = {"__pycache__", ".git", ".venv"}
+EXCLUDED_EXTENSIONS = {".pyc", ".pyo"}
+
 
 # Feature 3.1.1
 def load_manifest_entries(source_root: Path, behaviors: set[str]) -> dict[str, list[tuple[Path, Path]]]:
@@ -127,7 +130,7 @@ def expand_manifest_entry(source_root: Path, source_rel: Path, target_rel: Path)
         for child in sorted(source_path.rglob("*")):
             if not child.is_file():
                 continue
-            if "__pycache__" in child.parts or child.suffix.lower() in {".pyc", ".pyo"}:
+            if any(p in EXCLUDED_DIRS for p in child.parts) or child.suffix.lower() in EXCLUDED_EXTENSIONS:
                 continue
             child_rel = child.relative_to(source_path)
             expanded.append((source_rel / child_rel, target_rel / child_rel))
