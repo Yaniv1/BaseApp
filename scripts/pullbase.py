@@ -194,6 +194,8 @@ def pull_base_files(local_root: Path, source_root: Path, file_map: list[tuple[st
             for child in sorted(src.rglob("*")):
                 if not child.is_file():
                     continue
+                if any(p in EXCLUDED_DIRS for p in child.parts) or child.suffix.lower() in EXCLUDED_EXTENSIONS:
+                    continue
                 child_rel = child.relative_to(src)
                 dst = dst_root / child_rel
                 dst.parent.mkdir(parents=True, exist_ok=True)
@@ -239,6 +241,8 @@ def pull_once_files(
             dst_root = local_root / dst_rel
             for child in sorted(src.rglob("*")):
                 if not child.is_file():
+                    continue
+                if any(p in EXCLUDED_DIRS for p in child.parts) or child.suffix.lower() in EXCLUDED_EXTENSIONS:
                     continue
                 child_rel = child.relative_to(src)
                 dst = dst_root / child_rel

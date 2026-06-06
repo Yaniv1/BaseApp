@@ -127,6 +127,8 @@ def expand_manifest_entry(source_root: Path, source_rel: Path, target_rel: Path)
         for child in sorted(source_path.rglob("*")):
             if not child.is_file():
                 continue
+            if "__pycache__" in child.parts or child.suffix.lower() in {".pyc", ".pyo"}:
+                continue
             child_rel = child.relative_to(source_path)
             expanded.append((source_rel / child_rel, target_rel / child_rel))
         return expanded
