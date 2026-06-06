@@ -313,12 +313,22 @@ def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -
             moved += 1
         else:
             if source.is_dir():
-                shutil.rmtree(source)
+                shutil.rmtree(source, onexc=_force_remove)
             else:
-                source.unlink()
+                _force_remove(None, source, None)
             removed += 1
 
     return moved, removed, skipped
+
+
+def _force_remove(func, path, exc_info) -> None:
+    """onexc handler for shutil.rmtree: clear read-only flag and retry."""
+    import stat
+    os.chmod(path, stat.S_IWRITE)
+    if os.path.isdir(path):
+        os.rmdir(path)
+    else:
+        os.remove(path)
 
 
 def load_runtime_config(app_root: Path) -> Params:
