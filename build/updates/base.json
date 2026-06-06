@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [3.2.15, 3.2.16, 11.3.3] [drop.json] Added drop manifest and pullbase drop behavior to remove deprecated paths from variant apps on every base pull.",
+        "version": "26.06.06.05",
+        "description": "Added resources/manifests/drop.json (Feature 11.3.3) listing 9 deprecated folder paths created by the v26.06.06.01 file tree refactor: docs/instructions, docs/tasks, docs/requirements, docs/architecture, docs/message_codes, docs/templates, docs/manifests, docs/version, and updates. Added load_drop_entries() (Feature 3.2.15) to pullbase.py to read the 'drop' key from copied manifest files, and drop_deprecated_paths() (Feature 3.2.16) to delete each listed path if present in the local app root. The drop step runs in main() after pull_once_files and is logged with new message codes PULL009 (loaded drop entries) and PULL010 (dropped deprecated paths). Build test 25/25 PASS."
+    },
+    {
         "name": "[BaseApp] [3.4] [setup_env] Use 'python -m pip' instead of pip.exe to avoid broken launcher when venv Python path has changed.",
         "version": "26.06.06.04",
         "description": "Replaced all pip.exe invocations in scripts/setup_env.ps1 with 'python -m pip'. The pip.exe launcher embeds the absolute path to the Python interpreter used when the venv was created; if that path changes (e.g. OneDrive sync moves the folder) the launcher fails with 'Unable to create process'. Using 'python -m pip' bypasses the launcher entirely and always invokes pip through the venv's own python.exe. Renamed the PipExe parameter to PythonExe in both Get-InstalledPackageNames and Install-MissingPackages helpers; removed the $venvPip variable."

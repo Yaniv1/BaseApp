@@ -1,0 +1,13 @@
+{
+    "drop": [
+        { "path": "docs/instructions" },
+        { "path": "docs/tasks" },
+        { "path": "docs/requirements" },
+        { "path": "docs/architecture" },
+        { "path": "docs/message_codes" },
+        { "path": "docs/templates" },
+        { "path": "docs/manifests" },
+        { "path": "docs/version" },
+        { "path": "updates" }
+    ]
+}

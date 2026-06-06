@@ -1,4 +1,4 @@
-# BaseApp V-26.06.06.04
+# BaseApp V-26.06.06.05
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,12 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.06.05)
+
+- Added `resources/manifests/drop.json` (Feature 11.3.3): lists 9 deprecated folder paths that existed in older variant apps before the v26.06.06.01 file tree refactor (`docs/instructions`, `docs/tasks`, `docs/requirements`, `docs/architecture`, `docs/message_codes`, `docs/templates`, `docs/manifests`, `docs/version`, `updates`).
+- Added `load_drop_entries()` (Feature 3.2.15) and `drop_deprecated_paths()` (Feature 3.2.16) to `scripts/pullbase.py`. On every base pull, after syncing pull and once files, pullbase now reads the `drop` key from all manifest files and removes any matching paths in the local app root. Logged with new message codes `PULL009` and `PULL010`.
+- Build test 25/25 PASS.
 
 ## Release Highlights (26.06.06.04)
 

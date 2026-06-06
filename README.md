@@ -4,8 +4,13 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.06.04
-- App template version: A26.06.06.04
+- Base version: 26.06.06.05
+- App template version: A26.06.06.05
+
+## Highlights (26.06.06.05)
+
+- Added `resources/manifests/drop.json` (Feature 11.3.3): lists deprecated paths removed from variant apps on every base pull (`docs/instructions`, `docs/tasks`, `docs/requirements`, `docs/architecture`, `docs/message_codes`, `docs/templates`, `docs/manifests`, `docs/version`, `updates`).
+- `scripts/pullbase.py`: new `load_drop_entries()` (Feature 3.2.15) and `drop_deprecated_paths()` (Feature 3.2.16) clean up old locations automatically after each pull. Logged with `PULL009`/`PULL010`.
 
 ## Highlights (26.06.06.04)
 

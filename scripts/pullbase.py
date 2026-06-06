@@ -253,6 +253,60 @@ def pull_once_files(
     return copied, skipped, missing_sources
 
 
+# Feature 3.2.15
+def load_drop_entries(manifest_paths: list[Path]) -> list[str]:
+    """Load all drop entries (deprecated paths) from copied manifest files."""
+    paths: list[str] = []
+
+    for manifest_path in manifest_paths:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+
+        if not isinstance(raw, dict):
+            raise ValueError(f"Invalid manifest format in {manifest_path}: expected object at root")
+
+        entries = raw.get("drop")
+        if entries is None:
+            continue
+        if not isinstance(entries, list):
+            raise ValueError(f"Invalid manifest format in {manifest_path}: expected list at 'drop'")
+
+        for index, item in enumerate(entries):
+            if not isinstance(item, dict):
+                raise ValueError(f"Invalid manifest item at {manifest_path}:drop[{index}] - expected object")
+
+            path = item.get("path")
+            if not isinstance(path, str) or not path:
+                raise ValueError(f"Invalid manifest item at {manifest_path}:drop[{index}] - 'path' is required")
+
+            paths.append(path)
+
+    return paths
+
+
+# Feature 3.2.16
+def drop_deprecated_paths(local_root: Path, drop_paths: list[str]) -> tuple[int, int]:
+    """Remove deprecated files and folders from the local app.
+
+    Returns (removed, skipped) where skipped counts paths that did not exist.
+    """
+    removed = 0
+    skipped = 0
+
+    for rel in drop_paths:
+        target = local_root / rel
+        if not target.exists():
+            skipped += 1
+            continue
+        if target.is_dir():
+            shutil.rmtree(target)
+        else:
+            target.unlink()
+        removed += 1
+
+    return removed, skipped
+
+
 def load_runtime_config(app_root: Path) -> Params:
     """Load and resolve base/app config values for runtime paths and logging."""
     base_config_path = app_root / "config" / "base.json"
@@ -397,11 +451,19 @@ def main() -> int:
             logger.log(message_code="PULL008", data={"copied": once_copied, "skipped": once_skipped})
         missing_sources.extend(once_missing)
 
+        drop_list = load_drop_entries(manifest_paths)
+        if logger:
+            logger.log(message_code="PULL009", data={"entry_count": len(drop_list)})
+        drop_removed, drop_skipped = drop_deprecated_paths(local_root, drop_list)
+        if logger:
+            logger.log(message_code="PULL010", data={"removed": drop_removed, "skipped": drop_skipped})
+
     print(f"Source: {source_root}")
     print(f"Local app: {local_root}")
     print(f"Base files updated: {copied}")
     if not args.hard:
         print(f"Once files synced: {once_copied} new (skipped {once_skipped} existing)")
+        print(f"Deprecated paths removed: {drop_removed} (skipped {drop_skipped} already absent)")
 
     if missing_sources:
         if logger:

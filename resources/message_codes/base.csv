@@ -38,4 +38,6 @@ PULLW07,WARN,Missing source files detected
 PULLW08,WARN,Missing source file
 PULL007,INFO,Loaded once entries
 PULL008,INFO,Once pull synced files
+PULL009,INFO,Loaded drop entries
+PULL010,INFO,Dropped deprecated paths
 PULL999,GOOD,Pullbase completed successfully

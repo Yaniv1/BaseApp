@@ -217,6 +217,18 @@
                             "description": "Invoke setup_env.ps1 non-interactively for the local app root after a successful base pull to create the venv and install any newly declared dependencies.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::run_setup_env"
+                        },
+                        "3.2.15": {
+                            "name": "scripts.pullbase.load_drop_entries",
+                            "description": "Load all drop entries (deprecated paths to remove) from copied manifest files under the 'drop' key.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::load_drop_entries"
+                        },
+                        "3.2.16": {
+                            "name": "scripts.pullbase.drop_deprecated_paths",
+                            "description": "Remove deprecated files and folders from the local app root as listed in drop manifest entries. Returns (removed, skipped).",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::drop_deprecated_paths"
                         }
                     }
                 },
@@ -1003,7 +1015,7 @@
                 },
                 "11.3": {
                     "name": "resources.manifests",
-                    "description": "Manifest files that declare instantiate-once and pull-on-update file mappings.",
+                    "description": "Manifest files that declare instantiate-once, pull-on-update, and deprecated-path-drop mappings.",
                     "type": "Folder.Folder",
                     "path": "resources/manifests",
                     "features": {
@@ -1018,10 +1030,15 @@
                             "description": "Manifest of files refreshed on every base pull.",
                             "type": "Folder.Folder.JsonFile",
                             "path": "resources/manifests/pull.json"
+                        },
+                        "11.3.3": {
+                            "name": "resources.manifests.drop",
+                            "description": "Manifest of deprecated paths removed from variant apps on every base pull.",
+                            "type": "Folder.Folder.JsonFile",
+                            "path": "resources/manifests/drop.json"
                         }
                     }
-                }
-                "11.4": {
+                },
                     "name": "resources.version",
                     "description": "Base and app version marker files that track release state across pulls and instantiation.",
                     "type": "Folder.Folder",
