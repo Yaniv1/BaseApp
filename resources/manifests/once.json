@@ -21,7 +21,7 @@
             "destination": "build/tasks/app.json"
         },
         {
-            "source": "docs/version/app.txt"
+            "source": "resources/version/app.txt"
         },
         {
             "source": "resources/message_codes/app.csv",

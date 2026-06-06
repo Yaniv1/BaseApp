@@ -23,19 +23,7 @@
             "path": "config"
         },
         "4": {
-            "features": {
-                "4.6": {
-                    "features": {
-                        "4.6.2": {
-                            "name": "docs.version.app",
-                            "description": "App version record that should be updated with each pull of base updates and app changes.",
-                            "type": "Folder.Folder.TxtFile",
-                            "path": "docs/version/app.txt"
-                        }
-                    },
-                    "path": "docs/version"
-                }
-            },
+            "features": {},
             "path": "docs"
         },
         "5": {
@@ -157,6 +145,17 @@
                         }
                     },
                     "path": "resources/message_codes"
+                },
+                "11.4": {
+                    "features": {
+                        "11.4.2": {
+                            "name": "resources.version.app",
+                            "description": "App version record that should be updated with each pull of base updates and app changes.",
+                            "type": "Folder.Folder.TxtFile",
+                            "path": "resources/version/app.txt"
+                        }
+                    },
+                    "path": "resources/version"
                 }
             },
             "path": "resources"

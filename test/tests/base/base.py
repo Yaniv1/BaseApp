@@ -28,7 +28,7 @@ class ArchitectureAlignmentTest(AppManager):
         "config/app.json",
         "utils/apputils.py",
         "docs/readme/app.md",
-        "docs/version/app.txt",
+        "resources/version/app.txt",
         "resources/message_codes/app.csv",
         "build/architecture/app.json",
         "test/config/app.json",

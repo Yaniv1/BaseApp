@@ -1,4 +1,4 @@
-# BaseApp V-26.06.06.01
+# BaseApp V-26.06.06.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,13 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.06.02)
+
+- Moved `docs/version/` into `resources/version/`, completing the consolidation of all shared runtime data under `resources/`. `docs/` now holds only `readme/`.
+- Updated `resources/manifests/pull.json` and `resources/manifests/once.json` to reference `resources/version/base.txt` and `resources/version/app.txt` respectively.
+- Updated architecture inventory: `resources.version` (Feature 11.4) added with `11.4.1` (`base.txt`) in `build/architecture/base.json`; `11.4.2` (`app.txt`) in `build/architecture/app.json`. Feature 4 (docs) now covers only `readme/`.
+- Build test 25/25 PASS.
 
 ## Release Highlights (26.06.06.01)
 
@@ -475,11 +482,11 @@ python scripts/instantiate.py ../MyNewApp
 
 Behavior:
 
-- Reads all `.json` files under `docs/manifests`.
+- Reads all `.json` files under `resources/manifests`.
 - Applies entries under `pull` by copying on every instantiate run.
 - Overwrites core/base files on repeat runs.
 - Applies entries under `once` only when destination files do not already
-  exist, including `docs/version/app.txt`.
+  exist, including `resources/version/app.txt`.
 - Creates `docs/instructions/{APP_NAME}.md` only if it does not already exist.
 - When `config/app.json` is created, it sets only `COMMON.APP_NAME` to the
   target folder name. All dependent values (paths, filenames, etc.) resolve
@@ -504,9 +511,9 @@ python scripts/pullbase.py --source ../../BaseApp  # explicit source path
 
 ### Normal mode
 
-Syncs BaseApp `docs/manifests` to local `docs/manifests`, then applies all
+Syncs BaseApp `resources/manifests` to local `resources/manifests`, then applies all
 entries under the `pull` key from all manifest files in that folder.
-To add or adjust pull behavior, update manifest files in `docs/manifests`.
+To add or adjust pull behavior, update manifest files in `resources/manifests`.
 - Writes pullbase logs under
   `C:/data/{local_app}/{date}/basepulls/{local_app}_{timestamp}.csv` and
   renders a matching HTML file at
@@ -525,28 +532,28 @@ If `source` points to a folder, all files under that folder are synced
 recursively. For folder entries, `target` is treated as the destination folder
 root (or defaults to the same relative folder path).
 
-Current manifest (`docs/manifests/pull.json`):
+Current manifest (`resources/manifests/pull.json`):
 
 The following are current `pull` sources:
 
 - `app/base.py`
 - `config/base.json`
-- `updates/base.json`
-- `docs/architecture/base.json`
-- `docs/manifests/pull.json`
+- `build/updates/base.json`
+- `build/architecture/base.json`
+- `resources/manifests/pull.json`
 - `scripts/pullbase.py`
 - `utils/baseutils.py`
 - `utils/datautils.py`
 - `utils/testutils.py`
-- `docs/instructions/base.md`
-- `docs/instructions/app.md`
-- `docs/version/base.txt`
+- `build/instructions/base.md`
+- `build/instructions/app.md`
+- `resources/version/base.txt`
 - `docs/readme/base.md`
-- `docs/templates/dataset_table.html`
-- `docs/message_codes/base.csv`
-- `docs/message_codes/logger.csv`
-- `docs/message_codes/test.csv`
-- `config/requirements.txt`
+- `resources/templates/dataset_table.html`
+- `resources/message_codes/base.csv`
+- `resources/message_codes/logger.csv`
+- `resources/message_codes/test.csv`
+- `dependencies/base.txt`
 - `scripts`
 - `test/config/base.json`
 - `test/tests/base`
@@ -575,9 +582,9 @@ Use this to fully reset an app to the base.
 ## Versioning
 
 BaseApp version is tracked in `COMMON.VERSION` inside `config/base.json` and
-mirrored in `docs/version/base.txt`.
+mirrored in `resources/version/base.txt`.
 
-App-specific version is tracked in `docs/version/app.txt` and is created once
+App-specific version is tracked in `resources/version/app.txt` and is created once
 during instantiation so it remains app-owned during future base pulls.
 
 - Version format: `YY.MM.DD.NN` (two-digit year, month, day, sequence number)

@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [11.4] [File Tree Refactor] Moved docs/version to resources/version; updated manifests, architecture, and all references.",
+        "version": "26.06.06.02",
+        "description": "Moved docs/version/base.txt and docs/version/app.txt to resources/version/, completing the consolidation of all shared runtime data under resources/. docs/ now holds only readme/. Updated resources/manifests/pull.json source to resources/version/base.txt and resources/manifests/once.json source to resources/version/app.txt. Added Feature 11.4 (resources.version) with 11.4.1 (base.txt) to build/architecture/base.json and 11.4.2 (app.txt) to build/architecture/app.json. Removed Feature 4.6 (docs.version) from both architecture files. Updated build/instructions/base.md and docs/readme/base.md text references. Build test 25/25 PASS."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260605-0002] [10, 11] [File Tree Refactor] Consolidated build-related and runtime data resources into build/ and resources/ directories; updated all paths, manifests, config, and architecture.",
         "version": "26.06.06.01",
         "description": "Refactored the workspace file tree to consolidate build-related assets under build/ (instructions, tasks, requirements, architecture, updates) and shared runtime data resources under resources/ (message_codes, templates, manifests). docs/ now holds only readme/ and version/. pull.json entries use a target field for destination overrides; once.json entries use a destination field. scripts/pullbase.py and scripts/instantiate.py now read destination (with fallback to target) for once-manifest entries. All configuration paths in config/base.json, manifest entries in resources/manifests/pull.json and once.json, test fixtures in test/tests/base/pullbase.py, test/tests/base/base.py, test/config/base.json, scripts/test_deployment.ps1, and the architecture inventory in build/architecture/base.json and build/architecture/app.json updated to the new locations. Added BASE-REQ-013 with 7 breakdown items and full solution traceability. Build test 25/25 PASS."

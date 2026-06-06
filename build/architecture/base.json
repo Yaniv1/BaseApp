@@ -264,7 +264,7 @@
         },
         "4": {
             "name": "docs",
-            "description": "Human-readable readme documents and version marker files.",
+            "description": "Human-readable readme documents for base and app layers.",
             "type": "Folder",
             "path": "docs",
             "features": {
@@ -285,20 +285,6 @@
                             "description": "App-layer readme document.",
                             "type": "Folder.Folder.MdFile",
                             "path": "docs/readme/app.md"
-                        }
-                    }
-                },
-                "4.6": {
-                    "name": "docs.version",
-                    "description": "Base and app version marker files that track release state across pulls and instantiation.",
-                    "type": "Folder.Folder",
-                    "path": "docs/version",
-                    "features": {
-                        "4.6.1": {
-                            "name": "docs.version.base",
-                            "description": "Base version record that should be updated with each pull of base updates.",
-                            "type": "Folder.Folder.TxtFile",
-                            "path": "docs/version/base.txt"
                         }
                     }
                 }
@@ -1049,7 +1035,19 @@
                         }
                     }
                 }
+                "11.4": {
+                    "name": "resources.version",
+                    "description": "Base and app version marker files that track release state across pulls and instantiation.",
+                    "type": "Folder.Folder",
+                    "path": "resources/version",
+                    "features": {
+                        "11.4.1": {
+                            "name": "resources.version.base",
+                            "description": "Base version record that should be updated with each pull of base updates.",
+                            "type": "Folder.Folder.TxtFile",
+                            "path": "resources/version/base.txt"
+                        }
+                    }
+                }
             }
         }
-    }
-}

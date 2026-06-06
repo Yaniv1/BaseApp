@@ -77,7 +77,7 @@
             "source": "dependencies/base.txt"
         },
         {
-            "source": "docs/version/base.txt"
+            "source": "resources/version/base.txt"
         },
         {
             "source": "scripts"
