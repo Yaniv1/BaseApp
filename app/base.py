@@ -71,6 +71,10 @@ def run(args=sys.argv[1:]):
     
     app.LOGS = app.logger.logs
     app.store_outputs()
+    app.store_outputs(outputs=[
+        k for k, d in app.CONFIG.OUTPUT.get_dict().items() \
+            if d.get("store") and d.get("source") == "OUTPUT_MAP"
+    ])
 
     test_manager.mark_app_state(
         "failed" if runtime_error else "finished",
@@ -80,7 +84,7 @@ def run(args=sys.argv[1:]):
     test_manager.stop_live()
     test_manager.run_phase("post")
     test_manager.finalize()
-    test_manager.store_outputs(output_config="CONFIG.OUTPUT")
+    test_manager.store_outputs(output_config="CONFIG.OUTPUT", outputs=list(test_config.get("OUTPUT", {}).keys()))
     
     exit_code = 1 if runtime_error or test_manager.RESULTS.report.n_failures > 0 else 0
     return exit_code

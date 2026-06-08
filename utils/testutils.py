@@ -12,7 +12,7 @@ import threading
 import time
 import subprocess
 import traceback
-from .baseutils import AppManager, Params, create_logger, get_config, resolve_dotted, as_list, dict_merge
+from .baseutils import AppManager, Params, create_logger, get_config, resolve_dotted, as_list, dict_merge, path_join
 from utils import baseutils
 
 
@@ -819,7 +819,7 @@ def test_deployment(script_path="scripts/test_deployment.ps1", message=None, con
     abs_script = (
         script_path
         if os.path.isabs(script_path)
-        else os.path.abspath(os.path.join(base_dir, script_path))
+        else os.path.abspath(path_join(base_dir, script_path))
     )
 
     if not os.path.isfile(abs_script):

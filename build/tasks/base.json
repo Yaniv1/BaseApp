@@ -400,6 +400,84 @@
                     "timestamp": "2026-06-08T19:52:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260608-0002",
+            "uuid": "3c2b1a0h-9i8j-7k6l-5m4n-3o2p1q0r9s8t",
+            "title": "Restrict caller lineage in log entries to 4 by default, restrict to 1 for INFO/GOOD, restrict to 4 for WARN/ERROR",
+            "description": [
+                "Currently, log entries can have an unbounded caller lineage which can lead to excessively long log entries that are difficult to read and manage.",
+                "To improve readability and manageability of log entries, we will implement a restriction on the caller lineage included in log entries.",
+                "By default, we will limit the caller lineage to 4 levels. For INFO and GOOD level logs, we will restrict the caller lineage to just 1 level to keep these logs concise. For WARN and ERROR level logs, we will allow up to 4 levels of caller lineage to provide more context for troubleshooting while still maintaining readability.",
+                "This change will involve updating the logging mechanism to enforce these restrictions based on the log level and ensuring that the appropriate amount of caller information is included in each log entry."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Task created. Plan: (1) update Logger._get_caller_lineage to accept max_levels parameter and enforce it; (2) update Logger._log to set max_levels based on log level (1 for INFO/GOOD, 4 for WARN/ERROR); (3) add configuration option for default max_levels; (4) add test to verify caller lineage restriction based on log level.",
+                    "timestamp": "2026-06-08T20:00:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260608-0003",
+            "uuid": "2b1a0h9i-8j7k-6l5m-4n3o-2p1q0r9s8t7u",
+            "title": "Instantiation bug",
+            "description": [
+                "2026-06-08T21:50:43Z | 4 | ERROR | 00.174 | [{'file': 'instantiate.py', 'module': '__main__', 'class': None, 'function': 'main', 'line': 281}, {'file': 'instantiate.py', 'module': '__main__', 'class': None, 'function': '<module>', 'line': 333}] | INST007 |  | {'error': 'Target path must be different from BaseApp source path.'}",
+                "Traceback (most recent call last):",
+                "File 'C:\\Users\\ymordecai\\Code\\TestApp\\scripts\\instantiate.py', line 333, in <module>, main()",
+                "File 'C:\\Users\\ymordecai\\Code\\TestApp\\scripts\\instantiate.py', line 282, in main",
+                "    raise error",
+                "ValueError: Target path must be different from BaseApp source path."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Task created. This error occurs when the target path for instantiation is the same as the source path of BaseApp, which is not allowed. The instantiate.py script should be updated to check for this condition early in the process and provide a clear error message to the user. Additionally, the documentation should be updated to clarify that the target path must be different from the source path and provide guidance on how to choose an appropriate target path for instantiation.",
+                    "timestamp": "2026-06-08T21:55:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260609-0001",
+            "uuid": "1a0h9i8j-7k6l-5m4n-3o2p-1q0r9s8t7u6v",
+            "title": "Add task report grouping and status-based distribution capability",
+            "description": [
+                "2026-06-08T22:04:20Z | 4 |  FAIL | 01.687 | [{'file': 'testutils.py', 'module': 'utils.testutils', 'class': 'TestManager', 'function': 'run_a_test', 'line': 353}, {'file': 'testutils.py', 'module': 'utils.testutils', 'class': 'TestManager', 'function': 'run_phase', 'line': 125}, {'file': 'base.py', 'module': 'base', 'class': None, 'function': 'run', 'line': 83}, {'file': 'app.py', 'module': '__main__', 'class': None, 'function': '<module>', 'line': 8}] | TST005 | Validated runtime outputs and lifecycle values | {'phase': 'post', 'test_id': 'post_runtime_artifacts', 'run_number': 1, 'criteria': [{'name': 'end_time_present', 'operator': 'exists', 'success': False, 'status': 'FAIL', 'actual': None, 'expected': None}, {'name': 'elapsed_seconds_non_negative', 'operator': 'ge', 'success': False, 'status': 'FAIL', 'actual': None, 'expected': 0}, {'name': 'message_codes_loaded', 'operator': 'exists', 'success': True, 'status': 'PASS', 'actual': True, 'expected': None}, {'name': 'requirements_loaded', 'operator': 'exists', 'success': True, 'status': 'PASS', 'actual': True, 'expected': None}, {'name': 'tasks_loaded', 'operator': 'exists', 'success': True, 'status': 'PASS', 'actual': True, 'expected': None}]}"
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Task created. Plan: (1) update process mechanism to include steps for grouping tasks by status; (2) implement report generation for each status group; (3) store generated reports as separate output artifacts; (4) add test to verify correct grouping and report generation.",
+                    "timestamp": "2026-06-09T00:00:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260609-0002",
+            "uuid": "0h9i8j7k-6l5m-4n3o-2p1q-0r9s8t7u6v5w",
+            "title": "Save file paths and urls as hyperlinks in html outputs",
+            "description": [
+                "Currently, when file paths are included in HTML outputs, they are displayed as plain text. To improve usability, we will implement a feature to save these paths as clickable hyperlinks in the HTML outputs. This will allow users to easily navigate to the files directly from the output reports.",
+                "This change will involve updating the HTML generation logic to wrap file paths in anchor tags with appropriate href attributes pointing to the file locations. We will also need to ensure that the paths are properly escaped and formatted to work as hyperlinks in different environments.",
+                "A test should be added to verify that file paths in HTML outputs are correctly formatted as hyperlinks."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Task created. Plan: (1) update HTML generation logic to wrap file paths in anchor tags; (2) ensure proper escaping and formatting of paths; (3) add test to verify hyperlinks in HTML outputs.",
+                    "timestamp": "2026-06-09T00:10:00Z"
+                }
+            ]
         }
     ]
 }

@@ -9,7 +9,7 @@ import time
 import numpy as np
 import pandas as pd
 
-from utils.baseutils import AppManager, Params, to_json_compatible
+from utils.baseutils import AppManager, Params, to_json_compatible, path_join
 
 
 def _build_result(status, message, criteria, features, data=None):
@@ -74,7 +74,7 @@ def test_output_delta(manager=None, message=None, **kwargs):
             "format": "json",
             "delta": True,
         }
-        artifact_path = os.path.join(out_dir, "artifact.json")
+        artifact_path = path_join(out_dir, "artifact.json")
 
         mgr = _make_manager(workdir)
 
@@ -137,7 +137,7 @@ def test_output_delta(manager=None, message=None, **kwargs):
 
         # 5) delta=False: always writes; no manifest update for this artifact path.
         nondelta_dict = dict(output_dict, file="nondelta.json", delta=False)
-        nondelta_path = os.path.join(out_dir, "nondelta.json")
+        nondelta_path = path_join(out_dir, "nondelta.json")
         mgr._save_output_artifact("k2", nondelta_dict, {"v": 1})
         m1 = os.path.getmtime(nondelta_path)
         time.sleep(0.05)
@@ -213,6 +213,7 @@ def test_concurrent_store_outputs(manager=None, message=None, **kwargs):
             mgr.output_manifest_path = os.path.join(workdir, f"manifest_{output_workers}.json")
             mgr.output_manifest = {}
             mgr._output_manifest_lock = threading.Lock()
+            mgr.OUTPUT_MAP = {}  # mirrors AppManager.__init__
             mgr.logger = _DummyLogger()
             mgr.logger_name = "logger"
             mgr.CONFIG = Params({
@@ -297,6 +298,7 @@ def test_concurrent_store_outputs(manager=None, message=None, **kwargs):
         err_mgr.output_manifest_path = os.path.join(workdir, "manifest_err.json")
         err_mgr.output_manifest = {}
         err_mgr._output_manifest_lock = threading.Lock()
+        err_mgr.OUTPUT_MAP = {}  # mirrors AppManager.__init__
         err_mgr.logger = _DummyLogger()
         err_mgr.logger_name = "logger"
         err_entries = _build_output_entries(err_dir)
@@ -508,11 +510,11 @@ def test_to_json_compatible(manager=None, message=None, **kwargs):
 
 # Feature 5.3.1.3.4
 def test_output_file_mapping(manager=None, message=None, **kwargs):
-    """Feature ID: 5.3.1.3.4. Pre-test that validates RESULT_MAP is populated by store_outputs.
+    """Feature ID: 5.3.1.3.4. Pre-test that validates OUTPUT_MAP is populated by store_outputs.
 
     Covers features:
-      - 6.1.11.10 (store_outputs: RESULT_MAP attribute mapping output_key -> [file_paths])
-      - 6.1.11.3  (store_outputs: sequential and concurrent modes both populate RESULT_MAP)
+      - 6.1.11.10 (store_outputs: OUTPUT_MAP attribute mapping output_key -> [file_paths])
+      - 6.1.11.3  (store_outputs: sequential and concurrent modes both populate OUTPUT_MAP)
       - 6.1.11.9  (_store_one_output: returns list of stored file paths)
     """
     features = ["6.1.11.10", "6.1.11.3", "6.1.11.9"]
@@ -540,6 +542,7 @@ def test_output_file_mapping(manager=None, message=None, **kwargs):
             mgr.output_manifest_path = os.path.join(workdir, f"manifest_{output_workers}.json")
             mgr.output_manifest = {}
             mgr._output_manifest_lock = threading.Lock()
+            mgr.OUTPUT_MAP = {}  # mirrors AppManager.__init__
             mgr.logger = _DummyLogger()
             mgr.logger_name = "logger"
             mgr.CONFIG = Params({
@@ -550,29 +553,31 @@ def test_output_file_mapping(manager=None, message=None, **kwargs):
             return mgr
 
         # ------------------------------------------------------------------ #
-        # Criterion 1: RESULT_MAP is initialised as a dict on the manager.
+        # Criterion 1: OUTPUT_MAP is initialised as a dict before store_outputs.
         # ------------------------------------------------------------------ #
         seq_dir = os.path.join(workdir, "seq")
         os.makedirs(seq_dir, exist_ok=True)
         seq_mgr = _make_full_manager(seq_dir, output_workers=1)
+        pre_is_dict = isinstance(getattr(seq_mgr, "OUTPUT_MAP", None), dict)
         seq_mgr.store_outputs()
-        mapping_is_dict = isinstance(getattr(seq_mgr, "RESULT_MAP", None), dict)
+        mapping_is_dict = isinstance(seq_mgr.OUTPUT_MAP, dict)
+        init_ok = pre_is_dict and mapping_is_dict
         criteria.append({
-            "name": "result_map_is_dict_on_manager",
+            "name": "output_map_is_dict_before_and_after_store",
             "operator": "eq",
-            "actual": mapping_is_dict,
+            "actual": init_ok,
             "expected": True,
-            "success": mapping_is_dict,
-            "status": "PASS" if mapping_is_dict else "FAIL",
+            "success": init_ok,
+            "status": "PASS" if init_ok else "FAIL",
         })
 
         # ------------------------------------------------------------------ #
-        # Criterion 2: RESULT_MAP has a key for every output artifact.
+        # Criterion 2: OUTPUT_MAP has a key for every output artifact.
         # ------------------------------------------------------------------ #
-        mapping_keys = sorted(seq_mgr.RESULT_MAP.keys())
+        mapping_keys = sorted(seq_mgr.OUTPUT_MAP.keys())
         keys_match = mapping_keys == expected_keys
         criteria.append({
-            "name": "result_map_keys_match_output_config",
+            "name": "output_map_keys_match_output_config",
             "operator": "eq",
             "actual": mapping_keys,
             "expected": expected_keys,
@@ -585,10 +590,10 @@ def test_output_file_mapping(manager=None, message=None, **kwargs):
         # ------------------------------------------------------------------ #
         all_lists = all(
             isinstance(v, list) and len(v) > 0 and all(isinstance(p, str) for p in v)
-            for v in seq_mgr.RESULT_MAP.values()
+            for v in seq_mgr.OUTPUT_MAP.values()
         )
         criteria.append({
-            "name": "result_map_values_are_non_empty_string_lists",
+            "name": "output_map_values_are_non_empty_string_lists",
             "operator": "eq",
             "actual": all_lists,
             "expected": True,
@@ -597,17 +602,17 @@ def test_output_file_mapping(manager=None, message=None, **kwargs):
         })
 
         # ------------------------------------------------------------------ #
-        # Criterion 4: every path in RESULT_MAP exists on disk.
+        # Criterion 4: every path in OUTPUT_MAP exists on disk.
         # ------------------------------------------------------------------ #
         missing_paths = [
             p
-            for paths in seq_mgr.RESULT_MAP.values()
+            for paths in seq_mgr.OUTPUT_MAP.values()
             for p in paths
             if not os.path.isfile(p)
         ]
         all_exist = len(missing_paths) == 0
         criteria.append({
-            "name": "all_result_map_paths_exist_on_disk",
+            "name": "all_output_map_paths_exist_on_disk",
             "operator": "eq",
             "actual": missing_paths,
             "expected": [],
@@ -616,38 +621,39 @@ def test_output_file_mapping(manager=None, message=None, **kwargs):
         })
 
         # ------------------------------------------------------------------ #
-        # Criterion 5: delta-skipped files still appear in RESULT_MAP.
+        # Criterion 5: OUTPUT_MAP is not reset between calls (accumulates).
         # ------------------------------------------------------------------ #
+        keys_before = set(seq_mgr.OUTPUT_MAP.keys())
         seq_mgr.store_outputs()
-        delta_paths_present = all(
-            len(paths) > 0
-            for paths in seq_mgr.RESULT_MAP.values()
+        keys_after = set(seq_mgr.OUTPUT_MAP.keys())
+        accumulated = keys_before == keys_after and all(
+            len(paths) > 0 for paths in seq_mgr.OUTPUT_MAP.values()
         )
         criteria.append({
-            "name": "delta_skipped_paths_still_in_result_map",
+            "name": "output_map_accumulates_across_calls",
             "operator": "eq",
-            "actual": delta_paths_present,
+            "actual": accumulated,
             "expected": True,
-            "success": delta_paths_present,
-            "status": "PASS" if delta_paths_present else "FAIL",
+            "success": accumulated,
+            "status": "PASS" if accumulated else "FAIL",
         })
 
         # ------------------------------------------------------------------ #
-        # Criterion 6: concurrent mode populates RESULT_MAP identically.
+        # Criterion 6: concurrent mode populates OUTPUT_MAP identically.
         # ------------------------------------------------------------------ #
         con_dir = os.path.join(workdir, "con")
         os.makedirs(con_dir, exist_ok=True)
         con_mgr = _make_full_manager(con_dir, output_workers=4)
         con_mgr.store_outputs()
-        con_keys = sorted(con_mgr.RESULT_MAP.keys())
+        con_keys = sorted(con_mgr.OUTPUT_MAP.keys())
         con_paths_exist = all(
             os.path.isfile(p)
-            for paths in con_mgr.RESULT_MAP.values()
+            for paths in con_mgr.OUTPUT_MAP.values()
             for p in paths
         )
         con_ok = con_keys == expected_keys and con_paths_exist
         criteria.append({
-            "name": "concurrent_mode_result_map_complete_and_on_disk",
+            "name": "concurrent_mode_output_map_complete_and_on_disk",
             "operator": "eq",
             "actual": {"keys": con_keys, "all_paths_exist": con_paths_exist},
             "expected": {"keys": expected_keys, "all_paths_exist": True},
@@ -656,15 +662,15 @@ def test_output_file_mapping(manager=None, message=None, **kwargs):
         })
 
         # ------------------------------------------------------------------ #
-        # Criterion 7: store_outputs returns the RESULT_MAP dict.
+        # Criterion 7: store_outputs returns the OUTPUT_MAP dict.
         # ------------------------------------------------------------------ #
         ret_dir = os.path.join(workdir, "ret")
         os.makedirs(ret_dir, exist_ok=True)
         ret_mgr = _make_full_manager(ret_dir, output_workers=1)
         returned = ret_mgr.store_outputs()
-        return_ok = returned is ret_mgr.RESULT_MAP and isinstance(returned, dict) and sorted(returned.keys()) == expected_keys
+        return_ok = returned is ret_mgr.OUTPUT_MAP and isinstance(returned, dict) and sorted(returned.keys()) == expected_keys
         criteria.append({
-            "name": "store_outputs_returns_result_map",
+            "name": "store_outputs_returns_output_map",
             "operator": "eq",
             "actual": return_ok,
             "expected": True,
@@ -672,10 +678,72 @@ def test_output_file_mapping(manager=None, message=None, **kwargs):
             "status": "PASS" if return_ok else "FAIL",
         })
 
+        # ------------------------------------------------------------------ #
+        # Criterion 8: OUTPUT_MAP-sourced output is written with the full map
+        # when base.py calls store_outputs twice (main outputs first, then
+        # OUTPUT_MAP-sourced outputs).
+        # ------------------------------------------------------------------ #
+        meta_dir = os.path.join(workdir, "meta")
+        os.makedirs(meta_dir, exist_ok=True)
+        meta_artifact_names = [f"item_{i}" for i in range(3)]
+
+        def _build_meta_output_entries(out_path):
+            entries = {
+                name: {
+                    "store": True,
+                    "source": f"RESULTS.{name}",
+                    "path": out_path,
+                    "file": f"{name}.json",
+                    "format": "json",
+                }
+                for name in meta_artifact_names
+            }
+            entries["output_map"] = {
+                "store": True,
+                "source": "OUTPUT_MAP",
+                "path": out_path,
+                "file": "output_map.json",
+                "format": "json",
+            }
+            return entries
+
+        meta_mgr = object.__new__(AppManager)
+        meta_mgr.output_manifest_path = os.path.join(workdir, "manifest_meta.json")
+        meta_mgr.output_manifest = {}
+        meta_mgr._output_manifest_lock = threading.Lock()
+        meta_mgr.OUTPUT_MAP = {}  # mirrors AppManager.__init__
+        meta_mgr.logger = _DummyLogger()
+        meta_mgr.logger_name = "logger"
+        meta_mgr.CONFIG = Params({
+            "COMMON": {"OUTPUT_WORKERS": 1},
+            "OUTPUT": _build_meta_output_entries(meta_dir),
+        })
+        meta_mgr.RESULTS = Params({name: {"value": i} for i, name in enumerate(meta_artifact_names)})
+        # Call 1: store main outputs (populates OUTPUT_MAP).
+        meta_mgr.store_outputs(outputs=meta_artifact_names)
+        # Call 2: store OUTPUT_MAP-sourced outputs (reads fully-populated OUTPUT_MAP).
+        meta_mgr.store_outputs(outputs=["output_map"])
+        output_map_file = os.path.join(meta_dir, "output_map.json")
+        if os.path.isfile(output_map_file):
+            import json as _json
+            with open(output_map_file, encoding="utf-8") as fh:
+                written_map = _json.load(fh)
+            meta_keys_ok = all(k in written_map for k in meta_artifact_names)
+        else:
+            meta_keys_ok = False
+        criteria.append({
+            "name": "output_map_sourced_output_written_with_full_map",
+            "operator": "eq",
+            "actual": meta_keys_ok,
+            "expected": True,
+            "success": meta_keys_ok,
+            "status": "PASS" if meta_keys_ok else "FAIL",
+        })
+
         overall = "PASS" if all(c["success"] for c in criteria) else "FAIL"
         return _build_result(
             status=overall,
-            message=message or "Validated RESULT_MAP: keys, path existence, delta-skip retention, concurrent mode parity, and return value",
+            message=message or "Validated OUTPUT_MAP: init, keys, path existence, accumulation across calls, concurrent mode parity, return value, and OUTPUT_MAP-sourced output written with full map",
             criteria=criteria,
             features=features,
             data={"workdir": workdir},

@@ -2,7 +2,7 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.06.08.01",
+        "VERSION": "26.06.08.02",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -278,19 +278,19 @@
             "open": false
         },
 
-        "result_map": {
+        "output_map": {
             "store": true,
-            "source": "RESULT_MAP",
+            "source": "OUTPUT_MAP",
             "path": "{$OUTPUT_PATH$}/results",
-            "file": "result_map.json",
+            "file": "output_map.json",
             "format": "json"
         },
 
-        "result_map_html": {
+        "output_map_html": {
             "store": true,
-            "source": "RESULT_MAP",
+            "source": "OUTPUT_MAP",
             "path": "{$OUTPUT_PATH$}/results",
-            "file": "result_map.html",
+            "file": "output_map.html",
             "format": "html",
             "kwargs": {
                 "template": "{$HTML_TEMPLATE$}"

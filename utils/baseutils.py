@@ -254,6 +254,11 @@ def get_config(config_path="../config/base.json", overrides={}):
     return config
 
 
+def path_join(*parts):
+    """Join path parts with os.path.join after converting to strings and align slashes."""
+    return os.path.join(*[str(p) for p in parts]).replace("\\", "/")
+
+
 # Feature 6.1.4
 class Config:
     """Feature ID: 6.1.4. Load, merge, evaluate, and populate runtime configuration."""
@@ -262,7 +267,7 @@ class Config:
 
         self.args = args or []
         self.base_config_path = os.path.abspath(base_config_path)
-        self.base_dir = os.path.abspath(os.path.join(os.path.dirname(self.base_config_path), ".."))
+        self.base_dir = os.path.abspath(path_join(os.path.dirname(self.base_config_path), ".."))
 
         self.overrides = {
             a.split("=")[0].strip("-"): tryeval(a.split("=")[1])
@@ -277,7 +282,7 @@ class Config:
         config_dir = os.path.dirname(self.base_config_path)
         base_config_name = os.path.basename(self.base_config_path).lower()
         for file_name in sorted(os.listdir(config_dir)):
-            file_path = os.path.join(config_dir, file_name)
+            file_path = path_join(config_dir, file_name)
             if not os.path.isfile(file_path):
                 continue
             if not file_name.lower().endswith(".json"):
@@ -443,7 +448,7 @@ def load_message_lookup(paths):
     for path in paths:
         if os.path.isdir(path):
             for file_name in sorted(os.listdir(path)):
-                file_path = os.path.join(path, file_name)
+                file_path = path_join(path, file_name)
                 if os.path.isfile(file_path) and file_name.lower().endswith(".csv"):
                     files.append(os.path.abspath(str(file_path)))
     dfs = []
@@ -518,18 +523,18 @@ class Logger:
         files = [
             name
             for name in os.listdir(folder_path)
-            if os.path.isfile(os.path.join(folder_path, name))
+            if os.path.isfile(path_join(folder_path, name))
         ]
 
         if extensions:
             extension_set = {ext.lower() for ext in extensions}
             files = [name for name in files if os.path.splitext(name)[1].lower().lstrip('.') in extension_set]
 
-        files = sorted(files, key=lambda x: os.path.getctime(os.path.join(folder_path, x)))
+        files = sorted(files, key=lambda x: os.path.getctime(path_join(folder_path, x)))
         n_deleted = 0
         while len(files) > max_items:
             oldest_name = files.pop(0)
-            oldest_path = os.path.join(folder_path, oldest_name)
+            oldest_path = path_join(folder_path, oldest_name)
             if os.path.isfile(oldest_path):
                 os.remove(oldest_path)
                 n_deleted += 1
@@ -931,7 +936,7 @@ def create_logger(settings):
     if messages_dir and not os.path.isabs(str(messages_dir)):
         base_dir = settings.get("base_dir")
         anchor_dir = base_dir or os.getcwd()
-        messages_dir = os.path.abspath(os.path.join(str(anchor_dir), str(messages_dir)))
+        messages_dir = os.path.abspath(path_join(str(anchor_dir), str(messages_dir)))
 
     message_lookup = load_message_lookup([messages_dir] if messages_dir else [])
 
@@ -1045,7 +1050,7 @@ class AppManager:
         common = getattr(self.CONFIG, "COMMON", None)
         output_root = getattr(common, "OUTPUT_PATH", None) if common is not None else None
         if output_root:
-            self.output_manifest_path = os.path.join(str(output_root), "manifest.json")
+            self.output_manifest_path = path_join(str(output_root), "manifest.json")
         self.output_manifest = {}
         if self.output_manifest_path and os.path.isfile(self.output_manifest_path):
             try:
@@ -1058,6 +1063,9 @@ class AppManager:
 
         # Lock that serialises output_manifest reads/writes across worker threads (Feature 6.1.11).
         self._output_manifest_lock = threading.Lock()
+
+        # Output file map: accumulates {output_key: [file_paths]} across all store_outputs calls (Feature 6.1.11.10).
+        self.OUTPUT_MAP = {}
 
         self.logger.log(
             f"{self.__class__.__name__} initialized",
@@ -1218,11 +1226,11 @@ class AppManager:
         key_parts = [str(key) for key in item_keys]
 
         if output_file:
-            return os.path.join(output_path, *key_parts, output_file)
+            return path_join(output_path, *key_parts, output_file)
 
         leaf_name = key_parts[-1] if key_parts else "output"
         parent_parts = key_parts[:-1]
-        return os.path.join(output_path, *parent_parts, f"{leaf_name}.{output_format}")
+        return path_join(output_path, *parent_parts, f"{leaf_name}.{output_format}")
 
     def _save_output_artifact(self, output_key, output_dict, data, item_keys=None):
         """Save one output payload and emit the normal output logs.
@@ -1242,7 +1250,7 @@ class AppManager:
 
         if not item_keys:
             output_file = output_dict.get("file", f"{output_key}.json")
-            full_output_path = os.path.join(output_path, output_file)
+            full_output_path = path_join(output_path, output_file)
         else:
             full_output_path = self._split_output_path(output_dict, item_keys)
 
@@ -1357,7 +1365,7 @@ class AppManager:
 
     # Feature 6.1.11.3
     def store_outputs(self, output_config='CONFIG.OUTPUT', outputs=[]):
-        """Feature ID: 6.1.11.3. Persist configured outputs, sequentially or concurrently based on CONFIG.COMMON.OUTPUT_WORKERS. Workers > 1 dispatches each artifact to a ThreadPoolExecutor; per-worker exceptions are caught and logged without aborting remaining writes. Stores a mapping of {output_key: [stored_file_paths]} as self.RESULT_MAP and also returns it."""
+        """Feature ID: 6.1.11.3. Persist configured outputs, sequentially or concurrently based on CONFIG.COMMON.OUTPUT_WORKERS. Workers > 1 dispatches each artifact to a ThreadPoolExecutor; per-worker exceptions are caught and logged without aborting remaining writes. Deep-updates self.OUTPUT_MAP (initialised in __init__) with {output_key: [stored_file_paths]} for every processed entry and returns it. OUTPUT_MAP is never reset between calls so successive calls accumulate."""
 
         pending = [
             (output_key, output_dict)
@@ -1367,14 +1375,9 @@ class AppManager:
 
         max_workers = int(getattr(getattr(self.CONFIG, "COMMON", None), "OUTPUT_WORKERS", 0) or 0)
 
-        # Initialize the result map (Feature 6.1.11.10).
-        if not isinstance(getattr(self, "RESULT_MAP", None), dict):
-            self.RESULT_MAP = {}
-
         if max_workers <= 1 or len(pending) <= 1:
-            # Sequential path.
             for output_key, output_dict in pending:
-                self.RESULT_MAP[output_key] = self._store_one_output(output_key, output_dict)
+                self.OUTPUT_MAP[output_key] = self._store_one_output(output_key, output_dict)
         else:
             # Concurrent path — dispatch independent artifacts to a thread pool, then collect results.
             n_workers = min(max_workers, len(pending))
@@ -1392,11 +1395,11 @@ class AppManager:
                             message_type="WARN",
                             data={"output_key": output_key, "error": str(exc)},
                         )
-                        self.RESULT_MAP[output_key] = []
+                        self.OUTPUT_MAP[output_key] = []
                     else:
-                        self.RESULT_MAP[output_key] = future.result()
+                        self.OUTPUT_MAP[output_key] = future.result()
 
-        return self.RESULT_MAP
+        return self.OUTPUT_MAP
 
     def open_output(self, saved_path, output_key):
         try:

@@ -115,7 +115,7 @@
                 "name": "Prep output file mapping",
                 "callable": "test.tests.base.output.test_output_file_mapping",
                 "inputs": {
-                    "message": "Validated RESULT_MAP: keys, path existence, delta-skip retention, concurrent mode parity, and return value"
+                    "message": "Validated OUTPUT_MAP: init, keys, path existence, accumulation across calls, concurrent mode parity, return value, and OUTPUT_MAP-sourced output written with full map"
                 }
             },
             {

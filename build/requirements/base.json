@@ -289,7 +289,7 @@
                 {
                     "id": "BASE-REQ-005.8",
                     "title": "Output File Mapping in RESULTS",
-                    "description": "The system must record a mapping of each output artifact label to the list of file paths that were actually stored (or confirmed present via delta-skip) in result_map after each store_outputs call, so that downstream steps can inspect, report, or forward the stored file list.",
+                    "description": "The system must record a mapping of each output artifact label to the list of file paths that were actually stored (or confirmed present via delta-skip) in OUTPUT_MAP after each store_outputs call, so that downstream steps can inspect, report, or forward the stored file list.",
                     "priority": "Medium",
                     "comments": [],
                     "breakdown": [
@@ -313,19 +313,19 @@
                         },
                         {
                             "id": "BASE-REQ-005.8.4",
-                            "description": "Output requirement: store_outputs shall initialize result map as a dict and populate it with {output_key: [paths]} for every processed output entry, in both sequential and concurrent modes.",
+                            "description": "Output requirement: store_outputs shall initialize OUTPUT_MAP as an empty dict in AppManager.__init__ and deep-update it with {output_key: [paths]} for every processed output entry, in both sequential and concurrent modes, without resetting between calls.",
                             "priority": "Medium",
                             "comments": []
                         },
                         {
                             "id": "BASE-REQ-005.8.5",
-                            "description": "Output requirement: The result map shall itself be persisted as a JSON output artifact (stored_files.json) under the configured OUTPUT_PATH/results directory.",
+                            "description": "Output requirement: OUTPUT_MAP shall itself be persisted as a JSON output artifact (output_map.json) under the configured OUTPUT_PATH/results directory.",
                             "priority": "Low",
                             "comments": []
                         },
                         {
                             "id": "BASE-REQ-005.8.6",
-                            "description": "Verification requirement: A prep test shall confirm that result map contains all expected keys, all paths exist on disk, delta-skipped paths are retained, and concurrent mode produces the same mapping.",
+                            "description": "Verification requirement: A prep test shall confirm that OUTPUT_MAP contains all expected keys, all paths exist on disk, accumulates across calls, and concurrent mode produces the same mapping.",
                             "priority": "Medium",
                             "comments": []
                         }
@@ -398,14 +398,14 @@
                 },
                 {
                     "feature": "6.1.11.10",
-                    "role": "store_outputs initializes and populates result_map with {output_key: [paths]} for every processed output entry in both sequential and concurrent modes.",
+                    "role": "store_outputs deep-updates OUTPUT_MAP with {output_key: [paths]} for every processed output entry in both sequential and concurrent modes; OUTPUT_MAP is initialized in __init__ and never reset.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 0.0
                 },
                 {
                     "feature": "5.3.1.3.4",
-                    "role": "test_output_file_mapping prep test validates RESULT_MAP keys, path existence, delta-skip retention, concurrent mode parity, and return value.",
+                    "role": "test_output_file_mapping prep test validates OUTPUT_MAP init, keys, path existence, accumulation across calls, concurrent mode parity, return value, and OUTPUT_MAP-sourced output written with full map.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 0.0

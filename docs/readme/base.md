@@ -1,4 +1,4 @@
-# BaseApp V-26.06.08.01
+# BaseApp V-26.06.08.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,17 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.08.02)
+
+- Renamed `RESULT_MAP` → `OUTPUT_MAP` throughout. `OUTPUT_MAP` is now initialized as `{}` in `AppManager.__init__`, so it persists and is always present on every instance — including those created via `object.__new__()`.
+- `store_outputs` deep-updates `OUTPUT_MAP` without resetting it between calls, enabling accumulation across multiple invocations.
+- `base.py` uses a two-call pattern: first call stores all non-`OUTPUT_MAP` entries (populating `OUTPUT_MAP`), second call stores `output_map`/`output_map_html` entries using the fully populated map.
+- `test_manager.store_outputs` is now scoped to only the keys declared in `test/config/base.json` OUTPUT, preventing it from overwriting any app-managed artifacts regardless of what the merged config contains.
+- Fixed `test_output_delta` (Feature 5.3.1.3.1) to use `path_join` instead of `os.path.join` for paths used as manifest keys, ensuring forward-slash parity with the manifest on Windows.
+- Renamed `config/base.json` output entries `result_map`/`result_map_html` → `output_map`/`output_map_html`.
+- Updated `build/requirements/base.json` (`BASE-REQ-005.8`) and `build/architecture/base.json` (features `6.1.11.10`, `5.3.1.3.4`) to reflect the rename.
+- All prep tests PASS.
 
 ## Release Highlights (26.06.08.01)
 

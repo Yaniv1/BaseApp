@@ -7,6 +7,12 @@ import datetime as dt
 from typing import Any, Dict, List, Optional
 
 
+
+def path_join(*parts):
+    """Join path parts with os.path.join after converting to strings and align slashes."""
+    return os.path.join(*[str(p) for p in parts]).replace("\\", "/")
+
+
 # Feature 6.2.1
 class DataFrameConverter:
     """Feature ID: 6.2.1. Securely applies transformation rules to a pandas DataFrame.
@@ -156,17 +162,17 @@ class DataLoader:
         if os.path.isabs(str(source_path)):
             path_str = os.path.abspath(str(source_path))
         else:
-            path_str = os.path.abspath(os.path.join(self.base_dir, str(source_path)))
+            path_str = os.path.abspath(path_join(self.base_dir, str(source_path)))
         self.path = path_str
 
         if os.path.isfile(path_str):
             self.file_map = {os.path.basename(path_str): path_str}
         elif os.path.isdir(path_str):
             self.file_map = {
-                os.path.relpath(os.path.join(root, name), self.path).replace("\\", "/"): os.path.join(root, name)
+                os.path.relpath(path_join(root, name), self.path): path_join(root, name)
                 for root, _, names in sorted(os.walk(path_str))
                 for name in names
-                if os.path.isfile(os.path.join(root, name))
+                if os.path.isfile(path_join(root, name))
                 and (not self.format or name.lower().endswith(self.format))
             }
         else:
