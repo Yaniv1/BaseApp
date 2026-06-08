@@ -111,6 +111,14 @@
                 }
             },
             {
+                "id": "prep_output_file_mapping",
+                "name": "Prep output file mapping",
+                "callable": "test.tests.base.output.test_output_file_mapping",
+                "inputs": {
+                    "message": "Validated RESULT_MAP: keys, path existence, delta-skip retention, concurrent mode parity, and return value"
+                }
+            },
+            {
                 "id": "prep_pullbase_once_sync",
                 "name": "Prep pullbase once sync",
                 "callable": "test.tests.base.pullbase.test_pullbase_once_sync",

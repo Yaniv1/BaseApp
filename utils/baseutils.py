@@ -1274,7 +1274,7 @@ class AppManager:
                 if item_keys:
                     log_data["item_key"] = "/".join([str(k) for k in item_keys])
                 self.logger.log(message_code="BASE003", data=log_data)
-                return
+                return full_output_path
 
         artifact_data = data
         if output_dict.get('format', '').lower() == 'html':
@@ -1317,26 +1317,31 @@ class AppManager:
             open_key = output_key if not item_keys else f"{output_key}:{'/'.join([str(k) for k in item_keys])}"
             self.open_output(saved_path, open_key)
 
+        return saved_path
+
     def _store_split_outputs(self, output_key, output_dict, data, split_depth, item_keys=None):
-        """Recursively store split outputs across one or more dict layers."""
+        """Recursively store split outputs across one or more dict layers. Returns a flat list of stored file paths."""
         item_keys = list(item_keys or [])
 
         if split_depth > 0 and isinstance(data, dict):
+            paths = []
             for child_key, child_value in data.items():
-                self._store_split_outputs(
+                child_paths = self._store_split_outputs(
                     output_key,
                     output_dict,
                     child_value,
                     split_depth - 1,
                     item_keys=item_keys + [child_key],
                 )
-            return
+                paths.extend(child_paths or [])
+            return paths
 
-        self._save_output_artifact(output_key, output_dict, data, item_keys=item_keys)
+        saved = self._save_output_artifact(output_key, output_dict, data, item_keys=item_keys)
+        return [saved] if saved is not None else []
        
     # Feature 6.1.11.9
     def _store_one_output(self, output_key, output_dict):
-        """Feature ID: 6.1.11.9. Resolve, convert, and persist a single configured output artifact; callable from both sequential and concurrent paths."""
+        """Feature ID: 6.1.11.9. Resolve, convert, and persist a single configured output artifact; callable from both sequential and concurrent paths. Returns a list of file paths that were stored or confirmed in delta-skip mode."""
         data = resolve_dotted(self, output_dict.get("source", output_key))
         data = self._to_raw_data(
             data,
@@ -1345,13 +1350,14 @@ class AppManager:
         split_setting = output_dict.get("split", False)
         split_depth = int(split_setting) if isinstance(split_setting, (int, float)) else (1 if split_setting else 0)
         if split_depth > 0 and isinstance(data, dict):
-            self._store_split_outputs(output_key, output_dict, data, split_depth)
+            return self._store_split_outputs(output_key, output_dict, data, split_depth) or []
         else:
-            self._save_output_artifact(output_key, output_dict, data)
+            saved = self._save_output_artifact(output_key, output_dict, data)
+            return [saved] if saved is not None else []
 
     # Feature 6.1.11.3
     def store_outputs(self, output_config='CONFIG.OUTPUT', outputs=[]):
-        """Feature ID: 6.1.11.3. Persist configured outputs, sequentially or concurrently based on CONFIG.COMMON.OUTPUT_WORKERS. Workers > 1 dispatches each artifact to a ThreadPoolExecutor; per-worker exceptions are caught and logged without aborting remaining writes."""
+        """Feature ID: 6.1.11.3. Persist configured outputs, sequentially or concurrently based on CONFIG.COMMON.OUTPUT_WORKERS. Workers > 1 dispatches each artifact to a ThreadPoolExecutor; per-worker exceptions are caught and logged without aborting remaining writes. Stores a mapping of {output_key: [stored_file_paths]} as self.RESULT_MAP and also returns it."""
 
         pending = [
             (output_key, output_dict)
@@ -1361,12 +1367,16 @@ class AppManager:
 
         max_workers = int(getattr(getattr(self.CONFIG, "COMMON", None), "OUTPUT_WORKERS", 0) or 0)
 
+        # Initialize the result map (Feature 6.1.11.10).
+        if not isinstance(getattr(self, "RESULT_MAP", None), dict):
+            self.RESULT_MAP = {}
+
         if max_workers <= 1 or len(pending) <= 1:
-            # Sequential path — unchanged behavior.
+            # Sequential path.
             for output_key, output_dict in pending:
-                self._store_one_output(output_key, output_dict)
+                self.RESULT_MAP[output_key] = self._store_one_output(output_key, output_dict)
         else:
-            # Concurrent path — dispatch independent artifacts to a thread pool.
+            # Concurrent path — dispatch independent artifacts to a thread pool, then collect results.
             n_workers = min(max_workers, len(pending))
             with ThreadPoolExecutor(max_workers=n_workers) as executor:
                 futures = {
@@ -1374,13 +1384,19 @@ class AppManager:
                     for output_key, output_dict in pending
                 }
                 for future in as_completed(futures):
+                    output_key = futures[future]
                     exc = future.exception()
                     if exc:
                         self.logger.log(
                             message_code="BASEW06",
                             message_type="WARN",
-                            data={"output_key": futures[future], "error": str(exc)},
+                            data={"output_key": output_key, "error": str(exc)},
                         )
+                        self.RESULT_MAP[output_key] = []
+                    else:
+                        self.RESULT_MAP[output_key] = future.result()
+
+        return self.RESULT_MAP
 
     def open_output(self, saved_path, output_key):
         try:

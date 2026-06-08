@@ -504,3 +504,181 @@ def test_to_json_compatible(manager=None, message=None, **kwargs):
         criteria=criteria,
         features=features,
     )
+
+
+# Feature 5.3.1.3.4
+def test_output_file_mapping(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.3.4. Pre-test that validates RESULT_MAP is populated by store_outputs.
+
+    Covers features:
+      - 6.1.11.10 (store_outputs: RESULT_MAP attribute mapping output_key -> [file_paths])
+      - 6.1.11.3  (store_outputs: sequential and concurrent modes both populate RESULT_MAP)
+      - 6.1.11.9  (_store_one_output: returns list of stored file paths)
+    """
+    features = ["6.1.11.10", "6.1.11.3", "6.1.11.9"]
+    criteria = []
+    workdir = tempfile.mkdtemp(prefix="basemap_out_")
+
+    try:
+        artifact_names = [f"artifact_{i}" for i in range(4)]
+        expected_keys = sorted(artifact_names)
+
+        def _build_output_entries(out_path):
+            return {
+                name: {
+                    "store": True,
+                    "source": f"RESULTS.{name}",
+                    "path": out_path,
+                    "file": f"{name}.json",
+                    "format": "json",
+                }
+                for name in artifact_names
+            }
+
+        def _make_full_manager(out_path, output_workers):
+            mgr = object.__new__(AppManager)
+            mgr.output_manifest_path = os.path.join(workdir, f"manifest_{output_workers}.json")
+            mgr.output_manifest = {}
+            mgr._output_manifest_lock = threading.Lock()
+            mgr.logger = _DummyLogger()
+            mgr.logger_name = "logger"
+            mgr.CONFIG = Params({
+                "COMMON": {"OUTPUT_WORKERS": output_workers},
+                "OUTPUT": _build_output_entries(out_path),
+            })
+            mgr.RESULTS = Params({name: {"value": i} for i, name in enumerate(artifact_names)})
+            return mgr
+
+        # ------------------------------------------------------------------ #
+        # Criterion 1: RESULT_MAP is initialised as a dict on the manager.
+        # ------------------------------------------------------------------ #
+        seq_dir = os.path.join(workdir, "seq")
+        os.makedirs(seq_dir, exist_ok=True)
+        seq_mgr = _make_full_manager(seq_dir, output_workers=1)
+        seq_mgr.store_outputs()
+        mapping_is_dict = isinstance(getattr(seq_mgr, "RESULT_MAP", None), dict)
+        criteria.append({
+            "name": "result_map_is_dict_on_manager",
+            "operator": "eq",
+            "actual": mapping_is_dict,
+            "expected": True,
+            "success": mapping_is_dict,
+            "status": "PASS" if mapping_is_dict else "FAIL",
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 2: RESULT_MAP has a key for every output artifact.
+        # ------------------------------------------------------------------ #
+        mapping_keys = sorted(seq_mgr.RESULT_MAP.keys())
+        keys_match = mapping_keys == expected_keys
+        criteria.append({
+            "name": "result_map_keys_match_output_config",
+            "operator": "eq",
+            "actual": mapping_keys,
+            "expected": expected_keys,
+            "success": keys_match,
+            "status": "PASS" if keys_match else "FAIL",
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 3: each value is a non-empty list of strings.
+        # ------------------------------------------------------------------ #
+        all_lists = all(
+            isinstance(v, list) and len(v) > 0 and all(isinstance(p, str) for p in v)
+            for v in seq_mgr.RESULT_MAP.values()
+        )
+        criteria.append({
+            "name": "result_map_values_are_non_empty_string_lists",
+            "operator": "eq",
+            "actual": all_lists,
+            "expected": True,
+            "success": all_lists,
+            "status": "PASS" if all_lists else "FAIL",
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 4: every path in RESULT_MAP exists on disk.
+        # ------------------------------------------------------------------ #
+        missing_paths = [
+            p
+            for paths in seq_mgr.RESULT_MAP.values()
+            for p in paths
+            if not os.path.isfile(p)
+        ]
+        all_exist = len(missing_paths) == 0
+        criteria.append({
+            "name": "all_result_map_paths_exist_on_disk",
+            "operator": "eq",
+            "actual": missing_paths,
+            "expected": [],
+            "success": all_exist,
+            "status": "PASS" if all_exist else "FAIL",
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 5: delta-skipped files still appear in RESULT_MAP.
+        # ------------------------------------------------------------------ #
+        seq_mgr.store_outputs()
+        delta_paths_present = all(
+            len(paths) > 0
+            for paths in seq_mgr.RESULT_MAP.values()
+        )
+        criteria.append({
+            "name": "delta_skipped_paths_still_in_result_map",
+            "operator": "eq",
+            "actual": delta_paths_present,
+            "expected": True,
+            "success": delta_paths_present,
+            "status": "PASS" if delta_paths_present else "FAIL",
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 6: concurrent mode populates RESULT_MAP identically.
+        # ------------------------------------------------------------------ #
+        con_dir = os.path.join(workdir, "con")
+        os.makedirs(con_dir, exist_ok=True)
+        con_mgr = _make_full_manager(con_dir, output_workers=4)
+        con_mgr.store_outputs()
+        con_keys = sorted(con_mgr.RESULT_MAP.keys())
+        con_paths_exist = all(
+            os.path.isfile(p)
+            for paths in con_mgr.RESULT_MAP.values()
+            for p in paths
+        )
+        con_ok = con_keys == expected_keys and con_paths_exist
+        criteria.append({
+            "name": "concurrent_mode_result_map_complete_and_on_disk",
+            "operator": "eq",
+            "actual": {"keys": con_keys, "all_paths_exist": con_paths_exist},
+            "expected": {"keys": expected_keys, "all_paths_exist": True},
+            "success": con_ok,
+            "status": "PASS" if con_ok else "FAIL",
+        })
+
+        # ------------------------------------------------------------------ #
+        # Criterion 7: store_outputs returns the RESULT_MAP dict.
+        # ------------------------------------------------------------------ #
+        ret_dir = os.path.join(workdir, "ret")
+        os.makedirs(ret_dir, exist_ok=True)
+        ret_mgr = _make_full_manager(ret_dir, output_workers=1)
+        returned = ret_mgr.store_outputs()
+        return_ok = returned is ret_mgr.RESULT_MAP and isinstance(returned, dict) and sorted(returned.keys()) == expected_keys
+        criteria.append({
+            "name": "store_outputs_returns_result_map",
+            "operator": "eq",
+            "actual": return_ok,
+            "expected": True,
+            "success": return_ok,
+            "status": "PASS" if return_ok else "FAIL",
+        })
+
+        overall = "PASS" if all(c["success"] for c in criteria) else "FAIL"
+        return _build_result(
+            status=overall,
+            message=message or "Validated RESULT_MAP: keys, path existence, delta-skip retention, concurrent mode parity, and return value",
+            criteria=criteria,
+            features=features,
+            data={"workdir": workdir},
+        )
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)

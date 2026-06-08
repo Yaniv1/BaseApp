@@ -285,6 +285,51 @@
                     "description": "Code quality requirement: The JSON serialization helper to_json_compatible shall be promoted to a module-level function in baseutils so that it can be reused across the codebase independently of save().",
                     "priority": "Medium",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-005.8",
+                    "title": "Output File Mapping in RESULTS",
+                    "description": "The system must record a mapping of each output artifact label to the list of file paths that were actually stored (or confirmed present via delta-skip) in result_map after each store_outputs call, so that downstream steps can inspect, report, or forward the stored file list.",
+                    "priority": "Medium",
+                    "comments": [],
+                    "breakdown": [
+                        {
+                            "id": "BASE-REQ-005.8.1",
+                            "description": "Tracking requirement: _save_output_artifact shall return the resolved file path whenever the artifact is written or confirmed present in delta-skip mode, and None when data is absent or the save fails.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-005.8.2",
+                            "description": "Tracking requirement: _store_split_outputs shall collect and return a flat list of all paths returned by recursive _save_output_artifact calls.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-005.8.3",
+                            "description": "Tracking requirement: _store_one_output shall return the list of file paths produced for its output key.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-005.8.4",
+                            "description": "Output requirement: store_outputs shall initialize result map as a dict and populate it with {output_key: [paths]} for every processed output entry, in both sequential and concurrent modes.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-005.8.5",
+                            "description": "Output requirement: The result map shall itself be persisted as a JSON output artifact (stored_files.json) under the configured OUTPUT_PATH/results directory.",
+                            "priority": "Low",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-005.8.6",
+                            "description": "Verification requirement: A prep test shall confirm that result map contains all expected keys, all paths exist on disk, delta-skipped paths are retained, and concurrent mode produces the same mapping.",
+                            "priority": "Medium",
+                            "comments": []
+                        }
+                    ]
                 }
             ],
             "solution": [
@@ -347,6 +392,20 @@
                 {
                     "feature": "6.1.11.7",
                     "role": "_save_output_artifact wraps output_manifest read and write+flush in _output_manifest_lock.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.11.10",
+                    "role": "store_outputs initializes and populates result_map with {output_key: [paths]} for every processed output entry in both sequential and concurrent modes.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "5.3.1.3.4",
+                    "role": "test_output_file_mapping prep test validates RESULT_MAP keys, path existence, delta-skip retention, concurrent mode parity, and return value.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 0.0

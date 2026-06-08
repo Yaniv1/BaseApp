@@ -1,4 +1,4 @@
-# BaseApp V-26.06.06.05
+# BaseApp V-26.06.08.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,15 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.08.01)
+
+- `store_outputs` (Feature 6.1.11.3) now populates `self.RESULT_MAP` — a `dict` mapping each `output_key` to the list of file paths written or confirmed present in delta-skip mode — and returns it so callers can use the mapping directly.
+- `_save_output_artifact` returns the full output path whether the file was written or skipped; `_store_one_output` returns a `list` of those paths.
+- Added `result_map` output entry to `config/base.json` (`source: RESULT_MAP`) so the mapping is also persisted as a JSON artifact.
+- Added prep test `test_output_file_mapping` (Feature 5.3.1.3.4): 7 criteria covering dict type, key completeness, non-empty string lists, on-disk path existence, delta-skip retention, concurrent mode parity, and return-value identity.
+- Added requirement `BASE-REQ-005.8` and architecture features `6.1.11.10` and `5.3.1.3.4`.
+- All 8 prep tests PASS.
 
 ## Release Highlights (26.06.06.05)
 

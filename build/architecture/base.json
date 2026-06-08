@@ -426,6 +426,18 @@
                                             "description": "Pre-test that validates store_outputs concurrent mode: all artifacts written in parallel, worker exceptions logged as BASEW06 without aborting others, and _output_manifest_lock initialised.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/output.py::test_concurrent_store_outputs"
+                                        },
+                                        "5.3.1.3.3": {
+                                            "name": "test.tests.base.output.test_to_json_compatible",
+                                            "description": "Pre-test for the module-level to_json_compatible serialization helper. Covers features: - 6.1.17  (to_json_compatible: module-level recursive JSON-serialization function)",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/output.py::test_to_json_compatible"
+                                        },
+                                        "5.3.1.3.4": {
+                                            "name": "test.tests.base.output.test_output_file_mapping",
+                                            "description": "Pre-test that validates RESULT_MAP is populated by store_outputs with correct keys, path existence, delta-skip retention, concurrent mode parity, and return value.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/output.py::test_output_file_mapping"
                                         }
                                     }
                                 },
@@ -711,9 +723,15 @@
                                 },
                                 "6.1.11.9": {
                                     "name": "utils.baseutils.AppManager._store_one_output",
-                                    "description": "Resolve, convert, and persist a single configured output artifact; callable from both sequential loop and ThreadPoolExecutor worker threads in store_outputs.",
+                                    "description": "Resolve, convert, and persist a single configured output artifact; callable from both sequential loop and ThreadPoolExecutor worker threads in store_outputs. Returns a flat list of stored file paths.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::AppManager._store_one_output"
+                                },
+                                "6.1.11.10": {
+                                    "name": "utils.baseutils.AppManager.RESULT_MAP",
+                                    "description": "Manager attribute populated by store_outputs: a dict mapping each output_key to the list of file paths written or confirmed present in delta-skip mode. Stored directly on the manager instance as self.RESULT_MAP and also returned by store_outputs so callers can use it directly. Initialised before the first artifact is processed and updated after each _store_one_output call in both sequential and concurrent modes.",
+                                    "type": "Folder.PyFile.Class.Attribute",
+                                    "path": "utils/baseutils.py::AppManager.store_outputs"
                                 }
                             }
                         }
@@ -1039,6 +1057,7 @@
                         }
                     }
                 },
+                "11.4": {
                     "name": "resources.version",
                     "description": "Base and app version marker files that track release state across pulls and instantiation.",
                     "type": "Folder.Folder",
@@ -1054,3 +1073,5 @@
                 }
             }
         }
+    }
+}
