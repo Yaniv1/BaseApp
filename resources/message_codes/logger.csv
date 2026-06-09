@@ -1,6 +1,6 @@
-code,type,text
-LOG001,INFO,Initialized logger
-LOG002,INFO,Logger output configured
-LOG003,INFO,Removed old log files
-LOG004,INFO,Initialized logger retention
-LOG005,GOOD,Logger init completed
+code,type,text,caller_depth
+LOG001,INFO,Initialized logger,
+LOG002,INFO,Logger output configured,
+LOG003,INFO,Removed old log files,
+LOG004,INFO,Initialized logger retention,
+LOG005,GOOD,Logger init completed,

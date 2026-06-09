@@ -750,3 +750,74 @@ def test_output_file_mapping(manager=None, message=None, **kwargs):
         )
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
+
+
+# Feature 5.3.1.3.5
+def test_html_hyperlinks(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.3.5. Verify that HtmlDoc renders file paths and URLs as clickable anchor tags."""
+    from utils.baseutils import HtmlDoc
+    import tempfile
+
+    features = ["6.1.6"]
+    criteria = []
+    workdir = tempfile.mkdtemp(prefix="htmlhyperlink_")
+    try:
+        template_src = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))),
+            "resources", "templates", "dataset_table.html",
+        )
+
+        cases = [
+            ("windows_abs_path",   r"C:\data\MyApp\output.json", "file:///C:/data/MyApp/output.json"),
+            ("posix_abs_path",     "/data/myapp/output.json",     "file:///data/myapp/output.json"),
+            ("https_url",          "https://example.com/page",   "https://example.com/page"),
+            ("http_url",           "http://example.com/page",    "http://example.com/page"),
+            ("file_url",           "file:///data/out.json",       "file:///data/out.json"),
+            ("plain_text",         "just a label",                None),
+            ("empty_string",       "",                            None),
+        ]
+
+        doc = HtmlDoc(data=[{"value": v} for _, v, _ in cases], template=template_src)
+
+        for name, input_val, expected_href in cases:
+            href = doc._as_hyperlink(input_val)
+            ok = href == expected_href
+            criteria.append({
+                "name": f"hyperlink_{name}",
+                "success": ok,
+                "status": "PASS" if ok else "FAIL",
+                "actual": href,
+                "expected": expected_href,
+            })
+
+        # Verify rendered HTML contains <a> tags for linkable values
+        rendered = doc.to_html()
+        has_anchor = "<a href=" in rendered
+        criteria.append({
+            "name": "rendered_html_contains_anchors",
+            "success": has_anchor,
+            "status": "PASS" if has_anchor else "FAIL",
+            "actual": has_anchor,
+            "expected": True,
+        })
+
+        # Verify plain text is NOT wrapped in anchor tag
+        plain_text = "just a label"
+        plain_ok = f'href="{plain_text}"' not in rendered and f">{plain_text}</a>" not in rendered
+        criteria.append({
+            "name": "plain_text_not_a_link",
+            "success": plain_ok,
+            "status": "PASS" if plain_ok else "FAIL",
+            "actual": plain_ok,
+            "expected": True,
+        })
+
+        overall = "PASS" if all(c["success"] for c in criteria) else "FAIL"
+        return _build_result(
+            status=overall,
+            message=message or "Validated HtmlDoc renders file paths and URLs as hyperlinks",
+            criteria=criteria,
+            features=features,
+        )
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)

@@ -119,6 +119,14 @@
                 }
             },
             {
+                "id": "prep_html_hyperlinks",
+                "name": "Prep html hyperlinks",
+                "callable": "test.tests.base.output.test_html_hyperlinks",
+                "inputs": {
+                    "message": "Validated HtmlDoc renders file paths and URLs as clickable anchor tags"
+                }
+            },
+            {
                 "id": "prep_pullbase_once_sync",
                 "name": "Prep pullbase once sync",
                 "callable": "test.tests.base.pullbase.test_pullbase_once_sync",
@@ -175,6 +183,14 @@
                             "actual": {"ref": "monitor.results.tasks_loaded"}
                         }
                     ]
+                }
+            },
+            {
+                "id": "post_tasks_by_status",
+                "name": "Post tasks by status",
+                "callable": "test.tests.base.base.test_tasks_by_status",
+                "inputs": {
+                    "message": "Validated tasks grouped by status in process output"
                 }
             }
         ]

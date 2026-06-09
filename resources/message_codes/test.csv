@@ -1,9 +1,9 @@
-code,type,text
-TST001,INFO,Test information
-TST002,INFO,Test phase message
-TST003,PASS,Test passed
-TST004,WARN,Test warning
-TST005,FAIL,Test failed
-TST006,INFO,Live test scheduler message
-TST007,INFO,Live test scheduler message
-TST008,INFO,Build phase test runner message
+code,type,text,caller_depth
+TST001,INFO,Test information,
+TST002,INFO,Test phase message,
+TST003,PASS,Test passed,
+TST004,WARN,Test warning,4
+TST005,FAIL,Test failed,4
+TST006,INFO,Live test scheduler message,
+TST007,INFO,Live test scheduler message,
+TST008,INFO,Build phase test runner message,

@@ -1,23 +1,23 @@
-code,type,text
-BASE001,INFO,App initialized
-BASE002,INFO,Run identifier assigned
-BASE003,INFO,Stored output artifact
-BASE004,INFO,Opened output for browsing
-BASE005,INFO,Measured function runtime
-BASEW05,WARN,Could not open output
-BASEW06,WARN,Concurrent output worker failed
-BASE009,INFO,Resolved input files
-BASE010,INFO,Loaded input file
-BASE012,INFO,File loading completed
-BASE013,INFO,Initialized test manager
-BASE014,INFO,Starting test phase
-BASE015,INFO,Started live test scheduler
-BASE016,INFO,Stopped live test scheduler
-BASE017,INFO,Completed test phase
-BASE018,INFO,Updated app monitor state
-BASE019,INFO,Recorded test monitor request
-BASEE13,ERROR,Application run failed
-BASEW10,WARN,Failed to load input file
+code,type,text,caller_depth
+BASE001,INFO,App initialized,
+BASE002,INFO,Run identifier assigned,
+BASE003,INFO,Stored output artifact,
+BASE004,INFO,Opened output for browsing,
+BASE005,INFO,Measured function runtime,
+BASEW05,WARN,Could not open output,4
+BASEW06,WARN,Concurrent output worker failed,4
+BASE009,INFO,Resolved input files,
+BASE010,INFO,Loaded input file,
+BASE012,INFO,File loading completed,
+BASE013,INFO,Initialized test manager,
+BASE014,INFO,Starting test phase,
+BASE015,INFO,Started live test scheduler,
+BASE016,INFO,Stopped live test scheduler,
+BASE017,INFO,Completed test phase,
+BASE018,INFO,Updated app monitor state,
+BASE019,INFO,Recorded test monitor request,
+BASEE13,ERROR,Application run failed,4
+BASEW10,WARN,Failed to load input file,4
 BASE999,GOOD,App completed
 INST001,INFO,Instantiate started
 INST002,INFO,Loaded manifest entries

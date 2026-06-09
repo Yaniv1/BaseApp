@@ -931,3 +931,89 @@ class ArchitectureAlignmentTest(AppManager):
     def run(self):
         """Feature ID: 5.3.1.1.1.1. Return the architecture alignment result prepared during construction."""
         return self._result
+
+
+# Feature 5.3.1.1.2
+def test_tasks_by_status(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.1.2. Verify tasks are grouped correctly by status in the process output.
+
+    Reads the runtime results output artifact and validates that tasks_by_status:
+    - Contains at least one status group
+    - Each task in a group has the status matching its group key
+    """
+    import json as _json
+
+    output_path = ""
+    if manager is not None:
+        logger = getattr(manager, "logger", None)
+        if logger is not None and hasattr(logger, "resolve_data"):
+            output_path = str(logger.resolve_data("results.output_path") or "")
+
+    results_path = os.path.join(output_path, "results", "results.json") if output_path else None
+
+    criteria = []
+
+    file_found = bool(results_path and os.path.isfile(results_path))
+    criteria.append({
+        "name": "results_file_found",
+        "success": file_found,
+        "status": "PASS" if file_found else "FAIL",
+        "actual": file_found,
+        "expected": True,
+    })
+
+    tasks_by_status = None
+    if file_found:
+        try:
+            with open(results_path, "r", encoding="utf-8") as fh:
+                raw = _json.load(fh)
+            tasks_by_status = raw.get("tasks_by_status")
+        except Exception as exc:
+            criteria.append({
+                "name": "results_file_readable",
+                "success": False,
+                "status": "FAIL",
+                "actual": str(exc),
+                "expected": "Readable JSON",
+            })
+
+    has_groups = isinstance(tasks_by_status, dict) and len(tasks_by_status) > 0
+    criteria.append({
+        "name": "tasks_by_status_has_groups",
+        "success": has_groups,
+        "status": "PASS" if has_groups else "FAIL",
+        "actual": list(tasks_by_status.keys()) if isinstance(tasks_by_status, dict) else None,
+        "expected": "Non-empty status groups",
+    })
+
+    if has_groups:
+        all_correctly_grouped = True
+        mismatched = []
+        for status_key, group_tasks in tasks_by_status.items():
+            if not isinstance(group_tasks, list):
+                all_correctly_grouped = False
+                mismatched.append(f"{status_key}: not a list")
+                continue
+            for task in group_tasks:
+                if isinstance(task, dict) and task.get("status") != status_key:
+                    all_correctly_grouped = False
+                    mismatched.append(f"{task.get('id', '?')}: status={task.get('status')!r} in group {status_key!r}")
+        criteria.append({
+            "name": "tasks_correctly_grouped",
+            "success": all_correctly_grouped,
+            "status": "PASS" if all_correctly_grouped else "FAIL",
+            "actual": all_correctly_grouped,
+            "expected": True,
+            "mismatched": mismatched[:5] if mismatched else None,
+        })
+
+    has_failures = any(c["status"] == "FAIL" for c in criteria)
+    return {
+        "status": "FAIL" if has_failures else "PASS",
+        "message": message or "Validated tasks grouped by status in process output",
+        "criteria": criteria,
+        "data": {
+            "status_groups": list(tasks_by_status.keys()) if isinstance(tasks_by_status, dict) else None,
+            "group_counts": {k: len(v) for k, v in tasks_by_status.items() if isinstance(v, list)} if isinstance(tasks_by_status, dict) else None,
+        },
+    }

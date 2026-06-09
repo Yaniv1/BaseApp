@@ -366,7 +366,26 @@ class HtmlDoc:
             thead = ''.join([f"<th>{html.escape(str(h))}</th>" for h in headers])
             tbody = ''.join(rows)
             return f"<table class=\"nested\"><thead><tr>{thead}</tr></thead><tbody>{tbody}</tbody></table>"
-        return html.escape(str(plain))
+        cell_str = str(plain) if plain is not None else ""
+        href = self._as_hyperlink(cell_str)
+        if href:
+            return f'<a href="{html.escape(href)}">{html.escape(cell_str)}</a>'
+        return html.escape(cell_str)
+
+    def _as_hyperlink(self, value):
+        """Return a href string if value is a URL or file path; otherwise return None."""
+        if not isinstance(value, str) or not value.strip():
+            return None
+        # Explicit URL schemes
+        if value.startswith(("http://", "https://", "file:///")):
+            return value
+        # Absolute Windows path (e.g. C:\..., D:/...)
+        if len(value) >= 3 and value[1] == ":" and value[2] in ("/", "\\"):
+            return "file:///" + value.replace("\\", "/")
+        # Absolute POSIX path
+        if value.startswith("/"):
+            return "file://" + value
+        return None
 
     def _value_type_label(self, value):
         plain = self._to_plain(value)
@@ -457,23 +476,26 @@ def load_message_lookup(paths):
             try:
                 df = pd.read_csv(file_path, dtype=str).fillna("")
                 if "code" in df.columns and "text" in df.columns:
-                    cols = [c for c in ["code", "type", "text"] if c in df.columns]
-                    dfs.append(df[cols])
+                        cols = [c for c in ["code", "type", "text", "caller_depth"] if c in df.columns]
+                        dfs.append(df[cols])
             except Exception:
                 pass
     if not dfs:
-        return pd.DataFrame(columns=["code", "type", "text"])
+        return pd.DataFrame(columns=["code", "type", "text", "caller_depth"])
     combined = pd.concat(dfs, ignore_index=True)
     if "type" not in combined.columns:
         combined["type"] = ""
+    if "caller_depth" not in combined.columns:
+        combined["caller_depth"] = ""
     return combined.drop_duplicates(subset=["code"], keep="first").reset_index(drop=True)
 
 # Feature 6.1.9
 class Logger:
     """Feature ID: 6.1.9. Simple logger that stores messages with timestamps."""
-    def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False, 
-                 log_types=None, 
-                 type_colors=None, message_lookup=None):
+    def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False,
+                 log_types=None,
+                 type_colors=None, message_lookup=None,
+                 console_items=["timestamp", "type_key", "type", "elapsed_sec", "message_code", "message"]):
         
         self._lock = threading.RLock()
         self.log_types = self._normalize_log_types(log_types) or {0: "NONE", 1: "INFO", 2: "GOOD", 3: "WARN", 4: "ERROR"}
@@ -488,6 +510,7 @@ class Logger:
         self.log_path = log_path
         self._csv_written_count = 0
         self.max_items = max_items
+        
         self.log_folders = {
             'csv': os.path.dirname(log_path) if log_path else None,
             'html': os.path.dirname(log_path) if log_path else None
@@ -495,8 +518,16 @@ class Logger:
         self.verbose_key = self._resolve_verbose_key(verbose)
         os.makedirs(os.path.dirname(log_path), exist_ok=True) if log_path else None
         self._print_color_demo_once()
-        self.log(message_code="LOG001", data={"start_time": self.start_time.isoformat()})
+        
+        self.log(message_code="LOG001", data={"start_time": self.start_time.isoformat()}, entry=True, console=False)
+
+        self.console_items = {col: max(len(col), len(str(self.logs[0].get(col, "" )))) for col in console_items}
+                 
+        self._print_console_columns_once()
+
+        self.log(message_code="LOG001", data={"start_time": self.start_time.isoformat()}, entry=False)
         self.log(message_code="LOG002", data={"log_path": log_path})
+        
 
         n_deleted = 0
         if max_items:
@@ -663,6 +694,16 @@ class Logger:
             demo_line = f"LOG COLOR DEMO | {demo_type.rjust(5)}"
             print(self._format_console_row(demo_type, demo_line))
 
+    def _print_console_columns_once(self):
+        """Print one-time console preview of configured columns at startup."""
+        if self.verbose_key == 0:
+            return
+        
+        # Calculate column widths based on header and existing log content, defaulting to header width when no logs.
+        header = " | ".join([col.upper().ljust(chars) for col,chars in self.console_items.items()])
+        
+        print(self._format_console_row("", header))
+
     def save_html(self, html_path=None, title="BaseApp Logs", template=None):
         """Save logs as HTML using HtmlDoc template rendering."""
         if html_path is None:
@@ -682,16 +723,21 @@ class Logger:
         return html_path
 
     def _lookup_entry(self, code):
-        """Look up message text and type from the message dictionary by code."""
+        """Look up message text, type, and caller_depth from the message dictionary by code."""
         if self.message_lookup.empty:
-            return "", ""
+            return "", "", 2
         match = self.message_lookup.loc[self.message_lookup["code"] == str(code)]
         if match.empty:
-            return "", ""
+            return "", "", 2
         row = match.iloc[0]
         text = str(row.get("text", ""))
         type_val = str(row.get("type", "")) if "type" in self.message_lookup.columns else ""
-        return text, type_val
+        raw_depth = row.get("caller_depth", "") if "caller_depth" in self.message_lookup.columns else ""
+        try:
+            caller_depth = int(raw_depth)
+        except (ValueError, TypeError):
+            caller_depth = 2
+        return text, type_val, caller_depth
 
     def _normalize_data(self, data):
         """Normalize optional per-event data payload into dict or None."""
@@ -789,14 +835,15 @@ class Logger:
         return lineage
 
     # Feature 6.1.9.18
-    def log(self, message="", message_type=None, data=None, message_code=None, entry=True):
+    def log(self, message="", message_type=None, data=None, message_code=None, entry=True, console=True):
         """Feature ID: 6.1.9.18. Store a message or data with the current timestamp."""
         
         looked_up_text = ""
         looked_up_type = ""
+        caller_depth = 2
 
         if message_code:
-            looked_up_text, looked_up_type = self._lookup_entry(message_code)
+            looked_up_text, looked_up_type, caller_depth = self._lookup_entry(message_code)
 
         resolved_message = message if message else looked_up_text
         resolved_type = message_type if message_type is not None else (looked_up_type if looked_up_type else "INFO")
@@ -814,7 +861,7 @@ class Logger:
             if entry:
                 now = dt.datetime.utcnow()
                 elapsed_time = (now - self.start_time).total_seconds()
-                caller_lineage = self._get_caller_lineage()
+                caller_lineage = self._get_caller_lineage(max_depth=caller_depth)
                 event = {"timestamp": now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
                         "type_key": message_key,
                         "type": message_type.rjust(5),
@@ -823,11 +870,22 @@ class Logger:
                         "message_code": message_code,
                         "message": resolved_message,
                         "data": normalized_data}
-
+                
+                
+                
                 self.logs.append(event)
 
-            if entry and self._should_print(message_key):
-                console_line = ' | '.join([str(v) for v in list(event.values())])
+            if entry and console and self._should_print(message_key):
+
+                console_event = {
+                    k:str(v) for k,v in event.items() if k in self.console_items.keys()
+                }
+
+                console_line = ' | '.join([v.rjust(self.console_items.get(k, len(v))) for k, v in console_event.items()])
+                
+                if len(self.logs)%20 == 0:
+                    self._print_console_columns_once()
+                
                 print(self._format_console_row(message_type, console_line))
             self._write_csv()
       
@@ -1429,6 +1487,7 @@ class AppManager:
                 "results": {
                     "end_time": self.RESULTS.end_time,
                     "elapsed_seconds": self.RESULTS.elapsed_seconds,
+                    "output_path": str(getattr(getattr(self.CONFIG, "COMMON", None), "OUTPUT_PATH", "") or ""),
                 }
             },
             entry=False,

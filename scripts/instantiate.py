@@ -257,6 +257,11 @@ def parse_args():
         "target",
         help="Target folder where BaseApp should be instantiated.",
     )
+    parser.add_argument(
+        "--source",
+        default=None,
+        help="Path to the BaseApp source root. Defaults to the parent of this script's directory.",
+    )
     return parser.parse_args()
 
 
@@ -265,7 +270,7 @@ def main():
     args = parse_args()
 
     script_root = Path(__file__).resolve().parent
-    source_root = script_root.parent
+    source_root = Path(args.source).expanduser().resolve() if args.source else script_root.parent
     target_root = Path(args.target).expanduser().resolve()
     target_value = Path(args.target).name or target_root.name
     timestamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
@@ -283,7 +288,13 @@ def main():
         template = None
 
     if source_root == target_root:
-        error = ValueError("Target path must be different from BaseApp source path.")
+        error = ValueError(
+            f"Target path must be different from the BaseApp source path.\n"
+            f"  source: {source_root}\n"
+            f"  target: {target_root}\n"
+            f"If you are running this script from a copied location, use --source to point at BaseApp:\n"
+            f"  python instantiate.py <target> --source <path/to/BaseApp>"
+        )
         if logger:
             logger.log(message_code="INST007", message_type="ERROR", data={"error": str(error)})
         raise error

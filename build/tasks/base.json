@@ -412,12 +412,17 @@
                 "This change will involve updating the logging mechanism to enforce these restrictions based on the log level and ensuring that the appropriate amount of caller information is included in each log entry."
             ],
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
                     "content": "Task created. Plan: (1) update Logger._get_caller_lineage to accept max_levels parameter and enforce it; (2) update Logger._log to set max_levels based on log level (1 for INFO/GOOD, 4 for WARN/ERROR); (3) add configuration option for default max_levels; (4) add test to verify caller lineage restriction based on log level.",
                     "timestamp": "2026-06-08T20:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Implemented. Added caller_depth column to all 4 message code CSVs (blank = default 2, explicit values for WARN/ERROR/FAIL codes = 4). _lookup_entry returns (text, type_val, caller_depth) triple; log() uses caller_depth from lookup when message_code is given. Default max_depth is 2 when blank or unparseable. All tests PASS.",
+                    "timestamp": "2026-06-09T01:30:00Z"
                 }
             ]
         },
@@ -425,6 +430,7 @@
             "id": "BASE-TASK-260608-0003",
             "uuid": "2b1a0h9i-8j7k-6l5m-4n3o-2p1q0r9s8t7u",
             "title": "Instantiation bug",
+            "type": "Bug",
             "description": [
                 "2026-06-08T21:50:43Z | 4 | ERROR | 00.174 | [{'file': 'instantiate.py', 'module': '__main__', 'class': None, 'function': 'main', 'line': 281}, {'file': 'instantiate.py', 'module': '__main__', 'class': None, 'function': '<module>', 'line': 333}] | INST007 |  | {'error': 'Target path must be different from BaseApp source path.'}",
                 "Traceback (most recent call last):",
@@ -433,30 +439,41 @@
                 "    raise error",
                 "ValueError: Target path must be different from BaseApp source path."
             ],
-            "priority": "Medium",
-            "status": "ToDo",
+            "priority": "Critical",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
                     "content": "Task created. This error occurs when the target path for instantiation is the same as the source path of BaseApp, which is not allowed. The instantiate.py script should be updated to check for this condition early in the process and provide a clear error message to the user. Additionally, the documentation should be updated to clarify that the target path must be different from the source path and provide guidance on how to choose an appropriate target path for instantiation.",
                     "timestamp": "2026-06-08T21:55:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Fixed. Added optional --source argument to parse_args() so users can specify the BaseApp root when running a copied instantiate.py. Improved the same-path error message to include both paths and a clear --source usage hint. All tests PASS.",
+                    "timestamp": "2026-06-09T01:30:00Z"
                 }
             ]
         },
         {
             "id": "BASE-TASK-260609-0001",
             "uuid": "1a0h9i8j-7k6l-5m4n-3o2p-1q0r9s8t7u6v",
-            "title": "Add task report grouping and status-based distribution capability",
+            "title": "test run failure due to missing end_time and elapsed_seconds in runtime outputs",
+            "type": "Bug",
             "description": [
                 "2026-06-08T22:04:20Z | 4 |  FAIL | 01.687 | [{'file': 'testutils.py', 'module': 'utils.testutils', 'class': 'TestManager', 'function': 'run_a_test', 'line': 353}, {'file': 'testutils.py', 'module': 'utils.testutils', 'class': 'TestManager', 'function': 'run_phase', 'line': 125}, {'file': 'base.py', 'module': 'base', 'class': None, 'function': 'run', 'line': 83}, {'file': 'app.py', 'module': '__main__', 'class': None, 'function': '<module>', 'line': 8}] | TST005 | Validated runtime outputs and lifecycle values | {'phase': 'post', 'test_id': 'post_runtime_artifacts', 'run_number': 1, 'criteria': [{'name': 'end_time_present', 'operator': 'exists', 'success': False, 'status': 'FAIL', 'actual': None, 'expected': None}, {'name': 'elapsed_seconds_non_negative', 'operator': 'ge', 'success': False, 'status': 'FAIL', 'actual': None, 'expected': 0}, {'name': 'message_codes_loaded', 'operator': 'exists', 'success': True, 'status': 'PASS', 'actual': True, 'expected': None}, {'name': 'requirements_loaded', 'operator': 'exists', 'success': True, 'status': 'PASS', 'actual': True, 'expected': None}, {'name': 'tasks_loaded', 'operator': 'exists', 'success': True, 'status': 'PASS', 'actual': True, 'expected': None}]}"
             ],
-            "priority": "Medium",
-            "status": "ToDo",
+            "priority": "Critical",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
                     "content": "Task created. Plan: (1) update process mechanism to include steps for grouping tasks by status; (2) implement report generation for each status group; (3) store generated reports as separate output artifacts; (4) add test to verify correct grouping and report generation.",
                     "timestamp": "2026-06-09T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Resolved. tasks_by_status PROCESS step and tasks_by_status_split OUTPUT were already in config/base.json. Added test_tasks_by_status callable (Feature 5.3.1.1.2) in test/tests/base/base.py that reads results/results.json and validates each task is in the correct status group. Added post_tasks_by_status to test/config/base.json post checks. Also published output_path to monitor in AppManager.close() so test can locate the results file. All tests PASS with exit 0.",
+                    "timestamp": "2026-06-09T01:30:00Z"
                 }
             ]
         },
@@ -464,18 +481,66 @@
             "id": "BASE-TASK-260609-0002",
             "uuid": "0h9i8j7k-6l5m-4n3o-2p1q-0r9s8t7u6v5w",
             "title": "Save file paths and urls as hyperlinks in html outputs",
+            "type": "Feature",
             "description": [
                 "Currently, when file paths are included in HTML outputs, they are displayed as plain text. To improve usability, we will implement a feature to save these paths as clickable hyperlinks in the HTML outputs. This will allow users to easily navigate to the files directly from the output reports.",
                 "This change will involve updating the HTML generation logic to wrap file paths in anchor tags with appropriate href attributes pointing to the file locations. We will also need to ensure that the paths are properly escaped and formatted to work as hyperlinks in different environments.",
                 "A test should be added to verify that file paths in HTML outputs are correctly formatted as hyperlinks."
             ],
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
                     "content": "Task created. Plan: (1) update HTML generation logic to wrap file paths in anchor tags; (2) ensure proper escaping and formatting of paths; (3) add test to verify hyperlinks in HTML outputs.",
                     "timestamp": "2026-06-09T00:10:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Implemented. Added HtmlDoc._as_hyperlink() method that detects Windows absolute paths (C:\\...), POSIX absolute paths (/...), and explicit URL schemes (http/https/file://). Updated _render_cell() to wrap detected links in <a href=...> anchor tags with properly escaped display text. Added test_html_hyperlinks (Feature 5.3.1.3.5) in test/tests/base/output.py with 9 criteria covering all path/URL types and plain-text non-linkage. Registered as prep_html_hyperlinks in test/config/base.json. All tests PASS.",
+                    "timestamp": "2026-06-09T01:30:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260609-0003",
+            "uuid": "9i8j7k6l-5m4n-3o2p-1q0r-9s8t7u6v5w4x",
+            "title": "Save tasks by type and status.",
+            "type": "Feature",
+            "description": [
+                "Currently, all tasks are saved with status grouping. To improve organization and reporting, we will implement a feature to save tasks grouped by their type (e.g., Feature, Bug, Doc) and status (e.g., ToDo, InProgress, Done). This will allow for easier tracking of task progress and better insights into the distribution of tasks across different categories.",
+                "This change will involve updating the task management system to categorize tasks based on their type and status, and then saving them in a structured format that reflects this grouping. We will also need to update any reporting mechanisms to take advantage of this new structure for more detailed insights.",
+                "A test should be added to verify that tasks are correctly grouped by type and status in the saved outputs.",
+                "The default type of a task will be 'Feature' if not specified, and the default status will be 'ToDo' if not specified. This will ensure that all tasks have a type and status for proper grouping even if they are not explicitly set during task creation."
+             ],
+             "priority": "Medium",
+             "status": "ToDo",
+             "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "content": "Task created. Plan: (1) update task management system to categorize tasks by type and status; (2) save tasks in a structured format reflecting this grouping; (3) update reporting mechanisms to utilize the new structure; (4) add test to verify correct grouping in saved outputs.",
+                    "timestamp": "2026-06-09T00:20:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260609-0004",
+            "uuid": "8j7k6l5m-4n3o-2p1q-9r8s-7t6u5v4w3x2y",
+            "title": "Task Management Interface",
+            "type": "Feature",
+            "description": [
+                "Create a task management interface that provides the ability to create tasks both programmatically and through a user interface.",
+                "The interface should allow users to specify task details such as title, description, type, priority, and status. It should also provide functionality to update and manage existing tasks, including changing their status and adding comments.",
+                "This interface will help streamline the task management process and improve collaboration among team members by providing a centralized platform for tracking and managing tasks effectively.",
+                "The UI has to be web based. It should be able to run locally and does not need to be hosted. It should read from and write to the tasks/base.json file to ensure that all task data is stored in a single source of truth and can be easily accessed and updated as needed."
+            ],
+            "priority": "Low",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created. Plan: (1) design and implement a web-based task management interface; (2) ensure the interface can read from and write to tasks/base.json; (3) provide functionality for creating, updating, and managing tasks; (4) test the interface for usability and functionality.",
+                    "timestamp": "2026-06-10T22:30:00Z"
                 }
             ]
         }

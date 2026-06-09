@@ -1,4 +1,4 @@
-# BaseApp V-26.06.08.02
+# BaseApp V-26.06.09.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,15 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.09.01)
+
+- **Caller lineage depth from CSV** — Added `caller_depth` column to all four message code CSVs. Blank = default 2 levels; WARN/ERROR/FAIL codes = 4 levels. `Logger._lookup_entry` returns a `(text, type, caller_depth)` triple; `log()` uses the per-code depth automatically.
+- **`instantiate.py` `--source` flag** — Added optional `--source <path>` argument so a copied `instantiate.py` can explicitly point at the BaseApp root. Improved the same-path error message to include both resolved paths and a clear usage hint.
+- **`test_tasks_by_status` post test** (Feature 5.3.1.1.2) — Reads `results/results.json` and verifies every task appears in the correct status bucket of `tasks_by_status`. `AppManager.close()` now publishes `output_path` to the monitor so the test can resolve the results file location at runtime.
+- **HTML hyperlinks** (Feature 5.3.1.3.5) — `HtmlDoc._as_hyperlink()` detects Windows absolute paths (`C:\…`), POSIX absolute paths (`/…`), and explicit URL schemes (`http://`, `https://`, `file:///`). `_render_cell()` wraps detected values in `<a href=…>` anchor tags with properly escaped display text. New `test_html_hyperlinks` prep test covers 9 criteria.
+- Removed stray `from pandas import col` import from `utils/baseutils.py`.
+- All prep and post tests PASS, exit 0.
 
 ## Release Highlights (26.06.08.02)
 
