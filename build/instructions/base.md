@@ -58,7 +58,7 @@ When asked to finalize and deploy the code change:
         The number of items in the type chain must match the number of items in the name chain. do not add sub-types unless they map to named features.
         As you update the feature list, you should also add the identifier of the feature as a comment in the file but only if the format permits it in a way that does not change the semantics of the file. For example, python code supports comments, but json and csv files do not. MD files support comments but these comments are considered part of the text that the reader sees.
         Use the architecture/temp items to update the archiecture based on suggested corrections made by the architecture compliance test.
-7. Update README.md - this is a high-level overview of the functionality - what functionality is added/ modified, and what is the new behavior/capability. This should not be as detailed as the readme/base.md or readme/app.md files.
-8. Update the task's status to Done.
+7. Update README.md - this is a high-level overview of the functionality - what functionality is added/ modified, and what is the new behavior/capability. Do not detail implementation like you do in the readme/base.md or readme/app.md files. **Focus on functionality and capbility.**
+8. Update the task's status to `Done`.
 9. Stage and commit all the changes.
-10. Push to the git repository.
+10. Ask for user authorization to Push to the git repository and if user approves - push.

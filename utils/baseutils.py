@@ -369,7 +369,7 @@ class HtmlDoc:
         cell_str = str(plain) if plain is not None else ""
         href = self._as_hyperlink(cell_str)
         if href:
-            return f'<a href="{html.escape(href)}">{html.escape(cell_str)}</a>'
+            return f'<a target="_blank" href="{html.escape(href)}">{html.escape(cell_str)}</a>'
         return html.escape(cell_str)
 
     def _as_hyperlink(self, value):
@@ -1483,8 +1483,8 @@ class AppManager:
         self.RESULTS.end_time = dt.datetime.utcnow()
         self.RESULTS.elapsed_seconds = (self.RESULTS.end_time - self.RESULTS.start_time).total_seconds()
         self.logger.log(
-            data={
-                "results": {
+            data={     
+                "results": {          
                     "end_time": self.RESULTS.end_time,
                     "elapsed_seconds": self.RESULTS.elapsed_seconds,
                     "output_path": str(getattr(getattr(self.CONFIG, "COMMON", None), "OUTPUT_PATH", "") or ""),

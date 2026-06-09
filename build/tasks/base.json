@@ -144,12 +144,12 @@
                     "timestamp": "2026-06-04T00:00:00Z"
                 },
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Changed the requirement ID from BASE-REQ-012 to BASE-REQ-008.5 to fit into the existing requirement hierarchy under BASE-REQ-008, which captures pullbase sync requirements. Updated breakdown IDs accordingly to maintain consistency. Merged solution components into the existing BASE-REQ-008 breakdown where appropriate, since they are closely related to the pullbase sync process.",
                     "timestamp": "2026-06-04T19:00:00Z"
                 },
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Updated the req-eng-instructions.md skill to clarify the method for determining the correct place of a requirement in the hierarchy and how to assign IDs, especially for requirements that are closely related to existing ones. Emphasized the importance of maintaining a logical structure and consistent ID scheme in the requirements documentation. This will help ensure that future requirements are organized in a way that reflects their relationships and dependencies.",
                     "timestamp": "2026-06-04T19:00:00Z"
                 },
@@ -189,7 +189,7 @@
             "status": "Done",
             "comments": [
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created",
                     "timestamp": "2026-06-04T21:07:00Z"
                 },
@@ -204,7 +204,7 @@
                     "timestamp": "2026-06-04T00:00:00Z"
                 },
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Changed the requirement ID from BASE-REQ-012 to BASE-REQ-008.5 to fit into the existing requirement hierarchy under BASE-REQ-008, which captures pullbase sync requirements. Updated breakdown IDs accordingly to maintain consistency. Merged solution components into the existing BASE-REQ-008 breakdown where appropriate, since they are closely related to the pullbase sync process.",
                     "timestamp": "2026-06-04T22:00:00Z"
                 },
@@ -328,7 +328,7 @@
             "status": "Done",
             "comments": [
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task Created",
                     "timestamp": "2026-06-05T18:00:00Z"
                 },
@@ -356,7 +356,7 @@
             "status": "Done",
             "comments": [
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task Created",
                     "timestamp": "2026-06-05T18:00:00Z"
                 },
@@ -385,7 +385,7 @@
             "status": "Done",
             "comments": [
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) update _save_output_artifact to return list of stored files for the output artifact; (2) update store_outputs to capture these lists and save in RESULTS under stored_files_for_{output_name}; (3) add new output artifact {output_name}_files mapping to store the file list as an output; (4) add test to verify stored files match expected files for an output artifact.",
                     "timestamp": "2026-06-08T19:00:00Z"
                 },
@@ -415,7 +415,7 @@
             "status": "Done",
             "comments": [
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) update Logger._get_caller_lineage to accept max_levels parameter and enforce it; (2) update Logger._log to set max_levels based on log level (1 for INFO/GOOD, 4 for WARN/ERROR); (3) add configuration option for default max_levels; (4) add test to verify caller lineage restriction based on log level.",
                     "timestamp": "2026-06-08T20:00:00Z"
                 },
@@ -443,7 +443,7 @@
             "status": "Done",
             "comments": [
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. This error occurs when the target path for instantiation is the same as the source path of BaseApp, which is not allowed. The instantiate.py script should be updated to check for this condition early in the process and provide a clear error message to the user. Additionally, the documentation should be updated to clarify that the target path must be different from the source path and provide guidance on how to choose an appropriate target path for instantiation.",
                     "timestamp": "2026-06-08T21:55:00Z"
                 },
@@ -466,7 +466,7 @@
             "status": "Done",
             "comments": [
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) update process mechanism to include steps for grouping tasks by status; (2) implement report generation for each status group; (3) store generated reports as separate output artifacts; (4) add test to verify correct grouping and report generation.",
                     "timestamp": "2026-06-09T00:00:00Z"
                 },
@@ -491,7 +491,7 @@
             "status": "Done",
             "comments": [
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) update HTML generation logic to wrap file paths in anchor tags; (2) ensure proper escaping and formatting of paths; (3) add test to verify hyperlinks in HTML outputs.",
                     "timestamp": "2026-06-09T00:10:00Z"
                 },
@@ -517,7 +517,7 @@
              "status": "ToDo",
              "comments": [
                 {
-                    "author": "Yaniv Mordecai <ymordecai@microsoft.com>",
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) update task management system to categorize tasks by type and status; (2) save tasks in a structured format reflecting this grouping; (3) update reporting mechanisms to utilize the new structure; (4) add test to verify correct grouping in saved outputs.",
                     "timestamp": "2026-06-09T00:20:00Z"
                 }
@@ -541,6 +541,26 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) design and implement a web-based task management interface; (2) ensure the interface can read from and write to tasks/base.json; (3) provide functionality for creating, updating, and managing tasks; (4) test the interface for usability and functionality.",
                     "timestamp": "2026-06-10T22:30:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260609-0005",
+            "uuid": "7k6l5m4n-3o2p-1q0r-9s8t-6u5v4w3x2y1z",
+            "title": "Allow instantiate to override app config values during instantiation",
+            "type": "Feature",
+            "description": [
+                "Currently, the instantiate process copies config files from BaseApp to the target app without allowing for any modifications to the config values. To provide more flexibility during instantiation, we will implement a feature that allows users to specify overrides for app config values during the instantiation process.",
+                "This change will involve updating the instantiate script to accept a configuration file or command-line arguments that specify the config values to be overridden. The script will then apply these overrides to the config files as they are copied to the target app, ensuring that the instantiated app is configured according to the user's specifications from the outset.",
+                "This feature will enhance the usability of the instantiate process by allowing for customization and configuration of the app during instantiation, reducing the need for manual updates to config files after instantiation."
+             ],
+             "priority": "Medium",
+             "status": "ToDo",
+             "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created. Plan: (1) update instantiate script to accept config overrides via a file or command-line arguments; (2) implement logic to apply these overrides to config files during copying; (3) ensure that the overridden config values are correctly reflected in the instantiated app; (4) test the instantiation process with config overrides for various scenarios.",
+                    "timestamp": "2026-06-10T22:45:00Z"
                 }
             ]
         }

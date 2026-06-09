@@ -9,11 +9,10 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Highlights (26.06.09.01)
 
-- **Caller lineage depth from CSV** — `caller_depth` column in all message code CSVs controls per-code stack depth (default 2, WARN/ERROR/FAIL = 4).
-- **`instantiate.py` `--source` flag** — optional argument to point a copied script at the original BaseApp root; improved same-path error message.
-- **`test_tasks_by_status` post test** (Feature 5.3.1.1.2) — validates task status grouping in `results.json`; `AppManager.close()` now publishes `output_path` to the monitor.
-- **HTML hyperlinks** (Feature 5.3.1.3.5) — `HtmlDoc._render_cell()` auto-detects Windows/POSIX paths and URLs and wraps them in `<a href=…>` tags.
-- Removed stray `from pandas import col` import.
+- The user can control the `caller_depth` stack size for logged messages (default is 2, WARN/ERROR/FAIL = 4).
+- The **`instantiate.py`** script supports optional instantiation from a different `--source` folder of the original BaseApp root; improved same-path error message.
+- Task report is grouped by task type and status.
+- HTML outputs now support file paths and URLs as **HTML hyperlinks**.
 
 ## Highlights (26.06.08.02)
 

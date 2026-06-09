@@ -792,7 +792,7 @@ def test_html_hyperlinks(manager=None, message=None, **kwargs):
 
         # Verify rendered HTML contains <a> tags for linkable values
         rendered = doc.to_html()
-        has_anchor = "<a href=" in rendered
+        has_anchor = "<a href=" in rendered or "<a target=" in rendered
         criteria.append({
             "name": "rendered_html_contains_anchors",
             "success": has_anchor,
