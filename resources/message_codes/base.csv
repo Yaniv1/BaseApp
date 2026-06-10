@@ -28,6 +28,8 @@ INST006,INFO,App instruction file already exists
 INSTE07,ERROR,Invalid instantiate target
 INST999,GOOD,Instantiate completed successfully
 INST009,ERROR,Instantiate failed
+INST010,INFO,Applied config overrides to app config
+INSTW10,WARN,Could not load config overrides,4
 PULL001,INFO,Pullbase started
 PULLE02,ERROR,Source not found
 PULL003,INFO,Hard pull copied files

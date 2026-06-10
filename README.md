@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.09.03
-- App template version: A26.06.09.03
+- Base version: 26.06.10.01
+- App template version: A26.06.10.01
+
+## Highlights (26.06.10.01)
+
+- **Config overrides during instantiation.** `instantiate.py` now accepts `--overrides` (a JSON file path or inline JSON string) so the new app's `config/app.json` is pre-configured at creation time without manual edits. Overrides are deep-merged, so only specified keys are changed and all other keys are preserved.
 
 ## Highlights (26.06.09.03)
 

@@ -615,6 +615,39 @@
                         }
                     ]
                     
+                },
+                {
+                    "id": "BASE-REQ-008.6",
+                    "title": "Config Override Application During Instantiation",
+                    "description": "The instantiate script must accept optional config overrides (via a JSON file path or an inline JSON string) and deep-merge them into config/app.json after APP_NAME is set, so that the instantiated app is pre-configured without requiring manual edits.",
+                    "priority": "Medium",
+                    "comments": [],
+                    "breakdown": [
+                        {
+                            "id": "BASE-REQ-008.6.1",
+                            "description": "Input requirement: The instantiate CLI shall accept an --overrides argument that accepts either a path to a JSON file or an inline JSON object string.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.6.2",
+                            "description": "Process requirement: The system shall deep-merge the override dict into config/app.json after the APP_NAME placeholder is set, preserving existing nested keys not present in the overrides.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.6.3",
+                            "description": "Output requirement: A structured log entry shall record which top-level override keys were applied to the config.",
+                            "priority": "Low",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.6.4",
+                            "description": "Verification requirement: A prep test shall confirm that APP_NAME is set correctly, that override values appear in config/app.json, and that keys not present in overrides retain their original values.",
+                            "priority": "Medium",
+                            "comments": []
+                        }
+                    ]
                 }
             ],
             "solution": [
@@ -666,6 +699,20 @@
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 0.0
+                },
+                {
+                    "feature": "3.1.12",
+                    "role": "load_overrides parses --overrides argument as a JSON file path or inline JSON string and returns the override dict.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.1.6",
+                    "role": "populate_app_config now accepts optional overrides dict and deep-merges it into config/app.json after setting APP_NAME.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
                 }
             ]
         },

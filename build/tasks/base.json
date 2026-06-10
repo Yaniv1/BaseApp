@@ -560,12 +560,22 @@
                 "This feature will enhance the usability of the instantiate process by allowing for customization and configuration of the app during instantiation, reducing the need for manual updates to config files after instantiation."
              ],
              "priority": "Medium",
-             "status": "ToDo",
+             "status": "Done",
              "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) update instantiate script to accept config overrides via a file or command-line arguments; (2) implement logic to apply these overrides to config files during copying; (3) ensure that the overridden config values are correctly reflected in the instantiated app; (4) test the instantiation process with config overrides for various scenarios.",
                     "timestamp": "2026-06-10T22:45:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Started implementation. Plan: add --overrides CLI arg (file path or JSON string); add _deep_merge helper; add load_overrides function; update populate_app_config to apply overrides; add INST010/INSTW10 message codes; add BASE-REQ-008.6; add architecture features 3.1.12 and 3.1.13; add prep test test_instantiate_config_overrides.",
+                    "timestamp": "2026-06-10T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Completed. Added --overrides CLI arg to parse_args() (Feature 3.1.3). Added load_overrides() (Feature 3.1.12) parsing JSON file path or inline JSON string. Added _deep_merge() (Feature 3.1.13) for recursive dict merging. Updated populate_app_config() (Feature 3.1.6) to accept optional overrides dict and deep-merge into config/app.json after APP_NAME. Added INST010 and INSTW10 message codes. Added BASE-REQ-008.6 with 4 breakdown items and solution entries. Added architecture features 3.1.12 and 3.1.13. Added prep test test_instantiate_config_overrides (Feature 5.3.1.5.1) with 8 criteria; all PASS. Bumped version to 26.06.10.01. Build tests: 1 test(s) run, 0 failure(s).",
+                    "timestamp": "2026-06-10T00:00:00Z"
                 }
             ]
         },
@@ -610,6 +620,29 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) review architecture documentation; (2) identify mismatches with codebase; (3) update documentation to reflect actual implementation; (4) ensure consistency across all architectural diagrams and descriptions.",
                     "timestamp": "2026-06-10T22:45:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260610-0001",
+            "uuid": "4n3o2p-1q0r-9s8t-7u6v-3w2x1y0z9a8b",
+            "title": "Add a config/local.json placeholder that can be used to override config values locally without modifying the main config/base.json and config/app.json file.",
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "description": [
+                "Currently, the user of the app has to manually create a local override file or modify the base/app config itself which might be modified in the main repository and overwritten with every local repo sync.",
+                "To provide a more convenient and safer way for users to override config values locally, we will implement a config/local.json file that can be used to specify local overrides for config values. This file will be ignored by version control to ensure that local overrides do not affect the main repository and are not overwritten during syncs.",
+                "The implementation will involve updating the configuration loading mechanism to check for the presence of config/local.json and apply any overrides specified in that file on top of the values from config/base.json and config/app.json. This will allow users to easily customize their local configuration without risking conflicts with the main repository or losing their changes during updates.",
+                "The file will contain main placeholder sections COMMON, APP, INPUT, OUTPUT, etc.",
+                "The file will be added once to the deployed app with instnatiate and pullbase.",
+                "The file will be ignored by the app repository to ensure that local overrides do not get destroyed by the template from the base repository."
+            ],
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created.",
+                    "timestamp": "2026-06-10T03:26:00Z"
                 }
             ]
         }

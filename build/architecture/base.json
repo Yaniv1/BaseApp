@@ -125,6 +125,18 @@
                             "description": "Invoke setup_env.ps1 non-interactively for the target app root after instantiation to create the venv and install dependencies.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/instantiate.py::run_setup_env"
+                        },
+                        "3.1.12": {
+                            "name": "scripts.instantiate.load_overrides",
+                            "description": "Parse the --overrides CLI argument as a JSON file path or inline JSON string and return the resulting override dict.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::load_overrides"
+                        },
+                        "3.1.13": {
+                            "name": "scripts.instantiate._deep_merge",
+                            "description": "Recursively merge override values into a base dict in-place, supporting nested key merging.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::_deep_merge"
                         }
                     }
                 },

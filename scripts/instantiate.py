@@ -80,8 +80,55 @@ def load_manifest_entries(source_root: Path, behaviors: set[str]) -> dict[str, l
     return grouped
 
 
-def populate_app_config(app_config_path: Path, target_value: str):
-    """Populate app config by updating only COMMON.APP_NAME."""
+def _deep_merge(base: dict, override: dict) -> dict:
+    """Recursively merge override values into base dict in-place and return base."""
+    for key, value in override.items():
+        if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+            _deep_merge(base[key], value)
+        else:
+            base[key] = value
+    return base
+
+
+def load_overrides(overrides_arg: str) -> dict:
+    """Load config overrides from a JSON file path or an inline JSON string.
+
+    Args:
+        overrides_arg: A path to a JSON file or a JSON-encoded object string.
+
+    Returns:
+        Parsed override dict.
+
+    Raises:
+        ValueError: If overrides_arg is not a valid file path or JSON string.
+    """
+    # Feature 3.1.12
+    candidate = Path(overrides_arg)
+    if candidate.is_file():
+        with open(candidate, "r", encoding="utf-8") as f:
+            result = json.load(f)
+    else:
+        try:
+            result = json.loads(overrides_arg)
+        except json.JSONDecodeError as exc:
+            raise ValueError(
+                f"Overrides argument is neither a valid file path nor valid JSON. "
+                f"JSON error: {exc}"
+            ) from exc
+
+    if not isinstance(result, dict):
+        raise ValueError("Overrides must be a JSON object (dict), not a list or scalar.")
+    return result
+
+
+def populate_app_config(app_config_path: Path, target_value: str, overrides: dict | None = None):
+    """Populate app config by updating COMMON.APP_NAME and applying optional deep-merge overrides.
+
+    Args:
+        app_config_path: Path to the app config JSON file to update.
+        target_value: Value to set for COMMON.APP_NAME.
+        overrides: Optional dict of values to deep-merge into the config after APP_NAME is set.
+    """
     with open(app_config_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -91,6 +138,9 @@ def populate_app_config(app_config_path: Path, target_value: str):
         data["COMMON"] = common
 
     common["APP_NAME"] = target_value
+
+    if overrides:
+        _deep_merge(data, overrides)
 
     with open(app_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
@@ -186,8 +236,17 @@ def create_instantiate_logger(source_root: Path, target_app: str, timestamp: str
 
 
 # Feature 3.1.2
-def instantiate(source_root: Path, target_root: Path, target_value: str, logger: Logger | None = None):
-    """Instantiate BaseApp into target_root with manifest-driven file copying."""
+def instantiate(source_root: Path, target_root: Path, target_value: str, logger: Logger | None = None, overrides: dict | None = None):
+    """Instantiate BaseApp into target_root with manifest-driven file copying.
+
+    Args:
+        source_root: Path to the BaseApp source root.
+        target_root: Destination path for the new app variant.
+        target_value: APP_NAME value for the new app.
+        logger: Optional Logger instance for structured output.
+        overrides: Optional dict of config values to deep-merge into config/app.json
+                   after APP_NAME is set.
+    """
     target_root.mkdir(parents=True, exist_ok=True)
 
     entries = load_manifest_entries(source_root, {"pull", "once"})
@@ -226,7 +285,9 @@ def instantiate(source_root: Path, target_root: Path, target_value: str, logger:
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
             if file_dst_rel == Path("config/app.json"):
-                populate_app_config(dst, target_value)
+                populate_app_config(dst, target_value, overrides=overrides)
+                if logger and overrides:
+                    logger.log(message_code="INST010", data={"keys": list(overrides.keys())})
             created_placeholders += 1
 
     if logger:
@@ -261,6 +322,16 @@ def parse_args():
         "--source",
         default=None,
         help="Path to the BaseApp source root. Defaults to the parent of this script's directory.",
+    )
+    parser.add_argument(
+        "--overrides",
+        default=None,
+        help=(
+            "Config overrides to apply to config/app.json after instantiation. "
+            "Accepts a path to a JSON file or an inline JSON object string. "
+            "Keys follow the config file structure, e.g. "
+            '{\"COMMON\": {\"APP_NAME\": \"MyApp\", \"VERSION\": \"1.0\"}}'
+        ),
     )
     return parser.parse_args()
 
@@ -299,8 +370,18 @@ def main():
             logger.log(message_code="INST007", message_type="ERROR", data={"error": str(error)})
         raise error
 
+    # Load optional config overrides
+    overrides = None
+    if args.overrides:
+        try:
+            overrides = load_overrides(args.overrides)
+        except ValueError as exc:
+            if logger:
+                logger.log(message_code="INSTW10", message_type="WARN", data={"error": str(exc)})
+            print(f"[WARN] Could not load overrides: {exc}")
+
     try:
-        result = instantiate(source_root, target_root, target_value, logger=logger)
+        result = instantiate(source_root, target_root, target_value, logger=logger, overrides=overrides)
 
         print(f"Instantiated BaseApp at: {target_root}")
         print(f"Core files copied/updated: {result['copied_core']}")

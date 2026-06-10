@@ -149,6 +149,14 @@
                 "inputs": {
                     "message": "Validated DataConverter json.loads column conversion on ExtendedProps/Schema demo dataset mirroring rdd_summary CSV structure"
                 }
+            },
+            {
+                "id": "prep_instantiate_config_overrides",
+                "name": "Prep instantiate config overrides",
+                "callable": "test.tests.base.instantiate.test_instantiate_config_overrides",
+                "inputs": {
+                    "message": "Validated instantiate config overrides: load_overrides parses JSON file and string, populate_app_config deep-merges overrides, _deep_merge preserves sibling keys"
+                }
             }
         ],
         "live": [

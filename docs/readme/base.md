@@ -1,4 +1,4 @@
-# BaseApp V-26.06.09.03
+# BaseApp V-26.06.10.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.10.01)
+
+- **Config overrides during instantiation** (Features 3.1.12, 3.1.6, 3.1.13) — `instantiate.py` now accepts an optional `--overrides` argument that takes a JSON file path or an inline JSON object string. The override dict is deep-merged into `config/app.json` after `APP_NAME` is set, so the new app is pre-configured without manual edits. `_deep_merge()` handles nested key merging without clobbering sibling keys. New message codes `INST010` (overrides applied) and `INSTW10` (failed to load overrides). New `BASE-REQ-008.6` with 4 breakdown items. New prep test `test_instantiate_config_overrides` (Feature 5.3.1.5.1) — 8 criteria covering file and string parsing, error handling, `APP_NAME` setting, override application, non-overridden key preservation, and deep merge correctness.
 
 ## Release Highlights (26.06.09.03)
 
