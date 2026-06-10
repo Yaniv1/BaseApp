@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260610-0003] [6.1.9] [Bug] Wrap os.remove on old log files with try-except",
+        "version": "26.06.10.03",
+        "description": "Wrapped os.remove() in Logger._remove_old_files() with try/except OSError so that permission errors or file-in-use conditions do not propagate and trip the app. Deletion count only increments on success."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260610-0002] [6.1.6] [HTML] Improve plain text rendering in HTML outputs",
         "version": "26.06.10.02",
         "description": "Added HtmlDoc._format_text() to improve plain-text cell rendering: splits on actual newline characters (converting to <br>), and inserts <br> before mid-text # section markers. _render_cell() now delegates to _format_text() for plain strings instead of calling html.escape() directly. Long prompts, instructions, and structured text are now significantly more readable in HTML output reports."

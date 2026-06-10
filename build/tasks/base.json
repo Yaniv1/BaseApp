@@ -664,6 +664,22 @@
                     "timestamp": "2026-06-10T00:00:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260610-0003",
+            "uuid": "2p1q0r9s-8t7u-6v5w-4x3y-2z1a0b9c8d7e",
+            "title": "Wrap os.remove on old log files with try-except",
+            "type": "Bug",
+            "priority": "Medium",
+            "status": "Done",
+            "description": "Logger._remove_old_files() calls os.remove() without exception handling. A file-in-use or permission error would propagate and trip the app. Wrap the call in try-except OSError so failures are silently ignored and the deletion count only increments on success.",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Wrapped os.remove(oldest_path) in try/except OSError in Logger._remove_old_files(). Deletion count only increments on success; any OSError (permission denied, file in use, etc.) is silently skipped.",
+                    "timestamp": "2026-06-10T00:00:00Z"
+                }
+            ]
         }
     ]
 }

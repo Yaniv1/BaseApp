@@ -581,8 +581,11 @@ class Logger:
             oldest_name = files.pop(0)
             oldest_path = path_join(folder_path, oldest_name)
             if os.path.isfile(oldest_path):
-                os.remove(oldest_path)
-                n_deleted += 1
+                try:
+                    os.remove(oldest_path)
+                    n_deleted += 1
+                except OSError:
+                    pass
         return n_deleted
 
     def _as_dict(self, value):

@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.10.02
-- App template version: A26.06.10.02
+- Base version: 26.06.10.03
+- App template version: A26.06.10.03
+
+## Highlights (26.06.10.03)
+
+- **Bug fix: log file removal no longer trips the app.** `Logger._remove_old_files()` now silently skips files that cannot be deleted due to permission or in-use errors.
 
 ## Highlights (26.06.10.02)
 

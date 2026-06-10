@@ -1,4 +1,4 @@
-# BaseApp V-26.06.10.02
+# BaseApp V-26.06.10.03
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.10.03)
+
+- **Bug fix: `os.remove` on old log files wrapped with `try/except`** — `Logger._remove_old_files()` now catches `OSError` when removing old log files, so permission errors or file-in-use conditions are silently skipped rather than propagating and tripping the app. Deletion count only increments on success.
 
 ## Release Highlights (26.06.10.02)
 
