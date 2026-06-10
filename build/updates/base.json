@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260610-0001] [6.1.4] [Feature] Add config/local.json local override placeholder",
+        "version": "26.06.10.04",
+        "description": "Added config/local.json as a gitignored placeholder for local config overrides. The file is deployed once via resources/manifests/once.json and deep-merged on top of base.json + app.json at load time by Config (6.1.4) without any code changes. Added BASE-REQ-001.5, architecture feature 2.2, and prep test test_local_config_override (5/5 PASS)."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260610-0003] [6.1.9] [Bug] Wrap os.remove on old log files with try-except",
         "version": "26.06.10.03",
         "description": "Wrapped os.remove() in Logger._remove_old_files() with try/except OSError so that permission errors or file-in-use conditions do not propagate and trip the app. Deletion count only increments on success."

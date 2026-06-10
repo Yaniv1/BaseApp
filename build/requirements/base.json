@@ -30,6 +30,12 @@
                     "description": "Verification requirement: Runtime execution and prep tests shall confirm required configuration values are present and populated.",
                     "priority": "High",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-001.5",
+                    "description": "Local override requirement: The system shall load config/local.json when present and deep-merge its values on top of base and app config so that local overrides take effect without modifying tracked config files.",
+                    "priority": "High",
+                    "comments": []
                 }
             ],
             "solution": [
@@ -42,7 +48,14 @@
                 },
                 {
                     "feature": "6.1.4",
-                    "role": "Config orchestrates load, merge, evaluate, and placeholder population.",
+                    "role": "Config orchestrates load, merge, evaluate, and placeholder population including optional local.json overrides.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.0",
+                    "role": "config/local.json provides a gitignored placeholder for local-only config overrides deployed once via once.json manifest.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0

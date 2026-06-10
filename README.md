@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.10.03
-- App template version: A26.06.10.03
+- Base version: 26.06.10.04
+- App template version: A26.06.10.04
+
+## Highlights (26.06.10.04)
+
+- **Local config override support.** `config/local.json` is now a gitignored placeholder that is deployed once via `once.json` manifest. Values in it are deep-merged on top of `base.json` + `app.json` at load time (no code changes — `Config` already processes all JSON files in `config/` sorted alphabetically).
 
 ## Highlights (26.06.10.03)
 

@@ -629,7 +629,7 @@
             "title": "Add a config/local.json placeholder that can be used to override config values locally without modifying the main config/base.json and config/app.json file.",
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Done",
             "description": [
                 "Currently, the user of the app has to manually create a local override file or modify the base/app config itself which might be modified in the main repository and overwritten with every local repo sync.",
                 "To provide a more convenient and safer way for users to override config values locally, we will implement a config/local.json file that can be used to specify local overrides for config values. This file will be ignored by version control to ensure that local overrides do not affect the main repository and are not overwritten during syncs.",

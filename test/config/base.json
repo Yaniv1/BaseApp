@@ -157,6 +157,14 @@
                 "inputs": {
                     "message": "Validated instantiate config overrides: load_overrides parses JSON file and string, populate_app_config deep-merges overrides, _deep_merge preserves sibling keys"
                 }
+            },
+            {
+                "id": "prep_local_config_override",
+                "name": "Prep local config override",
+                "callable": "test.tests.base.config.test_local_config_override",
+                "inputs": {
+                    "message": "Validated config/local.json local override: file exists, overrides app values, preserves non-overridden keys, and config loads fine when local.json is absent"
+                }
             }
         ],
         "live": [

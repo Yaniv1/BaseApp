@@ -45,6 +45,12 @@
                     "description": "Base runtime configuration covering COMMON placeholder values, logging, input loading, processing, and output artifacts.",
                     "type": "Folder.JsonFile.DataSet",
                     "path": "config/base.json"
+                },
+                "2.2": {
+                    "name": "config.local.json",
+                    "description": "Gitignored local override placeholder. Values deep-merge on top of base.json and app.json at load time. Deployed once via resources/manifests/once.json; never tracked in variant app repositories.",
+                    "type": "Folder.JsonFile.DataSet",
+                    "path": "config/local.json"
                 }
             }
         },

@@ -1,4 +1,4 @@
-# BaseApp V-26.06.10.03
+# BaseApp V-26.06.10.04
 
 BaseApp is a reusable Python foundation for app projects that need:
 

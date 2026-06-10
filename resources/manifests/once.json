@@ -4,6 +4,9 @@
             "source": "config/app.json"
         },
         {
+            "source": "config/local.json"
+        },
+        {
             "source": "app/app.py"
         },
         {
