@@ -645,6 +645,25 @@
                     "timestamp": "2026-06-10T03:26:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260610-0002",
+            "uuid": "3o2p1q0r-9s8t-7u6v-5w4x-3y2z1a0b9c8d",
+            "title": "Improve plain text rendering in HTML outputs",
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "Done",
+            "description": [
+                "Currently, plain text values in HTML outputs are rendered as a single unformatted line regardless of content structure, making long strings (e.g. prompts, instructions) very hard to read.",
+                "Improve HTML cell rendering to: (1) respect actual newline characters by converting them to <br> tags; (2) insert <br> breaks before markdown-style # section headers that appear mid-text, so sections are visually separated."
+            ],
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added _format_text() to HtmlDoc (Feature 6.1.6): splits on \\n → html-escapes segments → joins with <br>; inserts <br> before mid-text # section markers. _render_cell() now calls _format_text() for plain string values instead of html.escape(). Bumped version to 26.06.10.02.",
+                    "timestamp": "2026-06-10T00:00:00Z"
+                }
+            ]
         }
     ]
 }

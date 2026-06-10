@@ -1,7 +1,7 @@
 {
     "COMMON": {
         "APP_NAME": "MyApp",
-        "VERSION": "A26.06.10.01",
+        "VERSION": "A26.06.10.02",
         "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}"        
     },
 

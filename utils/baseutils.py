@@ -359,6 +359,20 @@ class HtmlDoc:
             return [self._to_plain(v) for v in value]
         return value
 
+    def _format_text(self, text):
+        """Format a plain text string for HTML display.
+
+        Applies the following transformations in order:
+          1. Split on actual newline characters; html-escape each segment; rejoin with <br>.
+          2. Insert <br> before '#' section markers that appear mid-text.
+        """
+        parts = text.split('\n')
+        escaped = [html.escape(p) for p in parts]
+        result = '<br>'.join(escaped)
+        # Insert <br> before # section markers mid-text (preceded by non-whitespace)
+        result = re.sub(r'(?<=\S) +(# )', r'<br>\1', result)
+        return result
+
     def _render_cell(self, value):
         plain = self._to_plain(value)
         if isinstance(plain, (dict, list)):
@@ -370,7 +384,7 @@ class HtmlDoc:
         href = self._as_hyperlink(cell_str)
         if href:
             return f'<a target="_blank" href="{html.escape(href)}">{html.escape(cell_str)}</a>'
-        return html.escape(cell_str)
+        return self._format_text(cell_str)
 
     def _as_hyperlink(self, value):
         """Return a href string if value is a URL or file path; otherwise return None."""

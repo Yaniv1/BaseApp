@@ -1,0 +1,11 @@
+{
+    "COMMON": {
+        "APP_NAME": "TestApp with Overrides",
+        "VERSION": "1234567890",
+        "OUTPUT_PREFIX": "D:/Data/{$APP_NAME$}"
+    },
+    "APP":{
+        "some_param": "This is a parameter in the app config that can be overridden by the overrides file"
+    }
+
+}

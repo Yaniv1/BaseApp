@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.10.01
-- App template version: A26.06.10.01
+- Base version: 26.06.10.02
+- App template version: A26.06.10.02
+
+## Highlights (26.06.10.02)
+
+- **More Readable plain text in HTML outputs.**.
 
 ## Highlights (26.06.10.01)
 

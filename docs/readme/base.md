@@ -1,4 +1,4 @@
-# BaseApp V-26.06.10.01
+# BaseApp V-26.06.10.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.10.02)
+
+- **Improved plain text rendering in HTML outputs** (Feature 6.1.6) — `HtmlDoc._format_text()` now converts actual `\n` characters to `<br>` tags and inserts `<br>` breaks before mid-text `#` section markers. Long prompt strings, instruction blocks, and other structured plain text are now visually separated and readable in HTML reports. `_render_cell()` delegates to `_format_text()` for all plain string values.
 
 ## Release Highlights (26.06.10.01)
 
