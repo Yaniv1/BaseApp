@@ -821,3 +821,409 @@ def test_html_hyperlinks(manager=None, message=None, **kwargs):
         )
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
+
+
+# Feature 5.3.1.3.6
+def test_dataconverter_error_handling(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.3.6. Pre-test for DataConverter per-step exception handling.
+
+    Covers features:
+      - 6.2.1.1 (DataConverter.apply: per-step try-except, errors list, DATAE01 logging, step isolation)
+    """
+    from utils.datautils import DataConverter
+
+    features = ["6.2.1.1"]
+    criteria = []
+
+    # ------------------------------------------------------------------ #
+    # Criterion 1: errors list initialised to empty by apply.
+    # ------------------------------------------------------------------ #
+    conv = DataConverter(conversions=[])
+    # Run with no conversions to confirm errors list is created.
+    conv.apply(pd.DataFrame())
+    lists_created = isinstance(conv.errors, list)
+    criteria.append({
+        "name": "errors_list_created_by_apply",
+        "success": lists_created,
+        "status": "PASS" if lists_created else "FAIL",
+        "actual": lists_created,
+        "expected": True,
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 2: successful conversion produces empty errors list.
+    # ------------------------------------------------------------------ #
+    good_conv = DataConverter(
+        conversions=[{"scope": "df", "op": "df.assign(x=1)"}],
+    )
+    result_df = good_conv.apply(pd.DataFrame({"a": [1, 2]}))
+    no_errors = len(good_conv.errors) == 0
+    criteria.append({
+        "name": "successful_step_leaves_errors_empty",
+        "success": no_errors,
+        "status": "PASS" if no_errors else "FAIL",
+        "actual": good_conv.errors,
+        "expected": [],
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 3: failing df-scope op is caught and recorded in errors.
+    # ------------------------------------------------------------------ #
+    logged_errors = []
+
+    def _capture_log(msg, code=None, data=None):
+        if code == "DATAE01":
+            logged_errors.append(data or {})
+
+    bad_conv = DataConverter(
+        conversions=[{"scope": "df", "op": "1/0"}],
+        log_func=_capture_log,
+    )
+    bad_conv.apply(pd.DataFrame({"a": [1]}))
+    error_recorded = len(bad_conv.errors) == 1
+    error_logged = len(logged_errors) == 1
+    criteria.append({
+        "name": "failing_step_recorded_in_errors",
+        "success": error_recorded,
+        "status": "PASS" if error_recorded else "FAIL",
+        "actual": len(bad_conv.errors),
+        "expected": 1,
+    })
+    criteria.append({
+        "name": "failing_step_logged_as_datae01",
+        "success": error_logged,
+        "status": "PASS" if error_logged else "FAIL",
+        "actual": len(logged_errors),
+        "expected": 1,
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 5: error entry contains step_index, conversion, and error keys.
+    # ------------------------------------------------------------------ #
+    if bad_conv.errors:
+        entry = bad_conv.errors[0]
+        has_keys = all(k in entry for k in ("step_index", "conversion", "error"))
+    else:
+        has_keys = False
+    criteria.append({
+        "name": "error_entry_has_required_keys",
+        "success": has_keys,
+        "status": "PASS" if has_keys else "FAIL",
+        "actual": list(bad_conv.errors[0].keys()) if bad_conv.errors else None,
+        "expected": ["step_index", "conversion", "error"],
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 6: missing source column is caught as an error (DATAE01),
+    # not silently skipped.
+    # ------------------------------------------------------------------ #
+    logged_missing = []
+
+    def _capture_missing(msg, code=None, data=None):
+        if code == "DATAE01":
+            logged_missing.append(data or {})
+
+    missing_conv = DataConverter(
+        conversions=[{"scope": "col", "source": "nonexistent", "target": "out", "op": "v + 1"}],
+        log_func=_capture_missing,
+    )
+    missing_conv.apply(pd.DataFrame({"a": [1, 2]}))
+    missing_error_recorded = len(missing_conv.errors) == 1
+    missing_error_logged = len(logged_missing) == 1
+    criteria.append({
+        "name": "missing_column_recorded_as_error",
+        "success": missing_error_recorded,
+        "status": "PASS" if missing_error_recorded else "FAIL",
+        "actual": len(missing_conv.errors),
+        "expected": 1,
+    })
+    criteria.append({
+        "name": "missing_column_logged_as_datae01",
+        "success": missing_error_logged,
+        "status": "PASS" if missing_error_logged else "FAIL",
+        "actual": len(logged_missing),
+        "expected": 1,
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 8: subsequent steps still execute after a failing step.
+    # ------------------------------------------------------------------ #
+    step_results = []
+
+    def _capture_multi(msg, code=None, data=None):
+        step_results.append(code)
+
+    multi_conv = DataConverter(
+        conversions=[
+            {"scope": "df", "op": "1/0"},           # step 0: fails
+            {"scope": "df", "op": "df.assign(y=99)"},  # step 1: should still run
+        ],
+        log_func=_capture_multi,
+    )
+    final_df = multi_conv.apply(pd.DataFrame({"a": [1]}))
+    subsequent_ran = isinstance(final_df, pd.DataFrame) and "y" in final_df.columns
+    criteria.append({
+        "name": "subsequent_steps_run_after_failing_step",
+        "success": subsequent_ran,
+        "status": "PASS" if subsequent_ran else "FAIL",
+        "actual": list(final_df.columns) if isinstance(final_df, pd.DataFrame) else None,
+        "expected": "y column present",
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 9: errors list is reset between successive apply() calls.
+    # ------------------------------------------------------------------ #
+    reset_conv = DataConverter(
+        conversions=[{"scope": "df", "op": "1/0"}],
+    )
+    reset_conv.apply(pd.DataFrame())  # call 1 — produces 1 error
+    reset_conv.apply(pd.DataFrame())  # call 2 — should reset to 1 error (not accumulate)
+    errors_reset = len(reset_conv.errors) == 1
+    criteria.append({
+        "name": "errors_reset_between_apply_calls",
+        "success": errors_reset,
+        "status": "PASS" if errors_reset else "FAIL",
+        "actual": len(reset_conv.errors),
+        "expected": 1,
+    })
+
+    overall = "PASS" if all(c["success"] for c in criteria) else "FAIL"
+    return _build_result(
+        status=overall,
+        message=message or "Validated DataConverter per-step exception handling: errors list, DATAE01 logging, step isolation, and list reset",
+        criteria=criteria,
+        features=features,
+    )
+
+
+# Feature 5.3.1.3.7
+def test_dataconverter_json_column(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.3.7. Verify DataConverter can parse a JSON-encoded string column (e.g. ExtendedProps from rdd_summary CSVs).
+
+    Uses an inline demo dataset that mirrors the structure of rdd_summary_*.csv:
+      - ResourceURI     : plain string identifier
+      - ExtendedProps   : JSON-encoded string (dict with string values)
+      - Schema          : JSON-encoded string (list of column dicts)
+      - BadJson         : intentionally malformed JSON string
+
+    Conversion scheme:
+      1. col / json.loads(v) on ExtendedProps  -> ExtendedProps_parsed  (succeeds for 3 rows)
+      2. col / json.loads(v) on Schema         -> Schema_parsed          (succeeds for 3 rows)
+      3. col / json.loads(v) on BadJson        -> BadJson_parsed         (fails per-row via _safe_eval -> errors caught)
+      4. row / extract Contact from parsed     -> Contact                (succeeds)
+      5. row / extract first Schema Name       -> FirstSchemaCol         (succeeds)
+
+    Covers features:
+      - 6.2.1.1 (DataConverter.apply: col/row scopes, json.loads in SAFE_GLOBALS, error handling)
+    """
+    from utils.datautils import DataConverter
+
+    features = ["6.2.1.1"]
+    criteria = []
+
+    # ------------------------------------------------------------------ #
+    # Demo dataset — mirrors ExtendedProps / Schema columns in rdd_summary.
+    # ------------------------------------------------------------------ #
+    rows = [
+        {
+            "ResourceURI": "https://store.blob.core.windows.net/container/file1.json",
+            "ExtendedProps": json.dumps({
+                "Contact": "team-alpha@example.com",
+                "Size": "563",
+                "Type": "file",
+                "BlobType": "BLOCK",
+                "ServerEncrypted": "true",
+            }),
+            "Schema": json.dumps([
+                {"Name": ":json/type",    "Type": "string", "Format": "aaaaaaa"},
+                {"Name": ":json/id",      "Type": "string", "Format": "A#aAa"},
+                {"Name": ":json/from/id", "Type": "string", "Format": "aaaa-aaa"},
+            ]),
+            "BadJson": "{not valid json",
+        },
+        {
+            "ResourceURI": "https://store.blob.core.windows.net/container/file2.json",
+            "ExtendedProps": json.dumps({
+                "Contact": "team-beta@example.com",
+                "Size": "748",
+                "Type": "file",
+                "BlobType": "BLOCK",
+                "ServerEncrypted": "true",
+            }),
+            "Schema": json.dumps([
+                {"Name": ":json/timestamp", "Type": "datetime", "Format": "#/##/####"},
+                {"Name": ":json/channelId", "Type": "string",   "Format": "aaaaaaaaaa"},
+            ]),
+            "BadJson": "also not : json",
+        },
+        {
+            "ResourceURI": "https://kusto.windows.net/cluster/table",
+            "ExtendedProps": json.dumps({
+                "Contact": "team-gamma@example.com",
+                "Region": "eastus2",
+                "Type": "table",
+            }),
+            "Schema": json.dumps([
+                {"Name": "ColumnA", "Type": "string"},
+                {"Name": "ColumnB", "Type": "long"},
+            ]),
+            "BadJson": None,   # NaN / None row — json.loads(None) will raise
+        },
+    ]
+    df = pd.DataFrame(rows)
+
+    # ------------------------------------------------------------------ #
+    # Conversion scheme
+    # ------------------------------------------------------------------ #
+    logged_errors = []
+
+    def _capture(msg, code=None, data=None):
+        if code == "DATAE01":
+            logged_errors.append({"code": code, "data": data})
+
+    conversions = [
+        # 1. Parse ExtendedProps JSON string -> dict
+        {
+            "scope": "col",
+            "source": "ExtendedProps",
+            "target": "ExtendedProps_parsed",
+            "op": "json.loads(v)",
+        },
+        # 2. Parse Schema JSON string -> list
+        {
+            "scope": "col",
+            "source": "Schema",
+            "target": "Schema_parsed",
+            "op": "json.loads(v)",
+        },
+        # 3. Parse BadJson — will raise for each invalid row (caught per-row inside _safe_eval)
+        {
+            "scope": "col",
+            "source": "BadJson",
+            "target": "BadJson_parsed",
+            "op": "json.loads(v) if v is not None else None",
+        },
+        # 4. Extract Contact string from parsed ExtendedProps dict
+        {
+            "scope": "row",
+            "target": "Contact",
+            "op": "(row.get('ExtendedProps_parsed') or {}).get('Contact', '')",
+        },
+        # 5. Extract first column name from parsed Schema list
+        {
+            "scope": "row",
+            "target": "FirstSchemaCol",
+            "op": "(row.get('Schema_parsed') or [{}])[0].get('Name', '')",
+        },
+    ]
+
+    conv = DataConverter(conversions=conversions, log_func=_capture)
+    result = conv.apply(df)
+
+    # ------------------------------------------------------------------ #
+    # Criterion 1: result is a DataFrame with the expected new columns.
+    # BadJson_parsed is excluded: that step errors out (by design) so the column
+    # is never created — the error is verified separately in criterion 6.
+    # ------------------------------------------------------------------ #
+    expected_cols = {"ExtendedProps_parsed", "Schema_parsed", "Contact", "FirstSchemaCol"}
+    has_cols = expected_cols.issubset(set(result.columns))
+    criteria.append({
+        "name": "result_has_all_expected_columns",
+        "success": has_cols,
+        "status": "PASS" if has_cols else "FAIL",
+        "actual": sorted(result.columns.tolist()),
+        "expected": sorted(expected_cols),
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 2: ExtendedProps_parsed contains dicts for all rows.
+    # ------------------------------------------------------------------ #
+    all_dicts = all(isinstance(v, dict) for v in result["ExtendedProps_parsed"])
+    criteria.append({
+        "name": "extended_props_parsed_to_dicts",
+        "success": all_dicts,
+        "status": "PASS" if all_dicts else "FAIL",
+        "actual": [type(v).__name__ for v in result["ExtendedProps_parsed"]],
+        "expected": ["dict", "dict", "dict"],
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 3: Schema_parsed contains lists for all rows.
+    # ------------------------------------------------------------------ #
+    all_lists = all(isinstance(v, list) for v in result["Schema_parsed"])
+    criteria.append({
+        "name": "schema_parsed_to_lists",
+        "success": all_lists,
+        "status": "PASS" if all_lists else "FAIL",
+        "actual": [type(v).__name__ for v in result["Schema_parsed"]],
+        "expected": ["list", "list", "list"],
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 4: Contact column extracted correctly from parsed dicts.
+    # ------------------------------------------------------------------ #
+    expected_contacts = ["team-alpha@example.com", "team-beta@example.com", "team-gamma@example.com"]
+    actual_contacts = result["Contact"].tolist()
+    contacts_ok = actual_contacts == expected_contacts
+    criteria.append({
+        "name": "contact_extracted_from_parsed_extended_props",
+        "success": contacts_ok,
+        "status": "PASS" if contacts_ok else "FAIL",
+        "actual": actual_contacts,
+        "expected": expected_contacts,
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 5: FirstSchemaCol extracted from first element of parsed Schema list.
+    # ------------------------------------------------------------------ #
+    expected_first_cols = [":json/type", ":json/timestamp", "ColumnA"]
+    actual_first_cols = result["FirstSchemaCol"].tolist()
+    first_cols_ok = actual_first_cols == expected_first_cols
+    criteria.append({
+        "name": "first_schema_col_extracted_from_parsed_schema",
+        "success": first_cols_ok,
+        "status": "PASS" if first_cols_ok else "FAIL",
+        "actual": actual_first_cols,
+        "expected": expected_first_cols,
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 6: BadJson rows that fail json.loads are caught per-row and
+    #              do not crash the whole conversion; errors are logged.
+    # ------------------------------------------------------------------ #
+    # The bad rows raise inside the lambda passed to df[col].apply(), which
+    # propagates to the outer try-except in DataConverter.apply and is logged
+    # as DATAE01 for the entire col step.
+    bad_json_step_failed = len(conv.errors) >= 1
+    criteria.append({
+        "name": "bad_json_step_caught_and_logged",
+        "success": bad_json_step_failed,
+        "status": "PASS" if bad_json_step_failed else "FAIL",
+        "actual": {"errors": len(conv.errors), "logged": len(logged_errors)},
+        "expected": "at least 1 error logged for BadJson step",
+    })
+
+    # ------------------------------------------------------------------ #
+    # Criterion 7: successful steps are unaffected by the BadJson failure.
+    # ------------------------------------------------------------------ #
+    good_steps_ok = all_dicts and all_lists and contacts_ok and first_cols_ok
+    criteria.append({
+        "name": "good_steps_unaffected_by_bad_json_step",
+        "success": good_steps_ok,
+        "status": "PASS" if good_steps_ok else "FAIL",
+        "actual": good_steps_ok,
+        "expected": True,
+    })
+
+    overall = "PASS" if all(c["success"] for c in criteria) else "FAIL"
+    return _build_result(
+        status=overall,
+        message=message or "Validated DataConverter json.loads column conversion on ExtendedProps/Schema demo dataset mirroring rdd_summary CSV structure",
+        criteria=criteria,
+        features=features,
+        data={
+            "rows": len(result),
+            "columns": result.columns.tolist(),
+            "errors": conv.errors,
+        },
+    )

@@ -185,12 +185,18 @@
                     "description": "Output requirement: Each completed process step shall persist transformed data under a configured target.",
                     "priority": "High",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-004.4",
+                    "description": "Robustness requirement: Each conversion step in DataConverter.apply shall be individually wrapped in try-except. All exceptions (including missing source column) shall be logged via DATAE01 and appended to self.errors. Remaining steps shall continue executing after a failure. The errors list shall be reset at the start of each apply() call.",
+                    "priority": "High",
+                    "comments": []
                 }
             ],
             "solution": [
                 {
                     "feature": "6.2.1",
-                    "role": "DataFrameConverter applies secure, scope-aware conversions.",
+                    "role": "DataConverter applies secure, scope-aware conversions with per-step error and warning tracking.",
                     "implementation": 1.0,
                     "verification": 0.8,
                     "deployment": 1.0

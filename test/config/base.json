@@ -133,6 +133,22 @@
                 "inputs": {
                     "message": "Validated pullbase once-pull sync: load_once_entries reads manifest entries and pull_once_files copies missing files while skipping existing ones"
                 }
+            },
+            {
+                "id": "prep_dataconverter_error_handling",
+                "name": "Prep DataConverter error handling",
+                "callable": "test.tests.base.output.test_dataconverter_error_handling",
+                "inputs": {
+                    "message": "Validated DataConverter per-step exception handling: errors list, DATAE01 logging, step isolation, and list reset"
+                }
+            },
+            {
+                "id": "prep_dataconverter_json_column",
+                "name": "Prep DataConverter JSON column parsing",
+                "callable": "test.tests.base.output.test_dataconverter_json_column",
+                "inputs": {
+                    "message": "Validated DataConverter json.loads column conversion on ExtendedProps/Schema demo dataset mirroring rdd_summary CSV structure"
+                }
             }
         ],
         "live": [

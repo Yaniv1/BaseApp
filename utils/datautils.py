@@ -13,8 +13,32 @@ def path_join(*parts):
     return os.path.join(*[str(p) for p in parts]).replace("\\", "/")
 
 
+def as_list(value):
+    """Convert a value into a list if it is not already a list."""
+    if isinstance(value, list):
+        return value
+    if value is None:
+        return []
+    if isinstance(value, tuple):
+        return list(value)
+    return [value]
+
+def tryeval(val):
+    """Try to evaluate a string value, falling back to the original value on failure."""
+    try:
+        return eval(val)
+    except:
+        return val
+
+def tryexcept(default=None, func=print, *args, **kwargs):
+    """Try to execute a function, falling back to a default value on failure."""
+    try:
+        return func(*args, **kwargs)
+    except:
+        return default
+    
 # Feature 6.2.1
-class DataFrameConverter:
+class DataConverter:
     """Feature ID: 6.2.1. Securely applies transformation rules to a pandas DataFrame.
 
     Supports:
@@ -40,6 +64,8 @@ class DataFrameConverter:
         "float": float,
         "int": int,
         "str": str,
+        "tryeval": tryeval,
+        "tryexcept": tryexcept
     }
 
     def __init__(
@@ -63,7 +89,7 @@ class DataFrameConverter:
         except Exception as e:
             raise ValueError(f"Conversion expression failed: {expr}\n{str(e)}")
 
-    def apply(self, df: pd.DataFrame):
+    def apply(self, df: Any) -> Any:
         """Apply conversion list to DataFrame or context data.
 
         For ``col``, ``row``, and ``df`` scopes the working value is a DataFrame and
@@ -71,60 +97,81 @@ class DataFrameConverter:
         evaluated with the full context (no DataFrame required) and its result is
         returned as-is, allowing arbitrary data shapes (dict, list, etc.) to be
         produced by a process step.
+
+        Each conversion step is wrapped in a try-except block.  Exceptions are logged
+        via ``self.log_func`` with message code ``DATAE01`` and appended to
+        ``self.errors``.  When the DataFrame itself is corrupted (scope ``df``), the
+        step is skipped and the previous DataFrame is preserved.  Callers can inspect
+        ``self.errors`` after the call to decide how to handle conversion failures.
         """
         df = df.copy()
-        # Track whether a custom scope expression produced a non-DataFrame result.
-        custom_result = None
-        has_custom = False
+        # Reset per-call tracking list so each apply() call starts clean.
+        self.errors = []
 
-        for conv in self.conversions:
-            target = conv.get("target")
-            source = conv.get("source", target)
-            op = conv.get("op")
-            scope = conv.get("scope", "col")
-            filt = conv.get("filter")
+        for idx, conv in enumerate(self.conversions):                       
 
-            if not op:
-                continue
-            if scope in {"col", "row"} and not target:
-                continue
+            try:
 
-            if self.verbose:
-                self.log_func(f"Applying conversion -> {target or '<df>'} | scope={scope}")
+                target = conv.get("target")
+                source = conv.get("source", target)
+                op = conv.get("op")
+                scope = conv.get("scope", "col")
+                sfilt = as_list(conv.get("source_filter"))
+                filt = as_list(conv.get("filter"))
 
-            if scope == "custom":
-                # Evaluate expression with the full context; no DataFrame manipulation.
-                custom_result = self._safe_eval(op, {})
-                has_custom = True
-                continue
+                if self.verbose:
+                    self.log_func(f"Applying conversion -> {target or '<df>'} | scope={scope}")
 
-            if filt:
-                df = df[df[source].isin(filt)]
+                if sfilt:
+                    if isinstance(df, pd.DataFrame):
+                        df = df[df[source].isin(sfilt)]
+                        
+                    elif isinstance(df, dict):
+                        df = {k: v for k, v in df.items() if k == source and v in sfilt}
+                        
+                if op:
 
-            if scope == "col":
-                if source not in df.columns:
-                    continue
-                df[target] = df[source].apply(
-                    lambda v: self._safe_eval(op, {"v": v, "df": df})
+                    if scope == "custom":
+                        # Evaluate expression with the full context; no DataFrame manipulation.
+                        df = self._safe_eval(op, {})
+                    
+                    elif scope == "df":
+                        df = self._safe_eval(op, {"df": df})
+
+                    elif scope == "col":
+                        df[target] = df[source].apply(
+                            lambda v: self._safe_eval(op, {"v": v, "df": df})
+                        )
+
+                    elif scope == "row":
+                        df[target] = df.apply(
+                            lambda row: self._safe_eval(op,{ "row": row, "df": df }), axis=1)
+
+                    
+
+                if filt: 
+                    if isinstance(df, pd.DataFrame):                   
+                        df = df[df[target].isin(filt)]
+                    elif isinstance(df, dict):
+                        df = {k: v for k, v in df.items() if k == target and v in filt}
+
+            except Exception as exc:
+                error = {
+                    "step_index": idx,
+                    "conversion": conv,                    
+                    "error": str(exc),
+                    "columns": df.columns.tolist() if isinstance(df, pd.DataFrame) else None,
+                    "keys": list(df.keys()) if isinstance(df, dict) else None
+                }
+                self.errors.append(error)
+                self.log_func(
+                    f"Conversion step failed",
+                    "DATAE01",
+                    error,
                 )
+                # For df-scope failures the DataFrame may be invalid; preserve last known good state.
+                # For col/row/custom scope, df is unchanged so we simply skip to the next step.
 
-            elif scope == "row":
-                df[target] = df.apply(
-                    lambda row: self._safe_eval(
-                        op,
-                        {
-                            "row": row,
-                            "df": df,
-                        },
-                    ),
-                    axis=1,
-                )
-
-            elif scope == "df":
-                df = self._safe_eval(op, {"df": df})
-
-        if has_custom:
-            return custom_result
         return df
 
 

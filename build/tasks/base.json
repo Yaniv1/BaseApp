@@ -563,6 +563,50 @@
                     "timestamp": "2026-06-10T22:45:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260609-0006",
+            "uuid": "6l5m4n3o-2p1q-9s8t-7u6v-5w4x3y2z1a",
+            "title": "Track conversion warnings and errors in datautils.DataConverter",
+            "description":[
+                "Currently, DataConverter.apply does not have any exception handling.",
+                "To improve the robustness of the data conversion process, we will implement exception handling in the DataConverter.apply method to catch and log any warnings or errors that occur during data conversion. This will allow us to identify and address issues in the data conversion process more effectively.",
+                "The implementation will involve wrapping the data conversion logic in try-except blocks to catch specific exceptions that may arise during conversion. We will also implement logging of these exceptions to provide insights into what went wrong and where, which can be invaluable for debugging and improving the data conversion process."
+            ],
+            "priority": "Critical",
+            "status": "Done",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created. Plan: (1) identify potential exceptions that may occur during data conversion; (2) implement try-except blocks in DataConverter.apply to catch these exceptions; (3) log the exceptions with relevant details for debugging; (4) test the implementation to ensure that exceptions are properly caught and logged.",
+                    "timestamp": "2026-06-10T03:26:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Completed. DataConverter.apply() (6.2.1.1) wraps each step in try/except; exceptions logged via DATAE01 and collected in self.errors; execution continues. DATAE01 added to base.csv. BASE-REQ-004.4 added. Two new prep tests: test_dataconverter_error_handling (5.3.1.3.6) and test_dataconverter_json_column (5.3.1.3.7). Also fixed AppManager.process_data() dict source passthrough. Build tests PASS.",
+                    "timestamp": "2026-06-10T03:45:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260609-0007",
+            "uuid": "5m4n3o2p-1q0r-9s8t-7u6v-4w3x2y1z0a",
+            "title": "Fix all the architecture mismatch issues across the architecture documentation and the actual implementation in the codebase.",
+            "type": "Bug",
+            "priority": "Low",
+            "status": "ToDo",
+            "description": [
+                "There are currently several mismatches between the architecture documentation and the actual implementation in the codebase. These mismatches can lead to confusion for developers who rely on the documentation to understand the system's design and functionality.",
+                "To address this issue, we will conduct a thorough review of the architecture documentation and compare it against the current implementation in the codebase. We will identify all discrepancies and update the documentation to accurately reflect the current state of the codebase.",
+                "This process will involve updating architectural diagrams, descriptions of components and their interactions, and any other relevant sections of the documentation to ensure that it is consistent with the actual implementation. This will help improve clarity and provide developers with accurate information about the system's architecture."
+             ],
+             "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created. Plan: (1) review architecture documentation; (2) identify mismatches with codebase; (3) update documentation to reflect actual implementation; (4) ensure consistency across all architectural diagrams and descriptions.",
+                    "timestamp": "2026-06-10T22:45:00Z"
+                }
+            ]
         }
     ]
 }

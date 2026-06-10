@@ -41,3 +41,4 @@ PULL008,INFO,Once pull synced files
 PULL009,INFO,Loaded drop entries
 PULL010,INFO,Dropped deprecated paths
 PULL999,GOOD,Pullbase completed successfully
+DATAE01,ERROR,Conversion step failed with error,4

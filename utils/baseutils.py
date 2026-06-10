@@ -30,12 +30,12 @@ if hasattr(sys.stderr, "reconfigure"):
 
     
 try:
-    from .datautils import DataFrameConverter, DataLoader
+    from .datautils import DataConverter, DataLoader
 except ImportError:
     try:
-        from utils.datautils import DataFrameConverter, DataLoader
+        from utils.datautils import DataConverter, DataLoader
     except ImportError:
-        from datautils import DataFrameConverter, DataLoader
+        from datautils import DataConverter, DataLoader
 
 
 # Feature 6.1.1
@@ -1235,15 +1235,13 @@ class AppManager:
             for alias, result_name in step_settings.get("context", {}).items():
                 context[alias] = getattr(self.RESULTS, result_name, None)
             context["source_data"] = source_value
-
-            source_df = source_value.copy() if isinstance(source_value, pd.DataFrame) else pd.DataFrame()
-
-            result = DataFrameConverter(
+            
+            result = DataConverter(
                 conversions=step_settings.get("conversions", []),
                 verbose=bool(step_settings.get("verbose", False)),
                 context=context,
                 log_func=(lambda msg, code=None, data=None: self.logger.log(message=msg, message_code=code, data=data))
-            ).apply(source_df)
+            ).apply(source_value)
 
             # Store the result regardless of type; custom scope steps return dicts/lists.
             setattr(self.RESULTS, step_settings.get("target", step_id), result)

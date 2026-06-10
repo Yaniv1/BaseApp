@@ -4,8 +4,13 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.09.01
-- App template version: A26.06.09.01
+- Base version: 26.06.09.02
+- App template version: A26.06.09.02
+
+## Highlights (26.06.09.02)
+
+- **`DataConverter` now isolates failing conversion steps.** Each step in `DataConverter.apply()` is wrapped in a try/except; any failure (including referencing a missing source column) is caught, logged as `DATAE01`, and collected in `self.errors` — without aborting the remaining steps.
+- **Dict sources passed correctly to `DataConverter`.** When a process step's source is a `dict`, it is now forwarded intact instead of being replaced with an empty DataFrame.
 
 ## Highlights (26.06.09.01)
 
@@ -84,7 +89,7 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 - Improved Logger performance to append log entries rather than rewrite the log file with each log entry. 
 - Improved App Manager performance by avoiding warnings for string to JSON parsing while saving outputs.
-- Add supports in `DataFrameConverter.apply` for a `custom` scope for expression-based transformations that return raw results.
+- Add supports in `DataConverter.apply` for a `custom` scope for expression-based transformations that return raw results.
 
 
 ## Highlights (26.06.03.03)
@@ -151,7 +156,7 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 - Added unified input loading for file and folder sources under `config.input`.
 - Moved BaseApp changelog entries into `updates/base.json` while keeping them loadable as input data.
-- Added `config.process` support with `DataFrameConverter` for sequential result transformations.
+- Added `config.process` support with `DataConverter` for sequential result transformations.
 - Added recursive JSON field materialization for stored outputs.
 - Improved HTML rendering with item/type columns and content-width nested tables.
 - Added split output support so dict outputs can be written as separate artifacts by key.

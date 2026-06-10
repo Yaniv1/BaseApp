@@ -1,4 +1,4 @@
-# BaseApp V-26.06.09.01
+# BaseApp V-26.06.09.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,13 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.09.02)
+
+- **`DataConverter` per-step error handling** (Feature 6.2.1.1) — `DataConverter.apply()` now wraps each conversion step in a `try/except`. Any exception (including missing source column `KeyError`) is caught, logged via `DATAE01`, and appended to `self.errors`. Execution continues with the next step. `self.errors` is reset at the start of each `apply()` call so successive calls do not accumulate. New `test_dataconverter_error_handling` prep test (Feature 5.3.1.3.6) covers 9 criteria. New `test_dataconverter_json_column` prep test (Feature 5.3.1.3.7) validates `json.loads` column parsing on an `ExtendedProps`/`Schema` demo dataset mirroring the `rdd_summary` CSV structure.
+- **`AppManager.process_data()` dict source fix** — When a process step's source value is a `dict`, it is now passed directly to `DataConverter.apply()` instead of being silently replaced with an empty `DataFrame`. This allows `custom`-scope conversions that call `df.items()` to work correctly.
+- New message code `DATAE01` added to `resources/message_codes/base.csv`.
+- `BASE-REQ-004.4` added: robustness requirement for per-step exception handling in `DataConverter.apply`.
 
 ## Release Highlights (26.06.09.01)
 
@@ -128,7 +135,7 @@ BaseApp is a reusable Python foundation for app projects that need:
 
 - `Logger._write_csv` now operates in append-only mode: a `_csv_written_count` counter tracks how many entries have been flushed so only new log entries are appended on each call, eliminating the full file rewrite that occurred on every `log()` call. Dict/list column values are serialised to JSON strings before DataFrame construction.
 - `AppManager._to_raw_data` no longer attempts to auto-parse string values that happen to start with `{` or `[` via `json.loads`. Strings are returned as-is; callers own string semantics. This removes the false-positive BASEW11 warnings that fired on Python expression strings and config template values.
-- `DataFrameConverter.apply` now supports a `custom` scope that evaluates the `op` expression against the converter's context dict and returns the raw result directly, bypassing the DataFrame column-assignment path.
+- `DataConverter.apply` now supports a `custom` scope that evaluates the `op` expression against the converter's context dict and returns the raw result directly, bypassing the DataFrame column-assignment path.
 - Removed `BASE011` (JSON text parse summary) and `BASEW11` (Failed to parse JSON text field) message codes — no longer generated.
 
 ## Release Highlights (26.06.03.03)
@@ -378,8 +385,8 @@ the input level by `DataLoader`:
 - The selected source is also exposed to expressions as `source_data`.
 - Only DataFrame sources are used directly as the working DataFrame; other
   source shapes stay explicit so conversions can decide how to transform them.
-- `conversions` is applied sequentially through `DataFrameConverter`.
-- `DataFrameConverter` supports an injectable logging function and defaults to
+- `conversions` is applied sequentially through `DataConverter`.
+- `DataConverter` supports an injectable logging function and defaults to
   `print` when verbose logging is enabled.
 - `df`-scope conversions do not need their own `target`; the step-level
   `target` controls where the final processed DataFrame is stored.
