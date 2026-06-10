@@ -208,6 +208,14 @@
                 "inputs": {
                     "message": "Validated tasks grouped by status in process output"
                 }
+            },
+            {
+                "id": "post_tasks_by_type_status",
+                "name": "Post tasks by type and status",
+                "callable": "test.tests.base.base.test_tasks_by_type_status",
+                "inputs": {
+                    "message": "Validated tasks grouped by type and status in process output"
+                }
             }
         ]
     },

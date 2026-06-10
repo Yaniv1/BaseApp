@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.09.02
-- App template version: A26.06.09.02
+- Base version: 26.06.09.03
+- App template version: A26.06.09.03
+
+## Highlights (26.06.09.03)
+
+- **Tasks grouped by type and status.** A new `tasks_by_type_status` PROCESS step produces a nested `{type: {status: [tasks]}}` dict; tasks without an explicit type fall under `Feature`. Per-type HTML reports are written via `tasks_by_type_status_split` OUTPUT. New post test validates the nested structure.
 
 ## Highlights (26.06.09.02)
 

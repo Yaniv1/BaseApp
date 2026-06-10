@@ -1017,3 +1017,127 @@ def test_tasks_by_status(manager=None, message=None, **kwargs):
             "group_counts": {k: len(v) for k, v in tasks_by_status.items() if isinstance(v, list)} if isinstance(tasks_by_status, dict) else None,
         },
     }
+
+
+# Feature 5.3.1.1.3
+def test_tasks_by_type_status(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.1.3. Verify tasks are grouped correctly by type then status in the process output.
+
+    Reads the runtime results output artifact and validates that tasks_by_type_status:
+    - Contains at least one type group
+    - Each type group is a dict of status -> list of tasks
+    - Each task in a nested group has the correct type and status
+    - Tasks without an explicit type appear under 'Feature'
+    """
+    import json as _json
+
+    output_path = ""
+    if manager is not None:
+        logger = getattr(manager, "logger", None)
+        if logger is not None and hasattr(logger, "resolve_data"):
+            output_path = str(logger.resolve_data("results.output_path") or "")
+
+    results_path = os.path.join(output_path, "results", "results.json") if output_path else None
+
+    criteria = []
+
+    file_found = bool(results_path and os.path.isfile(results_path))
+    criteria.append({
+        "name": "results_file_found",
+        "success": file_found,
+        "status": "PASS" if file_found else "FAIL",
+        "actual": file_found,
+        "expected": True,
+    })
+
+    tasks_by_type_status = None
+    if file_found:
+        try:
+            with open(results_path, "r", encoding="utf-8") as fh:
+                raw = _json.load(fh)
+            tasks_by_type_status = raw.get("tasks_by_type_status")
+        except Exception as exc:
+            criteria.append({
+                "name": "results_file_readable",
+                "success": False,
+                "status": "FAIL",
+                "actual": str(exc),
+                "expected": "Readable JSON",
+            })
+
+    has_type_groups = isinstance(tasks_by_type_status, dict) and len(tasks_by_type_status) > 0
+    criteria.append({
+        "name": "tasks_by_type_status_has_type_groups",
+        "success": has_type_groups,
+        "status": "PASS" if has_type_groups else "FAIL",
+        "actual": list(tasks_by_type_status.keys()) if isinstance(tasks_by_type_status, dict) else None,
+        "expected": "Non-empty type groups",
+    })
+
+    if has_type_groups:
+        # Each type group must be a dict of {status: [tasks]}
+        all_status_dicts = all(isinstance(v, dict) for v in tasks_by_type_status.values())
+        criteria.append({
+            "name": "each_type_group_is_status_dict",
+            "success": all_status_dicts,
+            "status": "PASS" if all_status_dicts else "FAIL",
+            "actual": all_status_dicts,
+            "expected": True,
+        })
+
+        # Each task must have the correct type and status
+        all_correct = True
+        mismatched = []
+        for type_key, status_groups in tasks_by_type_status.items():
+            if not isinstance(status_groups, dict):
+                continue
+            for status_key, task_list in status_groups.items():
+                if not isinstance(task_list, list):
+                    all_correct = False
+                    mismatched.append(f"{type_key}.{status_key}: not a list")
+                    continue
+                for task in task_list:
+                    if not isinstance(task, dict):
+                        continue
+                    actual_type = task.get("type") or "Feature"
+                    actual_status = task.get("status")
+                    if actual_type != type_key:
+                        all_correct = False
+                        mismatched.append(f"{task.get('id','?')}: type={actual_type!r} in group {type_key!r}")
+                    if actual_status != status_key:
+                        all_correct = False
+                        mismatched.append(f"{task.get('id','?')}: status={actual_status!r} in group {status_key!r}")
+        criteria.append({
+            "name": "tasks_correctly_grouped_by_type_and_status",
+            "success": all_correct,
+            "status": "PASS" if all_correct else "FAIL",
+            "actual": all_correct,
+            "expected": True,
+            "mismatched": mismatched[:5] if mismatched else None,
+        })
+
+        # Tasks without an explicit type must appear under 'Feature'
+        feature_key_present = "Feature" in tasks_by_type_status
+        criteria.append({
+            "name": "tasks_without_type_grouped_under_feature",
+            "success": feature_key_present,
+            "status": "PASS" if feature_key_present else "FAIL",
+            "actual": feature_key_present,
+            "expected": True,
+        })
+
+    has_failures = any(c["status"] == "FAIL" for c in criteria)
+    return {
+        "status": "FAIL" if has_failures else "PASS",
+        "message": message or "Validated tasks grouped by type and status in process output",
+        "criteria": criteria,
+        "features": ["5.3.1.1.3"],
+        "data": {
+            "type_groups": list(tasks_by_type_status.keys()) if isinstance(tasks_by_type_status, dict) else None,
+            "group_counts": {
+                t: {s: len(lst) for s, lst in sg.items() if isinstance(lst, list)}
+                for t, sg in tasks_by_type_status.items()
+                if isinstance(sg, dict)
+            } if isinstance(tasks_by_type_status, dict) else None,
+        },
+    }

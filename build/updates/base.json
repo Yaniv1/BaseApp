@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260609-0003] [5.3.1.1.3] [Reporting] Group tasks by type and status in process output",
+        "version": "26.06.09.03",
+        "description": "Added tasks_by_type_status PROCESS step (df-scope, fills missing type as 'Feature', groups by type then status into a nested {type: {status: [tasks]}} dict). Added tasks_by_type_status_split OUTPUT (split:2, HTML reports per type under {$OUTPUT_PATH$}/tasks/reports). Added post test test_tasks_by_type_status (Feature 5.3.1.1.3) with 5 criteria: results_file_found, tasks_by_type_status_has_type_groups, each_type_group_is_status_dict, tasks_correctly_grouped_by_type_and_status, tasks_without_type_grouped_under_feature. Registered post_tasks_by_type_status in test/config/base.json. Added architecture entries 5.3.1.1.2 (test_tasks_by_status) and 5.3.1.1.3 (test_tasks_by_type_status) under Feature 5.3.1.1. Build test: 1 test(s) run, 0 failure(s)."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260609-0006] [6.2.1.1] [Robustness] Track conversion errors in DataConverter; fix dict source passthrough",
         "version": "26.06.09.02",
         "description": "DataConverter.apply() (Feature 6.2.1.1) now wraps every conversion step in try/except. Exceptions (including KeyError for a missing source column) are logged via DATAE01 and appended to self.errors; execution continues with the next step. self.errors is reset at the start of each call. DATAE01 added to resources/message_codes/base.csv. BASE-REQ-004.4 added. New prep tests: test_dataconverter_error_handling (5.3.1.3.6, 9 criteria) and test_dataconverter_json_column (5.3.1.3.7, 7 criteria, validates json.loads on ExtendedProps/Schema demo dataset). Architecture features 5.3.1.3.6, 5.3.1.3.7, 6.2.1, and 6.2.1.1 updated. Also fixed AppManager.process_data() to pass dict source values directly to DataConverter.apply() instead of silently replacing them with an empty DataFrame."

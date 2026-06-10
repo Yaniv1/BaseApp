@@ -392,6 +392,18 @@
                                                     "path": "test/tests/base/base.py::ArchitectureAlignmentTest.run"
                                                 }
                                             }
+                                        },
+                                        "5.3.1.1.2": {
+                                            "name": "test.tests.base.base.test_tasks_by_status",
+                                            "description": "Post-test that reads the runtime results artifact and verifies tasks_by_status contains correct non-empty status groups with each task in its correct bucket.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/base.py::test_tasks_by_status"
+                                        },
+                                        "5.3.1.1.3": {
+                                            "name": "test.tests.base.base.test_tasks_by_type_status",
+                                            "description": "Post-test that reads the runtime results artifact and verifies tasks_by_type_status is a nested dict of {type: {status: [tasks]}} with correct grouping; tasks without an explicit type appear under 'Feature'.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/base.py::test_tasks_by_type_status"
                                         }
                                     }
                                 },

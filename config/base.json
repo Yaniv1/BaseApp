@@ -2,7 +2,7 @@
     "COMMON": {
         "CONFIG_WRAPPERS": ["{$", "$}"],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.06.09.02",
+        "VERSION": "26.06.09.03",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -141,6 +141,21 @@
                 }
             ],
             "target": "tasks_by_status"
+        },
+
+        "tasks_by_type_status": {
+            "run": true,
+            "source": "tasks_df",
+            "context": {
+                "tasks": "tasks_df"
+            },
+            "conversions": [
+                {
+                    "scope": "df",
+                    "op": "{t: {s: grp[(grp['type'].fillna('Feature') == t) & (grp['status'] == s)].sort_values('priority').to_dict(orient='records') for s in grp['status'].unique()} for t, grp in df.assign(type=df['type'].fillna('Feature')).groupby('type')}"
+                }
+            ],
+            "target": "tasks_by_type_status"
         }
         
     },
@@ -234,6 +249,18 @@
             "store": true,
             "split": 1,
             "source": "RESULTS.tasks_by_status",
+            "path": "{$OUTPUT_PATH$}/tasks/reports",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "max_items": 100
+        },
+
+        "tasks_by_type_status_split": {
+            "store": true,
+            "split": 2,
+            "source": "RESULTS.tasks_by_type_status",
             "path": "{$OUTPUT_PATH$}/tasks/reports",
             "format": "html",
             "kwargs": {

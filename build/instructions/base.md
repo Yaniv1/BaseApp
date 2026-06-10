@@ -61,4 +61,4 @@ When asked to finalize and deploy the code change:
 7. Update README.md - this is a high-level overview of the functionality - what functionality is added/ modified, and what is the new behavior/capability. Do not detail implementation like you do in the readme/base.md or readme/app.md files. **Focus on functionality and capbility.**
 8. Update the task's status to `Done`.
 9. Stage and commit all the changes.
-10. Ask for user authorization to Push to the git repository and if user approves - push.
+10. Push the committed changes to the git repository.

@@ -514,12 +514,17 @@
                 "The default type of a task will be 'Feature' if not specified, and the default status will be 'ToDo' if not specified. This will ensure that all tasks have a type and status for proper grouping even if they are not explicitly set during task creation."
              ],
              "priority": "Medium",
-             "status": "ToDo",
+             "status": "Done",
              "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) update task management system to categorize tasks by type and status; (2) save tasks in a structured format reflecting this grouping; (3) update reporting mechanisms to utilize the new structure; (4) add test to verify correct grouping in saved outputs.",
                     "timestamp": "2026-06-09T00:20:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Done. Added tasks_by_type_status PROCESS step (df-scope groupby type→status, fillna 'Feature'). Added tasks_by_type_status_split OUTPUT (split:2, HTML per type). Added test_tasks_by_type_status post test (Feature 5.3.1.1.3, 5 criteria). Registered in test/config/base.json. Added architecture entries 5.3.1.1.2 and 5.3.1.1.3. Version bumped to 26.06.09.03. Build test 0 failures.",
+                    "timestamp": "2026-06-10T04:00:00Z"
                 }
             ]
         },

@@ -1,4 +1,4 @@
-# BaseApp V-26.06.09.02
+# BaseApp V-26.06.09.03
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.09.03)
+
+- **Tasks grouped by type and status** (Feature 5.3.1.1.3) — Added `tasks_by_type_status` PROCESS step that produces a nested `{type: {status: [tasks]}}` dict from `tasks_df`. Tasks without an explicit `type` field are grouped under `Feature`. Output is split into per-type HTML reports via a new `tasks_by_type_status_split` OUTPUT entry. New `test_tasks_by_type_status` post test (Feature 5.3.1.1.3) validates the nested structure, bucket correctness, and default type handling. Architecture entries 5.3.1.1.2 and 5.3.1.1.3 added.
 
 ## Release Highlights (26.06.09.02)
 
