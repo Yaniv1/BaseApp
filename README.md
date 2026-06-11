@@ -4,17 +4,16 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.10.06
-- App template version: A26.06.10.06
+- Base version: 26.06.11.01
+- App template version: A26.06.11.01
+
+## Highlights (26.06.11.01)
+
+- **Removed `build/_workflow/`.** The folder and its architecture entry (`10.5`) have been removed. Added `build/_workflow` to `drop.json` so instantiated apps clean it up on next pull.
 
 ## Highlights (26.06.10.06)
 
-- **Architecture base.json corrected.** Removed 10 app-layer features that were incorrectly added to `build/architecture/base.json` in v26.06.10.05 — `app/app.py`, `config/app.json`, `test/config/app.json`, `test/tests/app`, `utils/apputils.py`, and all `build/**/app.*` / `resources/version/app.txt` entries. These are already correctly defined in `build/architecture/app.json`. Base-only additions from v26.06.10.05 (5.2 rename, `5.3.1.5`, `5.3.1.6`, `6.1.18`, `10.5`) are retained.
-
-## Highlights (26.06.10.05)
-
-- **Architecture documentation fully aligned.** All mismatches between `build/architecture/base.json` and the codebase are resolved: 15 missing feature entries added (app-layer files, new test modules, `path_join`, `utils/apputils.py`, `build/_workflow`, etc.); duplicate feature 5.2 renamed/fixed; leftover `scripts/override.json` deleted.
-
+- **Architecture base.json corrected.** Fixed mismatches between `build/architecture/base.json` and the codebase
 ## Highlights (26.06.10.04)
 
 - **Local config override support.** `config/local.json` is now a gitignored placeholder that is deployed once via `once.json` manifest. Values in it are deep-merged on top of `base.json` + `app.json` at load time (no code changes — `Config` already processes all JSON files in `config/` sorted alphabetically).
