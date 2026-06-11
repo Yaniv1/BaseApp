@@ -620,6 +620,11 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created. Plan: (1) review architecture documentation; (2) identify mismatches with codebase; (3) update documentation to reflect actual implementation; (4) ensure consistency across all architectural diagrams and descriptions.",
                     "timestamp": "2026-06-10T22:45:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Fixed all base.json mismatches. Added/corrected base-only features: renamed 5.2 to test.config.base.schema, added 5.3.1.5 (instantiate.py test), 5.3.1.6 (config.py test), 6.1.18 (path_join), 10.5/10.5.1 (build/_workflow/base.md). Removed 10 app-layer features that were incorrectly added in v26.06.10.05 (1.2, 2.3, 5.1.2, 5.3.3, 6.4, 10.1.2, 10.2.3, 10.3.3, 10.7.2, 11.4.2) — all are already defined in build/architecture/app.json. Version bumped to 26.06.10.06.",
+                    "timestamp": "2026-06-10T00:00:00Z"
                 }
             ]
         },

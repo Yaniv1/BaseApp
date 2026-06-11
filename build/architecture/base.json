@@ -31,12 +31,6 @@
                             "path": "app/base.py::run"
                         }
                     }
-                },
-                "1.2": {
-                    "name": "app.app",
-                    "description": "App-layer runtime entrypoint. Deployed once during instantiation. Delegates to base.run() via __main__ guard.",
-                    "type": "Folder.PyFile.Module",
-                    "path": "app/app.py"
                 }
             }
         },
@@ -57,12 +51,6 @@
                     "description": "Gitignored local override placeholder. Values deep-merge on top of base.json and app.json at load time. Deployed once via resources/manifests/once.json; never tracked in variant app repositories.",
                     "type": "Folder.JsonFile.DataSet",
                     "path": "config/local.json"
-                },
-                "2.3": {
-                    "name": "config.app.json",
-                    "description": "App-layer configuration overrides. Deployed once during instantiation and never overwritten by base pulls. Variant apps specify APP_NAME, VERSION, and other app-specific values here.",
-                    "type": "Folder.JsonFile.DataSet",
-                    "path": "config/app.json"
                 }
             }
         },
@@ -349,12 +337,6 @@
                             "description": "Base testing configuration that defines settings, phases, checks, and output artifacts.",
                             "type": "Folder.JsonFile",
                             "path": "test/config/base.json"
-                        },
-                        "5.1.2": {
-                            "name": "test.config.app",
-                            "description": "App-layer testing configuration overrides. Deployed once during instantiation.",
-                            "type": "Folder.JsonFile",
-                            "path": "test/config/app.json"
                         }
                     }
                 },
@@ -562,20 +544,6 @@
                                     "description": "Load config, execute the build test phase via TestManager, store outputs, and return exit code 0 (pass) or 1 (fail).",
                                     "type": "Folder.Folder.PyFile.Function",
                                     "path": "test/tests/build.py::run"
-                                }
-                            }
-                        },
-                        "5.3.3": {
-                            "name": "test.tests.app",
-                            "description": "App-layer test module folder. Deployed once during instantiation. Variant apps add their own test implementations here.",
-                            "type": "Folder.Folder.Folder",
-                            "path": "test/tests/app",
-                            "features": {
-                                "5.3.3.1": {
-                                    "name": "test.tests.app.app",
-                                    "description": "App-layer test placeholder. Variant apps implement their own prep/live/post test functions here.",
-                                    "type": "Folder.Folder.Folder.PyFile",
-                                    "path": "test/tests/app/app.py"
                                 }
                             }
                         }
@@ -967,12 +935,6 @@
                             "path": "utils/testutils.py::test_deployment"
                         }
                     }
-                },
-                "6.4": {
-                    "name": "utils.apputils",
-                    "description": "App-layer utility module. Re-exports all baseutils and datautils symbols for variant app use. Deployed once during instantiation and extended by app designers.",
-                    "type": "Folder.PyFile.Module",
-                    "path": "utils/apputils.py"
                 }
             }
         },
@@ -1019,12 +981,6 @@
                             "description": "Base-layer agent and developer instructions.",
                             "type": "Folder.Folder.MdFile",
                             "path": "build/instructions/base.md"
-                        },
-                        "10.1.2": {
-                            "name": "build.instructions.app",
-                            "description": "App-layer agent and developer instructions. Deployed once during instantiation.",
-                            "type": "Folder.Folder.MdFile",
-                            "path": "build/instructions/app.md"
                         }
                     }
                 },
@@ -1045,12 +1001,6 @@
                             "description": "Template for creating new task entries.",
                             "type": "Folder.Folder.JsonFile",
                             "path": "build/tasks/template.json"
-                        },
-                        "10.2.3": {
-                            "name": "build.tasks.app",
-                            "description": "App-layer task list. Deployed once during instantiation; variant apps track their own tasks here.",
-                            "type": "Folder.Folder.JsonFile",
-                            "path": "build/tasks/app.json"
                         }
                     }
                 },
@@ -1071,12 +1021,6 @@
                             "description": "Requirements engineering instructions for how to write and maintain requirements.",
                             "type": "Folder.Folder.MdFile",
                             "path": "build/requirements/req-eng-instructions.md"
-                        },
-                        "10.3.3": {
-                            "name": "build.requirements.app",
-                            "description": "App-layer requirements. Deployed once during instantiation; variant apps define their own requirements here.",
-                            "type": "Folder.Folder.JsonFile",
-                            "path": "build/requirements/app.json"
                         }
                     }
                 },
@@ -1125,12 +1069,6 @@
                             "description": "Base-layer update payload consumed by pullbase tooling.",
                             "type": "Folder.Folder.JsonFile",
                             "path": "build/updates/base.json"
-                        },
-                        "10.7.2": {
-                            "name": "build.updates.app",
-                            "description": "App-layer update payload. Deployed once during instantiation.",
-                            "type": "Folder.Folder.JsonFile",
-                            "path": "build/updates/app.json"
                         }
                     }
                 }
@@ -1225,12 +1163,6 @@
                             "description": "Base version record that should be updated with each pull of base updates.",
                             "type": "Folder.Folder.TxtFile",
                             "path": "resources/version/base.txt"
-                        },
-                        "11.4.2": {
-                            "name": "resources.version.app",
-                            "description": "App version record tracking the variant app's own release version.",
-                            "type": "Folder.Folder.TxtFile",
-                            "path": "resources/version/app.txt"
                         }
                     }
                 }
