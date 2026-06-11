@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260609-0007] [Architecture] Fix all architecture documentation mismatches",
+        "version": "26.06.10.05",
+        "description": "Resolved all mismatches between build/architecture/base.json and the actual codebase: added 1.2 (app/app.py), 2.3 (config/app.json), 5.1.2 (test/config/app.json), fixed 5.2 name/description (was duplicate of 5.1), added 5.3.1.5/5.3.1.6 (instantiate/config test modules), 5.3.3 (test/tests/app), 6.1.18 (path_join), 6.4 (utils/apputils.py), 10.1.2 (build/instructions/app.md), 10.2.3 (build/tasks/app.json), 10.3.3 (build/requirements/app.json), 10.5/10.5.1 (build/_workflow), 10.7.2 (build/updates/app.json), 11.4.2 (resources/version/app.txt). Deleted scripts/override.json leftover test file. Version bumped to 26.06.10.05."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260610-0001] [6.1.4] [Feature] Add config/local.json local override placeholder",
         "version": "26.06.10.04",
         "description": "Added config/local.json as a gitignored placeholder for local config overrides. The file is deployed once via resources/manifests/once.json and deep-merged on top of base.json + app.json at load time by Config (6.1.4) without any code changes. Added BASE-REQ-001.5, architecture feature 2.2, and prep test test_local_config_override (5/5 PASS)."

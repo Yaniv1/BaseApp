@@ -609,7 +609,7 @@
             "title": "Fix all the architecture mismatch issues across the architecture documentation and the actual implementation in the codebase.",
             "type": "Bug",
             "priority": "Low",
-            "status": "ToDo",
+            "status": "Done",
             "description": [
                 "There are currently several mismatches between the architecture documentation and the actual implementation in the codebase. These mismatches can lead to confusion for developers who rely on the documentation to understand the system's design and functionality.",
                 "To address this issue, we will conduct a thorough review of the architecture documentation and compare it against the current implementation in the codebase. We will identify all discrepancies and update the documentation to accurately reflect the current state of the codebase.",
