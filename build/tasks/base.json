@@ -685,6 +685,22 @@
                     "timestamp": "2026-06-10T00:00:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260611-0001",
+            "uuid": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+            "title": "drop.json entries without a target should delete the source",
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "Done",
+            "description": "pullbase drop entries currently require both 'source' and 'target'. Add support for delete-only entries where 'target' is absent or null — pullbase should delete the source file or directory outright rather than moving it. Update drop.json to use a delete-only entry for build/_workflow.",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Extended load_drop_entries (3.2.15) to accept entries where 'target' is absent or null (parsed as None). Extended drop_deprecated_paths (3.2.16) to delete source files/directories outright when target is None. Updated drop.json with a delete-only entry for build/_workflow. Bumped version to 26.06.11.02.",
+                    "timestamp": "2026-06-11T00:00:00Z"
+                }
+            ]
         }
     ]
 }
