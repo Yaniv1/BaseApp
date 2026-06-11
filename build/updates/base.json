@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [3.2.15, 3.2.16] [Feature] drop.json entries without a target delete the source",
+        "version": "26.06.11.02",
+        "description": "Extended load_drop_entries (3.2.15) to accept drop entries where 'target' is absent or null. Extended drop_deprecated_paths (3.2.16) to delete source files/directories outright when target is None, instead of requiring a target path. Updated drop.json with a delete-only entry for build/_workflow (no target)."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260609-0007] [Architecture] Remove build/_workflow folder",
         "version": "26.06.11.01",
         "description": "Removed build/_workflow/ folder and its feature 10.5 (build._workflow / build._workflow.base) from build/architecture/base.json. Added build/_workflow to drop.json so instantiated apps remove the folder on next pull."

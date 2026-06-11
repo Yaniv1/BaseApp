@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.11.01
-- App template version: A26.06.11.01
+- Base version: 26.06.11.02
+- App template version: A26.06.11.02
+
+## Highlights (26.06.11.02)
+
+- **`drop.json` entries without a `target` now delete the source.** `pullbase` (`load_drop_entries` / `drop_deprecated_paths`) accepts entries where `target` is absent or null and removes the source file/directory outright. The `build/_workflow` delete entry in `drop.json` now uses this form.
 
 ## Highlights (26.06.11.01)
 

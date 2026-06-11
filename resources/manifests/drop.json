@@ -8,6 +8,7 @@
         { "source": "docs/templates",      "target": "resources/templates" },
         { "source": "docs/manifests",      "target": "resources/manifests" },
         { "source": "docs/version",        "target": "resources/version" },
-        { "source": "updates",             "target": "build/updates" }
+        { "source": "updates",             "target": "build/updates" },
+        { "source": "build/_workflow" }
     ]
 }

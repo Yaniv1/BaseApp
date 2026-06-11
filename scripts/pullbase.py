@@ -260,9 +260,14 @@ def pull_once_files(
 
 
 # Feature 3.2.15
-def load_drop_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
-    """Load all drop entries (deprecated source→target path pairs) from copied manifest files."""
-    pairs: list[tuple[str, str]] = []
+def load_drop_entries(manifest_paths: list[Path]) -> list[tuple[str, str | None]]:
+    """Load all drop entries from copied manifest files.
+
+    Each entry is (source, target) where target may be None.
+    - If target is present: source is moved/renamed to target.
+    - If target is absent or null: source is deleted outright.
+    """
+    pairs: list[tuple[str, str | None]] = []
 
     for manifest_path in manifest_paths:
         with open(manifest_path, "r", encoding="utf-8") as f:
@@ -282,11 +287,11 @@ def load_drop_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
                 raise ValueError(f"Invalid manifest item at {manifest_path}:drop[{index}] - expected object")
 
             source = item.get("source")
-            target = item.get("target")
             if not isinstance(source, str) or not source:
                 raise ValueError(f"Invalid manifest item at {manifest_path}:drop[{index}] - 'source' is required")
-            if not isinstance(target, str) or not target:
-                raise ValueError(f"Invalid manifest item at {manifest_path}:drop[{index}] - 'target' is required")
+
+            raw_target = item.get("target")
+            target: str | None = raw_target if isinstance(raw_target, str) and raw_target else None
 
             pairs.append((source, target))
 
@@ -294,21 +299,22 @@ def load_drop_entries(manifest_paths: list[Path]) -> list[tuple[str, str]]:
 
 
 # Feature 3.2.16
-def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -> tuple[int, int, int]:
-    """Migrate deprecated paths to their new locations in the local app.
+def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str | None]]) -> tuple[int, int, int]:
+    """Migrate or delete deprecated paths in the local app.
 
     This runs AFTER pull_base_files, so any file already at the target path
     was just placed there by the pull step and is the authoritative version.
 
-    Processes each (source, target) pair file-by-file:
-    - If the target file is absent: move the source file to the target.
-    - If the target file already exists: delete the stale old-location copy
-      (the target is already the authoritative version, placed by the pull).
+    For each (source, target) pair:
+    - If target is None: delete source outright (file or directory tree).
+    - If target is present and target file is absent: move source to target.
+    - If target is present and target file already exists: delete the stale
+      old-location copy (the target is already authoritative from the pull).
     After processing all files, empty source directories are removed.
 
     Returns (moved, removed, skipped) where:
       moved   = files relocated to their new path
-      removed = stale old-location copies deleted (target already had content)
+      removed = stale old-location copies deleted (target already had content, or delete-only entry)
       skipped = source paths that did not exist
     """
     moved = 0
@@ -322,29 +328,37 @@ def drop_deprecated_paths(local_root: Path, drop_pairs: list[tuple[str, str]]) -
             continue
 
         if source.is_file():
-            target = local_root / target_rel
-            if not target.exists():
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.move(str(source), str(target))
-                moved += 1
-            else:
+            if target_rel is None:
                 source.unlink()
                 removed += 1
+            else:
+                target = local_root / target_rel
+                if not target.exists():
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(source), str(target))
+                    moved += 1
+                else:
+                    source.unlink()
+                    removed += 1
             continue
 
         if source.is_dir():
             for child in sorted(source.rglob("*")):
                 if not child.is_file():
                     continue
-                child_rel = child.relative_to(source)
-                target_file = local_root / target_rel / child_rel
-                if not target_file.exists():
-                    target_file.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.move(str(child), str(target_file))
-                    moved += 1
-                else:
+                if target_rel is None:
                     child.unlink()
                     removed += 1
+                else:
+                    child_rel = child.relative_to(source)
+                    target_file = local_root / target_rel / child_rel
+                    if not target_file.exists():
+                        target_file.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.move(str(child), str(target_file))
+                        moved += 1
+                    else:
+                        child.unlink()
+                        removed += 1
             # Remove empty subdirectories bottom-up, then the root
             for dirpath in sorted(source.rglob("*"), reverse=True):
                 if dirpath.is_dir():
