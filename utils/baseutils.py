@@ -509,6 +509,7 @@ class Logger:
     def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False,
                  log_types=None,
                  type_colors=None, message_lookup=None,
+                 message_wrappers=("{", "}"),
                  console_items=["timestamp", "type_key", "type", "elapsed_sec", "message_code", "message"]):
         
         self._lock = threading.RLock()
@@ -521,6 +522,7 @@ class Logger:
         self.data_map = {}
         self.log_columns = ["timestamp", "type_key", "type", "elapsed_sec", "caller", "message_code", "message", "data"]
         self.message_lookup = message_lookup if message_lookup is not None else pd.DataFrame(columns=["code", "type", "text"])
+        self.message_wrappers = tuple(message_wrappers) if message_wrappers else ("{", "}")
         self.log_path = log_path
         self._csv_written_count = 0
         self.max_items = max_items
@@ -540,7 +542,7 @@ class Logger:
         self._print_console_columns_once()
 
         self.log(message_code="LOG001", data={"start_time": self.start_time.isoformat()}, entry=False)
-        self.log(message_code="LOG002", data={"log_path": log_path})
+        self.log(message_code="LOG002", data={"log_path": log_path}, populate=True)
         
 
         n_deleted = 0
@@ -554,10 +556,11 @@ class Logger:
                         self.log(
                             message_code="LOG003",
                             data={"deleted_count": deleted_in_folder, "extension": ext, "folder": folder},
+                            populate=True,
                         )
                 
         if max_items:
-            self.log(message_code="LOG004", data={"max_items": max_items})
+            self.log(message_code="LOG004", data={"max_items": max_items}, populate=True)
             
 
     def _cleanup_folder(self, folder_path, max_items=None, extensions=None):
@@ -756,6 +759,16 @@ class Logger:
             caller_depth = 2
         return text, type_val, caller_depth
 
+    def _populate_message(self, text, data):
+        """Substitute {key} placeholders in text with matching values from data."""
+        if not text or not data:
+            return text
+        open_w, close_w = self.message_wrappers
+        result = text
+        for key, value in data.items():
+            result = result.replace(f"{open_w}{key}{close_w}", str(value))
+        return result
+
     def _normalize_data(self, data):
         """Normalize optional per-event data payload into dict or None."""
         if data is None:
@@ -852,7 +865,7 @@ class Logger:
         return lineage
 
     # Feature 6.1.9.18
-    def log(self, message="", message_type=None, data=None, message_code=None, entry=True, console=True):
+    def log(self, message="", message_type=None, data=None, message_code=None, entry=True, console=True, populate=False):
         """Feature ID: 6.1.9.18. Store a message or data with the current timestamp."""
         
         looked_up_text = ""
@@ -874,6 +887,8 @@ class Logger:
             normalized_data = self._normalize_data(data)
             if normalized_data is not None:
                 self.data_map = dict_merge(self.data_map, normalized_data)
+
+            final_message = self._populate_message(resolved_message, normalized_data) if populate else resolved_message
             
             if entry:
                 now = dt.datetime.utcnow()
@@ -885,7 +900,7 @@ class Logger:
                         "elapsed_sec": f"{elapsed_time:06.3f}",
                         "caller": caller_lineage,
                         "message_code": message_code,
-                        "message": resolved_message,
+                        "message": final_message,
                         "data": normalized_data}
                 
                 
@@ -1147,7 +1162,7 @@ class AppManager:
             message_code="BASE001",
             data={"instance": str(self)},
         )
-        self.logger.log(message_code="BASE002", data={"run_id": self.RESULTS.run_id})
+        self.logger.log(message_code="BASE002", data={"run_id": self.RESULTS.run_id}, populate=True)
         
     def create_results(self):
         """Create initialized run metadata derived from current config."""
@@ -1467,6 +1482,7 @@ class AppManager:
                             message_code="BASEW06",
                             message_type="WARN",
                             data={"output_key": output_key, "error": str(exc)},
+                            populate=True,
                         )
                         self.OUTPUT_MAP[output_key] = []
                     else:
@@ -1489,6 +1505,7 @@ class AppManager:
                 message_code="BASEW05",
                 message_type="WARN",
                 data={"output_key": output_key, "error": str(ex)},
+                populate=True,
             )
         
     

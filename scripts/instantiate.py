@@ -272,7 +272,7 @@ def instantiate(source_root: Path, target_root: Path, target_value: str, logger:
             copied_core += 1
 
     if logger:
-        logger.log(message_code="INST003", data={"copied": copied_core})
+        logger.log(message_code="INST003", data={"copied": copied_core}, populate=True)
 
     for src_rel, dst_rel in one_off_files:
         for file_src_rel, file_dst_rel in expand_manifest_entry(source_root, src_rel, dst_rel):
@@ -299,11 +299,11 @@ def instantiate(source_root: Path, target_root: Path, target_value: str, logger:
     if ensure_app_instruction_file(target_root, target_value):
         created_placeholders += 1
         if logger:
-            logger.log(message_code="INST005", data={"target_app": target_value})
+            logger.log(message_code="INST005", data={"target_app": target_value}, populate=True)
     else:
         kept_placeholders += 1
         if logger:
-            logger.log(message_code="INST006", data={"target_app": target_value})
+            logger.log(message_code="INST006", data={"target_app": target_value}, populate=True)
 
     return {
         "copied_core": copied_core,
@@ -377,7 +377,7 @@ def main():
             overrides = load_overrides(args.overrides)
         except ValueError as exc:
             if logger:
-                logger.log(message_code="INSTW10", message_type="WARN", data={"error": str(exc)})
+                logger.log(message_code="INSTW10", message_type="WARN", data={"error": str(exc)}, populate=True)
             print(f"[WARN] Could not load overrides: {exc}")
 
     try:
@@ -389,7 +389,7 @@ def main():
         print(f"App placeholders preserved: {result['kept_placeholders']}")
 
         if logger:
-            logger.log(message_code="INST999", message_type="GOOD", data={"target_app": target_value})
+            logger.log(message_code="INST999", message_type="GOOD", data={"target_app": target_value}, populate=True)
     except Exception as exc:
         if logger:
             logger.log(message_code="INSTE01", message_type="ERROR", data={"error": str(exc)})

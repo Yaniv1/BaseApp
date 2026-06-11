@@ -701,6 +701,31 @@
                     "timestamp": "2026-06-11T00:00:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260611-0002",
+            "uuid": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+            "title": "Logger: populate message text placeholders from data",
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "Done",
+            "description": [
+                "Currently, Logger.log() stores the looked-up message text verbatim. Data values are attached to the log entry but never interpolated into the message string.",
+                "Add an opt-in `populate` parameter (bool, default False) to Logger.log(). When True, replace {key} placeholders in the resolved message text with matching values from the data dict before the message is stored or printed.",
+                "After the feature is implemented, review all existing logger.log() call sites across the codebase and update those where substituting data values into the message text meaningfully improves log readability."
+            ],
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Task created.",
+                    "timestamp": "2026-06-11T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Implemented: added message_wrappers=('{','}') to Logger.__init__ (configurable per instance). Added _populate_message() helper. Added populate=False to Logger.log(); when True, substitutes {key} placeholders in the resolved message text with values from data before storing/printing. Updated message texts in logger.csv (LOG002, LOG003, LOG004) and base.csv (BASE002, BASEW05, BASEW06, INST003, INST005, INST006, INST999, INSTW10, PULL003, PULL006, PULL008, PULL009, PULL010, PULLE02, PULLE05, PULLW07, PULLW08). Updated all matching call sites to pass populate=True. Note: DATAE01 in DataConverter.log_func lambda does not yet support populate (separate improvement). Bumped version to 26.06.11.03.",
+                    "timestamp": "2026-06-11T00:00:00Z"
+                }
+            ]
         }
     ]
 }

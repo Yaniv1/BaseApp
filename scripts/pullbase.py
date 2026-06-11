@@ -468,7 +468,7 @@ def main() -> int:
 
     if not source_root.exists() or not source_root.is_dir():
         if logger:
-            logger.log(message_code="PULLE02", message_type="ERROR", data={"source": str(source_root)})
+            logger.log(message_code="PULLE02", message_type="ERROR", data={"source": str(source_root)}, populate=True)
             html_path = logger.save_html(
                 title=f"Base Pull for {local_app_name} from {source_root}",
                 template=template,
@@ -483,7 +483,7 @@ def main() -> int:
     if args.hard:
         copied, missing_sources = hard_pull(local_root, source_root)
         if logger:
-            logger.log(message_code="PULL003", data={"copied": copied})
+            logger.log(message_code="PULL003", data={"copied": copied}, populate=True)
     else:
         try:
             manifest_paths = sync_manifests(source_root, local_root)
@@ -495,7 +495,7 @@ def main() -> int:
                 )
         except (FileNotFoundError, ValueError) as exc:
             if logger:
-                logger.log(message_code="PULLE05", message_type="ERROR", data={"error": str(exc)})
+                logger.log(message_code="PULLE05", message_type="ERROR", data={"error": str(exc)}, populate=True)
                 html_path = logger.save_html(
                     title=f"Base Pull for {local_app_name} from {source_root}",
                     template=template,
@@ -506,7 +506,7 @@ def main() -> int:
             return 1
         copied, missing_sources = pull_base_files(local_root, source_root, file_map)
         if logger:
-            logger.log(message_code="PULL006", data={"copied": copied})
+            logger.log(message_code="PULL006", data={"copied": copied}, populate=True)
 
         # If this script was updated by the pull, re-exec with the fresh version
         # so that drop and once run under the newly pulled code, not the old in-memory version.
@@ -519,10 +519,10 @@ def main() -> int:
 
         drop_list = load_drop_entries(manifest_paths)
         if logger:
-            logger.log(message_code="PULL009", data={"entry_count": len(drop_list)})
+            logger.log(message_code="PULL009", data={"entry_count": len(drop_list)}, populate=True)
         drop_moved, drop_removed, drop_skipped = drop_deprecated_paths(local_root, drop_list)
         if logger:
-            logger.log(message_code="PULL010", data={"moved": drop_moved, "removed": drop_removed, "skipped": drop_skipped})
+            logger.log(message_code="PULL010", data={"moved": drop_moved, "removed": drop_removed, "skipped": drop_skipped}, populate=True)
 
         once_map = load_once_entries(manifest_paths)
         if logger:
@@ -532,7 +532,7 @@ def main() -> int:
             )
         once_copied, once_skipped, once_missing = pull_once_files(local_root, source_root, once_map)
         if logger:
-            logger.log(message_code="PULL008", data={"copied": once_copied, "skipped": once_skipped})
+            logger.log(message_code="PULL008", data={"copied": once_copied, "skipped": once_skipped}, populate=True)
         missing_sources.extend(once_missing)
 
     print(f"Source: {source_root}")
@@ -544,12 +544,12 @@ def main() -> int:
 
     if missing_sources:
         if logger:
-            logger.log(message_code="PULLW07", message_type="WARN", data={"count": len(missing_sources)})
+            logger.log(message_code="PULLW07", message_type="WARN", data={"count": len(missing_sources)}, populate=True)
         print("Missing source files:")
         for path in missing_sources:
             print(f"- {path}")
             if logger:
-                logger.log(message_code="PULLW08", message_type="WARN", data={"path": path})
+                logger.log(message_code="PULLW08", message_type="WARN", data={"path": path}, populate=True)
         if logger:
             html_path = logger.save_html(
                 title=f"Base Pull for {local_app_name} from {source_root}",

@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.11.02
-- App template version: A26.06.11.02
+- Base version: 26.06.11.03
+- App template version: A26.06.11.03
+
+## Highlights (26.06.11.03)
+
+- **Logger message text placeholders.** `Logger.log()` now accepts `populate=False`. When `True`, `{key}` placeholders in the looked-up message text are replaced with values from the `data` dict before storing or printing. Wrappers are configurable via `message_wrappers` on `Logger` (default `("{","}")`). Message texts updated across `logger.csv` and `base.csv`; all relevant call sites updated with `populate=True`.
 
 ## Highlights (26.06.11.02)
 

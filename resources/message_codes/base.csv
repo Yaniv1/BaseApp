@@ -1,11 +1,11 @@
 code,type,text,caller_depth
 BASE001,INFO,App initialized,
-BASE002,INFO,Run identifier assigned,
+BASE002,INFO,Run ID: {run_id},
 BASE003,INFO,Stored output artifact,
 BASE004,INFO,Opened output for browsing,
 BASE005,INFO,Measured function runtime,
-BASEW05,WARN,Could not open output,4
-BASEW06,WARN,Concurrent output worker failed,4
+BASEW05,WARN,Could not open output {output_key}: {error},4
+BASEW06,WARN,Output worker failed for {output_key}: {error},4
 BASE009,INFO,Resolved input files,
 BASE010,INFO,Loaded input file,
 BASE012,INFO,File loading completed,
@@ -21,26 +21,26 @@ BASEW10,WARN,Failed to load input file,4
 BASE999,GOOD,App completed
 INST001,INFO,Instantiate started
 INST002,INFO,Loaded manifest entries
-INST003,INFO,Completed pull sync during instantiate
+INST003,INFO,Pull sync: copied {copied} core files
 INST004,INFO,Completed once sync during instantiate
-INST005,INFO,Created app instruction file
-INST006,INFO,App instruction file already exists
+INST005,INFO,Created app instruction file: {target_app}
+INST006,INFO,App instruction file already exists: {target_app}
 INSTE07,ERROR,Invalid instantiate target
-INST999,GOOD,Instantiate completed successfully
+INST999,GOOD,Instantiate completed: {target_app}
 INST009,ERROR,Instantiate failed
 INST010,INFO,Applied config overrides to app config
-INSTW10,WARN,Could not load config overrides,4
+INSTW10,WARN,Could not load config overrides: {error},4
 PULL001,INFO,Pullbase started
-PULLE02,ERROR,Source not found
-PULL003,INFO,Hard pull copied files
+PULLE02,ERROR,Source not found: {source}
+PULL003,INFO,Hard pull: copied {copied} files
 PULL004,INFO,Loaded pull entries
-PULLE05,ERROR,Failed to load manifests
-PULL006,INFO,Pull copied files
-PULLW07,WARN,Missing source files detected
-PULLW08,WARN,Missing source file
+PULLE05,ERROR,Failed to load manifests: {error}
+PULL006,INFO,Pull: copied {copied} base files
+PULLW07,WARN,Missing source files detected: {count}
+PULLW08,WARN,Missing source file: {path}
 PULL007,INFO,Loaded once entries
-PULL008,INFO,Once pull synced files
-PULL009,INFO,Loaded drop entries
-PULL010,INFO,Dropped deprecated paths
+PULL008,INFO,Once pull: {copied} copied, {skipped} skipped
+PULL009,INFO,Loaded {entry_count} drop entries
+PULL010,INFO,Dropped deprecated paths: {moved} moved, {removed} removed, {skipped} skipped
 PULL999,GOOD,Pullbase completed successfully
-DATAE01,ERROR,Conversion step failed with error,4
+DATAE01,ERROR,Conversion step failed: {error},4
