@@ -31,7 +31,7 @@ class _DummyLogger:
     def __init__(self):
         self.events = []
 
-    def log(self, message="", message_type=None, data=None, message_code=None, entry=True):
+    def log(self, message="", message_type=None, data=None, message_code=None, entry=True, console=True, populate=False):
         self.events.append({"message_code": message_code, "data": data or {}})
 
 
