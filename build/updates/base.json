@@ -1,4 +1,9 @@
 [ 
+    {
+        "name": "[BaseApp] [BASE-TASK-260611-0002+] [6.1.9] [Feature] Console output formatting improvements",
+        "version": "26.06.16.01",
+        "description": "Improved Logger console output: removed type_key from default console_items; message_code column header renamed to CODE; column widths expand dynamically as wider values appear; all columns use ljust; last column value printed without trailing padding. Added BASE006 (Loaded input {input_key} ({source}) into RESULTS.{target_name}) and updated load_data() call site to use it with populate=True. Added populate=True to both BASE003 call sites in _save_output_artifact."
+    },
     {        "name": "[BaseApp] [BASE-TASK-260611-0002] [6.1.9.18] [Feature] Logger populate message text from data",
         "version": "26.06.11.03",
         "description": "Added populate=False parameter to Logger.log(). When True, {key} placeholders in the looked-up message text are replaced with matching values from the data dict before storing or printing. Placeholder wrappers are configurable via message_wrappers=('{','}') on Logger (default: curly braces). Added _populate_message() helper. Updated message texts in logger.csv and base.csv with placeholders, and updated all matching call sites in baseutils.py, pullbase.py, and instantiate.py to pass populate=True."

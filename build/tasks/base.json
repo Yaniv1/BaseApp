@@ -726,6 +726,28 @@
                     "timestamp": "2026-06-11T00:00:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260616-0001",
+            "uuid": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+            "title": "Group logger messages by TYPE and save the results",
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "ToDo",
+            "description": [
+                "Currently, log messages are stored in a flat structure without any grouping. To improve the organization and analysis of log data, we will implement a feature to group logger messages by their TYPE (e.g., INFO, WARN, ERROR) and save the results in a structured format.",
+                "This change will involve updating the logging mechanism to categorize messages based on their TYPE and then saving them in a way that reflects this grouping. This could be implemented as separate files for each TYPE or as a structured JSON output that organizes messages under their respective TYPE categories.",
+                "A test should be added to verify that log messages are correctly grouped by TYPE in the saved outputs.",
+                "Utilize the existing output storing functionality to save the grouped messages, ensuring that the new grouping feature integrates seamlessly with the current logging and output management systems. The implementation should also consider performance implications of grouping and saving log messages, especially in scenarios with high log volume.",
+                "print only the summary of ERRORs to the console."
+            ],
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created. Plan: (1) update logging mechanism to categorize messages by TYPE; (2) implement saving of grouped messages in a structured format; (3) add test to verify correct grouping in saved outputs.",
+                    "timestamp": "2026-06-16T00:00:00Z"
+                }
+            ]
         }
     ]
 }

@@ -1,6 +1,9 @@
 {
     "COMMON": {
-        "CONFIG_WRAPPERS": ["{$", "$}"],
+        "CONFIG_WRAPPERS": [
+            "{$",
+            "$}"
+        ],
         "APP_NAME": "BaseApp",
         "VERSION": "26.06.11.03",
         "DATE_FORMAT": "%Y%m%d",
@@ -8,18 +11,19 @@
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
         "RUN_ID": "str(uuid.uuid4().hex[:6]).upper()",
         "HTML_TEMPLATE": "../resources/templates/dataset_table.html",
-        "HTML_WRAPPERS": ["{$", "$}"],        
+        "HTML_WRAPPERS": [
+            "{$",
+            "$}"
+        ],
         "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}",
         "OUTPUT_VERSION": "dt.datetime.utcnow().strftime('%Y%m%d')",
         "OUTPUT_PATH": "{$OUTPUT_PREFIX$}/{$OUTPUT_VERSION$}",
         "OUTPUT_WORKERS": "os.cpu_count()"
     },
-    
     "APP": {
-        
         "name": "{$APP_NAME$}",
-        "version": "{$VERSION$}",       
-        "dirs":{
+        "version": "{$VERSION$}",
+        "dirs": {
             "data": "{$OUTPUT_PATH$}",
             "config": "config",
             "tests": "test",
@@ -28,9 +32,7 @@
         },
         "verbose": true
     },
-
-    "LOG":{
-        
+    "LOG": {
         "start_time": "{$START_TIME$}",
         "path": "{$OUTPUT_PATH$}/logs",
         "messages_dir": "resources/message_codes",
@@ -50,10 +52,7 @@
         },
         "max_items": 5
     },
-
-    
     "INPUT": {
-        
         "message_codes": {
             "load": true,
             "path": "resources/message_codes",
@@ -79,40 +78,35 @@
             "format": "json"
         }
     },
-
     "PROCESS": {
-        
         "message_codes_df": {
             "run": true,
             "source": "message_codes",
             "context": {
                 "message_codes": "message_codes"
             },
-            "conversions": [                
-                {                    
+            "conversions": [
+                {
                     "scope": "df",
                     "op": "pd.concat([frame.assign(source_file=name) for name, frame in message_codes.items()], ignore_index=True)"
                 }
             ],
             "target": "message_codes_df"
         },
-
         "tasks_df": {
             "run": true,
             "source": "tasks",
             "context": {
                 "tasks": "tasks"
             },
-            "conversions": [ 
-                          
-                {                    
+            "conversions": [
+                {
                     "scope": "df",
                     "op": "pd.concat([pd.DataFrame(task_dict.get('TASKS', [])).assign(source_file=name) for name, task_dict in tasks.items() if name != 'template.json'], ignore_index=True)"
                 }
             ],
             "target": "tasks_df"
         },
-
         "tasks_filtered": {
             "run": true,
             "source": "tasks",
@@ -127,7 +121,6 @@
             ],
             "target": "tasks_filtered"
         },
-
         "tasks_by_status": {
             "run": true,
             "source": "tasks_df",
@@ -142,7 +135,6 @@
             ],
             "target": "tasks_by_status"
         },
-
         "tasks_by_type_status": {
             "run": true,
             "source": "tasks_df",
@@ -157,12 +149,8 @@
             ],
             "target": "tasks_by_type_status"
         }
-        
     },
-
-    
     "OUTPUT": {
-        
         "results": {
             "store": true,
             "split": false,
@@ -186,7 +174,6 @@
             "path": "{$OUTPUT_PATH$}/config",
             "file": "config.json",
             "format": "json"
-
         },
         "results_html": {
             "store": true,
@@ -210,7 +197,6 @@
             },
             "open": false
         },
-        
         "message_codes_split_html": {
             "store": true,
             "split": 2,
@@ -244,7 +230,6 @@
             },
             "open": false
         },
-        
         "tasks_by_status_split": {
             "store": true,
             "split": 1,
@@ -256,7 +241,6 @@
             },
             "max_items": 100
         },
-
         "tasks_by_type_status_split": {
             "store": true,
             "split": 2,
@@ -268,7 +252,6 @@
             },
             "max_items": 100
         },
-
         "tasks_df_html": {
             "store": true,
             "source": "RESULTS.tasks_df",
@@ -279,8 +262,6 @@
                 "template": "{$HTML_TEMPLATE$}"
             }
         },
-        
-                
         "config_html": {
             "store": true,
             "source": "CONFIG",
@@ -292,7 +273,6 @@
             },
             "open": false
         },
-
         "log_html": {
             "store": true,
             "source": "LOGS",
@@ -304,7 +284,6 @@
             },
             "open": false
         },
-
         "output_map": {
             "store": true,
             "source": "OUTPUT_MAP",
@@ -312,7 +291,6 @@
             "file": "output_map.json",
             "format": "json"
         },
-
         "output_map_html": {
             "store": true,
             "source": "OUTPUT_MAP",
@@ -324,6 +302,6 @@
             },
             "open": false
         }
-    }
-
+    },
+    "VERSION": "26.06.16.01"
 }

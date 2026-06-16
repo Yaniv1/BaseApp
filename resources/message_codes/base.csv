@@ -1,9 +1,10 @@
 code,type,text,caller_depth
 BASE001,INFO,App initialized,
 BASE002,INFO,Run ID: {run_id},
-BASE003,INFO,Stored output artifact,
+BASE003,INFO,Stored output artifact {output_key} to {path},
 BASE004,INFO,Opened output for browsing,
 BASE005,INFO,Measured function runtime,
+BASE006,INFO,Loaded input {input_key} from {path} into RESULTS.{target_name},
 BASEW05,WARN,Could not open output {output_key}: {error},4
 BASEW06,WARN,Output worker failed for {output_key}: {error},4
 BASE009,INFO,Resolved input files,
@@ -39,8 +40,8 @@ PULL006,INFO,Pull: copied {copied} base files
 PULLW07,WARN,Missing source files detected: {count}
 PULLW08,WARN,Missing source file: {path}
 PULL007,INFO,Loaded once entries
-PULL008,INFO,Once pull: {copied} copied, {skipped} skipped
+PULL008,INFO,"Once pull: {copied} copied. {skipped} skipped"
 PULL009,INFO,Loaded {entry_count} drop entries
-PULL010,INFO,Dropped deprecated paths: {moved} moved, {removed} removed, {skipped} skipped
+PULL010,INFO,"Dropped deprecated paths: {moved} moved. {removed} removed. {skipped} skipped"
 PULL999,GOOD,Pullbase completed successfully
 DATAE01,ERROR,Conversion step failed: {error},4

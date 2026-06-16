@@ -2,27 +2,12 @@
     "COMMON": {
         "APP_NAME": "MyApp",
         "VERSION": "A26.06.11.03",
-        "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}"        
+        "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}"
     },
-
-    "APP": {
-        
-    },
-
-    "LOG":{
-    },
-
-    "INPUT": {
-        
-    },
-
-    "PROCESS": {
-        
-    },
-    
-    "OUTPUT": {
-        
-    }
-
+    "APP": {},
+    "LOG": {},
+    "INPUT": {},
+    "PROCESS": {},
+    "OUTPUT": {},
+    "VERSION": "A26.06.16.01"
 }
-

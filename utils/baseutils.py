@@ -510,7 +510,8 @@ class Logger:
                  log_types=None,
                  type_colors=None, message_lookup=None,
                  message_wrappers=("{", "}"),
-                 console_items=["timestamp", "type_key", "type", "elapsed_sec", "message_code", "message"]):
+                 console_items={"timestamp":"TIMESTAMP", "type":"TYPE", "elapsed_sec":"ELAPSED", "message_code":"CODE", "message":"MESSAGE"},
+                 ):
         
         self._lock = threading.RLock()
         self.log_types = self._normalize_log_types(log_types) or {0: "NONE", 1: "INFO", 2: "GOOD", 3: "WARN", 4: "ERROR"}
@@ -537,7 +538,8 @@ class Logger:
         
         self.log(message_code="LOG001", data={"start_time": self.start_time.isoformat()}, entry=True, console=False)
 
-        self.console_items = {col: max(len(col), len(str(self.logs[0].get(col, "" )))) for col in console_items}
+        self.console_items = console_items or {"timestamp":"TIMESTAMP", "message":"MESSAGE"}
+        self.console_item_widths = {col: max(len(head), len(str(self.logs[0].get(col, "" )))) for col,head in self.console_items.items()}
                  
         self._print_console_columns_once()
 
@@ -720,7 +722,7 @@ class Logger:
             return
         
         # Calculate column widths based on header and existing log content, defaulting to header width when no logs.
-        header = " | ".join([col.upper().ljust(chars) for col,chars in self.console_items.items()])
+        header = " | ".join([h.ljust(self.console_item_widths[col]) for col, h in self.console_items.items()])
         
         print(self._format_console_row("", header))
 
@@ -913,7 +915,13 @@ class Logger:
                     k:str(v) for k,v in event.items() if k in self.console_items.keys()
                 }
 
-                console_line = ' | '.join([v.rjust(self.console_items.get(k, len(v))) for k, v in console_event.items()])
+                # Expand column widths if any value exceeds the current tracked width.
+                for k, v in console_event.items():
+                    if len(v) > self.console_item_widths.get(k, 0):
+                        self.console_item_widths[k] = len(v)
+
+                cols = list(console_event.keys())
+                console_line = ' | '.join([v if i == len(cols) - 1 else v.ljust(self.console_item_widths.get(k, len(v))) for i, (k, v) in enumerate(console_event.items())])
                 
                 if len(self.logs)%20 == 0:
                     self._print_console_columns_once()
@@ -1242,9 +1250,12 @@ class AppManager:
             )
             
             getattr(self, self.logger_name).log(
-                message_code="BASE003",
-                message=f"Loaded input '{input_key}' into RESULTS.{target_name}",        
-                data={"num_of_results": len(self.RESULTS.get_dict().keys())},
+                message_code="BASE006",
+                data={"input_key": input_key, 
+                      "path": input_settings.get("path", ""), 
+                      "target_name": target_name, 
+                      "num_of_results": len(self.RESULTS.get_dict().keys())},
+                populate=True,
             )
 
     # Feature 6.1.11.2
@@ -1369,7 +1380,7 @@ class AppManager:
                 }
                 if item_keys:
                     log_data["item_key"] = "/".join([str(k) for k in item_keys])
-                self.logger.log(message_code="BASE003", data=log_data)
+                self.logger.log(message_code="BASE003", data=log_data, populate=True)
                 return full_output_path
 
         artifact_data = data
@@ -1407,7 +1418,7 @@ class AppManager:
             log_data["sha256"] = new_checksum
         if item_keys:
             log_data["item_key"] = "/".join([str(k) for k in item_keys])
-        self.logger.log(message_code="BASE003", data=log_data)
+        self.logger.log(message_code="BASE003", data=log_data, populate=True)
 
         if output_dict.get("open", False) and saved_path:
             open_key = output_key if not item_keys else f"{output_key}:{'/'.join([str(k) for k in item_keys])}"
