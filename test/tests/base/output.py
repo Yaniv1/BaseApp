@@ -509,6 +509,67 @@ def test_to_json_compatible(manager=None, message=None, **kwargs):
 
 
 # Feature 5.3.1.3.4
+def test_logs_by_type(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.3.4. Post-test that verifies logs_by_type output files are saved after the app run.
+
+    Covers features:
+      - 6.1.9.20  (logs grouped by type and stored as split HTML)
+    """
+    features = ["6.1.9.20"]
+    criteria = []
+
+    # Resolve the app's output path from the monitor snapshot, then derive the by_type dir.
+    by_type_dir = None
+    if manager is not None:
+        app_output_path = manager._resolve_monitor("results.output_path")
+        if app_output_path:
+            by_type_dir = os.path.join(str(app_output_path), "Logs", "by_type")
+
+    # Criterion 1: by_type output directory exists.
+    dir_exists = bool(by_type_dir and os.path.isdir(by_type_dir))
+    criteria.append({
+        "name": "logs_by_type_directory_exists",
+        "operator": "eq",
+        "actual": dir_exists,
+        "expected": True,
+        "success": dir_exists,
+        "status": "PASS" if dir_exists else "FAIL",
+    })
+
+    # Criterion 2: For each type present in the logs, a {type}.html or {type}.json file exists.
+    log_types = []
+    if manager is not None:
+        logs = getattr(getattr(manager, "logger", None), "logs", []) or []
+        log_types = sorted(set(str(e.get("type", "")).strip() for e in logs if str(e.get("type", "")).strip()))
+
+    missing_files = []
+    if dir_exists and log_types:
+        existing = os.listdir(by_type_dir)
+        for t in log_types:
+            has_file = any(f in existing for f in [f"{t}.html", f"{t}.json"])
+            if not has_file:
+                missing_files.append(t)
+
+    type_files_ok = dir_exists and len(log_types) > 0 and len(missing_files) == 0
+    criteria.append({
+        "name": "logs_by_type_files_per_type",
+        "operator": "eq",
+        "actual": missing_files if missing_files else "all present",
+        "expected": "all present",
+        "success": type_files_ok,
+        "status": "PASS" if type_files_ok else "FAIL",
+    })
+
+    overall = "PASS" if all(c["success"] for c in criteria) else "FAIL"
+    return _build_result(
+        status=overall,
+        message=message or "Validated logs_by_type output files exist after app run",
+        criteria=criteria,
+        features=features,
+    )
+
+
+# Feature 5.3.1.3.4
 def test_output_file_mapping(manager=None, message=None, **kwargs):
     """Feature ID: 5.3.1.3.4. Pre-test that validates OUTPUT_MAP is populated by store_outputs.
 

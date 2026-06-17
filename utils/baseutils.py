@@ -726,8 +726,8 @@ class Logger:
         
         print(self._format_console_row("", header))
 
-    def save_html(self, html_path=None, title="BaseApp Logs", template=None):
-        """Save logs as HTML using HtmlDoc template rendering."""
+    def save_html(self, html_path=None, title="BaseApp Logs", template=None, data=None):
+        """Save logs (or an optional alternative dataset) as HTML using HtmlDoc template rendering."""
         if html_path is None:
                 if not self.log_path:
                         return None
@@ -737,7 +737,7 @@ class Logger:
         if template is None:
             raise ValueError("template is required for Logger.save_html")
 
-        HtmlDoc(self.logs, template=template, title=title).save(html_path)
+        HtmlDoc(data if data is not None else self.logs, template=template, title=title).save(html_path)
 
         if getattr(self, "max_items", None):
             html_folder = os.path.dirname(html_path)
@@ -898,7 +898,7 @@ class Logger:
                 caller_lineage = self._get_caller_lineage(max_depth=caller_depth)
                 event = {"timestamp": now.strftime('%Y-%m-%dT%H:%M:%SZ'), 
                         "type_key": message_key,
-                        "type": message_type.rjust(5),
+                        "type": message_type,
                         "elapsed_sec": f"{elapsed_time:06.3f}",
                         "caller": caller_lineage,
                         "message_code": message_code,
@@ -1454,6 +1454,17 @@ class AppManager:
             data,
             max_items=output_dict.get("max_items", None),
         )
+
+        # Apply optional inline conversions before splitting/saving.
+        conversions = output_dict.get("conversions")
+        if conversions:
+            context = {alias: resolve_dotted(self, src) for alias, src in output_dict.get("context", {}).items()}
+            data = DataConverter(
+                conversions=conversions,
+                context=context,
+                log_func=(lambda msg, code=None, data=None: self.logger.log(message=msg, message_code=code, data=data))
+            ).apply(data)
+
         split_setting = output_dict.get("split", False)
         split_depth = int(split_setting) if isinstance(split_setting, (int, float)) else (1 if split_setting else 0)
         if split_depth > 0 and isinstance(data, dict):
@@ -1521,7 +1532,7 @@ class AppManager:
         
     
     # Feature 6.1.11.4
-    def close(self):
+    def close(self, store_outputs=True):
         """Feature ID: 6.1.11.4. Finalize the run state and prepare runtime artifacts for saving."""
         self.RESULTS.end_time = dt.datetime.utcnow()
         self.RESULTS.elapsed_seconds = (self.RESULTS.end_time - self.RESULTS.start_time).total_seconds()
@@ -1542,11 +1553,13 @@ class AppManager:
         )
         self.LOGS = self.logger.logs
 
+        if store_outputs:
+            self.store_outputs()
+
     # Feature 6.1.11.5
     def run(self):
         """Feature ID: 6.1.11.5. Run the full data loading and processing pipeline, then store outputs."""
         self.load_data()
         self.process_data()
         self.close()
-        self.store_outputs()
         

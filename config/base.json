@@ -34,7 +34,7 @@
     },
     "LOG": {
         "start_time": "{$START_TIME$}",
-        "path": "{$OUTPUT_PATH$}/logs",
+        "path": "{$OUTPUT_PATH$}/Logs/logs",
         "messages_dir": "resources/message_codes",
         "verbose": "INFO",
         "types": {
@@ -276,12 +276,57 @@
         "log_html": {
             "store": true,
             "source": "LOGS",
-            "path": "{$OUTPUT_PATH$}/html_logs",
+            "path": "{$OUTPUT_PATH$}/Logs/HTML",
             "file": "{$START_TIME$}.html",
             "format": "html",
             "kwargs": {
                 "template": "{$HTML_TEMPLATE$}"
             },
+            "open": false
+        },
+        "logs_by_type_html": {
+            "store": true,
+            "split": 1,
+            "source": "LOGS",
+            "context": {
+                "logs": "LOGS"
+            },
+            "conversions": [
+                {
+                    "scope": "df",
+                    "op": "{t: grp.sort_values(['elapsed_sec']).to_dict(orient='records') for t, grp in pd.DataFrame(df).groupby('type')}"
+                },
+                {
+                    "scope": "df",
+                    "op": "{t: df.get(t, [{k: None for k in pd.DataFrame(logs).columns}]) for t in ['INFO', 'GOOD', 'WARN', 'ERROR']}"
+                }
+            ],
+            "path": "{$OUTPUT_PATH$}/Logs/by_type",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "open": false
+        },
+        "logs_by_type_json": {
+            "store": true,
+            "split": 1,
+            "source": "LOGS",
+            "context": {
+                "logs": "LOGS"
+            },
+            "conversions": [
+                {
+                    "scope": "df",
+                    "op": "{t: grp.sort_values(['elapsed_sec']).to_dict(orient='records') for t, grp in pd.DataFrame(df).groupby('type')}"
+                },
+                {
+                    "scope": "df",
+                    "op": "{t: df.get(t, [{k: None for k in pd.DataFrame(logs).columns}]) for t in ['INFO', 'GOOD', 'WARN', 'ERROR']}"
+                }
+            ],
+            "path": "{$OUTPUT_PATH$}/Logs/by_type",
+            "format": "json",            
             "open": false
         },
         "output_map": {

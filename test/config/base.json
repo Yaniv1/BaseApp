@@ -232,6 +232,14 @@
                 "inputs": {
                     "message": "Validated tasks grouped by type and status in process output"
                 }
+            },
+            {
+                "id": "post_logs_by_type",
+                "name": "Post logs by type",
+                "callable": "test.tests.base.output.test_logs_by_type",
+                "inputs": {
+                    "message": "Validated logs_by_type output files exist after app run"
+                }
             }
         ]
     },
@@ -282,6 +290,30 @@
             "source": "test_logger.logs",
             "path": "{$OUTPUT_PATH$}/tests/logs",
             "file": "test_log.html",
+            "format": "html",
+            "kwargs": {
+                "template": "{$HTML_TEMPLATE$}"
+            },
+            "open": false
+        },
+        "test_log_by_type_html": {
+            "store": true,
+            "split": 1,
+            "source": "test_logger.logs",
+            "context": {
+                "logs": "test_logger.logs"
+            },
+            "conversions": [
+                {
+                    "scope": "df",
+                    "op": "{t: grp.sort_values(['elapsed_sec']).to_dict(orient='records') for t, grp in pd.DataFrame(df).groupby('type')}"
+                },
+                {
+                    "scope": "df",
+                    "op": "{t: df.get(t, [{k: None for k in pd.DataFrame(logs).columns}]) for t in ['INFO', 'PASS', 'WARN', 'FAIL']}"
+                }
+            ],
+            "path": "{$OUTPUT_PATH$}/tests/logs/by_type",
             "format": "html",
             "kwargs": {
                 "template": "{$HTML_TEMPLATE$}"
