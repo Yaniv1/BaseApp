@@ -92,6 +92,12 @@
                     "description": "Structure requirement: The logger shall maintain a data_map snapshot and support dotted-path value resolution for test monitoring and diagnostics.",
                     "priority": "High",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-002.5",
+                    "description": "Output requirement: The runtime shall group logs by TYPE (INFO/GOOD/WARN/ERROR), persist grouped artifacts via existing output storage, and in summary mode print only a concise ERROR summary to the console.",
+                    "priority": "Medium",
+                    "comments": []
                 }
             ],
             "solution": [
@@ -112,6 +118,20 @@
                 {
                     "feature": "6.1.9",
                     "role": "Logger stores typed events, caller lineage, data map snapshots, and CSV/HTML artifacts.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "6.1.9.24",
+                    "role": "Logger.print_summary emits console summary output.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "5.3.1.3.8",
+                    "role": "Post test validates per-type logs_by_type output artifacts after runtime completion.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0

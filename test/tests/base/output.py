@@ -508,14 +508,14 @@ def test_to_json_compatible(manager=None, message=None, **kwargs):
     )
 
 
-# Feature 5.3.1.3.4
+# Feature 5.3.1.3.8
 def test_logs_by_type(manager=None, message=None, **kwargs):
-    """Feature ID: 5.3.1.3.4. Post-test that verifies logs_by_type output files are saved after the app run.
+    """Feature ID: 5.3.1.3.8. Post-test that verifies logs_by_type output files after app run.
 
     Covers features:
-      - 6.1.9.20  (logs grouped by type and stored as split HTML)
+      - 6.1.11.3 (AppManager.store_outputs renders split outputs for grouped logs)
     """
-    features = ["6.1.9.20"]
+    features = ["6.1.11.3"]
     criteria = []
 
     # Resolve the app's output path from the monitor snapshot, then derive the by_type dir.
@@ -536,7 +536,7 @@ def test_logs_by_type(manager=None, message=None, **kwargs):
         "status": "PASS" if dir_exists else "FAIL",
     })
 
-    # Criterion 2: For each type present in the logs, a {type}.html or {type}.json file exists.
+    # Criterion 2: For each type present in logs, a {type}.html or {type}.json file exists.
     log_types = []
     if manager is not None:
         logs = getattr(getattr(manager, "logger", None), "logs", []) or []

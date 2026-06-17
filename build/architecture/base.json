@@ -486,6 +486,12 @@
                                             "description": "Pre-test that validates DataConverter can parse a JSON-encoded string column (e.g. ExtendedProps/Schema from rdd_summary CSVs) using json.loads in col and row scope conversions, and that per-row failures in a bad-JSON column are caught without affecting other steps.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/output.py::test_dataconverter_json_column"
+                                        },
+                                        "5.3.1.3.8": {
+                                            "name": "test.tests.base.output.test_logs_by_type",
+                                            "description": "Post-test that validates per-type Logs/by_type output artifacts are created from runtime logs.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/output.py::test_logs_by_type"
                                         }
                                     }
                                 },
@@ -698,6 +704,12 @@
                                     "description": "Render and persist the collected log events as an HTML document.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::Logger.save_html"
+                                },
+                                "6.1.9.24": {
+                                    "name": "utils.baseutils.Logger.print_summary",
+                                    "description": "Print a concise summary for console output when summary-only mode is enabled.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Logger.print_summary"
                                 }
                             }
                         },

@@ -4,8 +4,13 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.16.01
-- App template version: A26.06.16.01
+- Base version: 26.06.17.01
+- App template version: A26.06.17.01
+
+## Highlights (26.06.17.01)
+
+- **Error-summary console mode.** Logger now prints ERROR summary to console.
+- **Coverage added for grouped logs.** Post test `test_logs_by_type` validates grouped runtime structure and per-type output file creation.
 
 ## Highlights (26.06.16.01)
 

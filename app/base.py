@@ -87,6 +87,9 @@ def run(args=sys.argv[1:]):
     test_manager.store_outputs(output_config="CONFIG.OUTPUT", outputs=list(test_config.get("OUTPUT", {}).keys()))
     
     exit_code = 1 if runtime_error or test_manager.RESULTS.report.n_failures > 0 else 0
+    
+    app.logger.print_summary(types=["WARN","ERROR"])
+    
     return exit_code
 
 if __name__ == "__main__":

@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260616-0001] [6.1.9.23] [Feature] Group logger messages by TYPE and save structured logs",
+        "version": "26.06.17.01",
+        "description": "Added Logger.print_summary(). AppManager.run() now prints only a concise ERROR summary at close in summary mode. Grouped logs are stored through existing logs_by_type_json/logs_by_type_html outputs sourced from LOGS with per-type conversions. Expanded post test test_logs_by_type (Feature 5.3.1.3.8) to validate per-type output files. Build tests passed: 1 run, 0 failures."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260611-0002+] [6.1.9] [Feature] Console output formatting improvements",
         "version": "26.06.16.01",
         "description": "Improved Logger console output: removed type_key from default console_items; message_code column header renamed to CODE; column widths expand dynamically as wider values appear; all columns use ljust; last column value printed without trailing padding. Added BASE006 (Loaded input {input_key} ({source}) into RESULTS.{target_name}) and updated load_data() call site to use it with populate=True. Added populate=True to both BASE003 call sites in _save_output_artifact."

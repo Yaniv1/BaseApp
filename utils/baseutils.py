@@ -509,6 +509,7 @@ class Logger:
     def __init__(self, log_path=None, start_time=None, max_items=None, verbose=False,
                  log_types=None,
                  type_colors=None, message_lookup=None,
+                 
                  message_wrappers=("{", "}"),
                  console_items={"timestamp":"TIMESTAMP", "type":"TYPE", "elapsed_sec":"ELAPSED", "message_code":"CODE", "message":"MESSAGE"},
                  ):
@@ -816,6 +817,37 @@ class Logger:
         except Exception:
             pass
 
+
+
+    def print_summary(self, types=["ERROR"], columns=['elapsed_sec', 'type', 'message_code', 'message', 'data']):
+        """Print a concise summary and optional per-type rows at the end of the run."""
+
+        grouped = [entry for entry in self.logs if entry.get("type") in types]
+
+        summary = "SUMMARY"
+        for log_type in types:
+            count = sum(1 for entry in grouped if entry.get("type") == log_type)
+            summary += f" | {log_type} messages: {count}"
+
+        print(self._format_console_row("GOOD", summary))
+
+        for log_type in types:
+            type_group = [entry for entry in grouped if entry.get("type") == log_type]
+
+            if len(type_group) == 0:
+                print(self._format_console_row("GOOD", f"NO {log_type} MESSAGES"))
+                continue
+
+            print(self._format_console_row(log_type, f"{len(type_group)} {log_type} MESSAGES"))
+
+            header_line = " | ".join([col.upper() for col in columns])
+            print(self._format_console_row("", header_line))
+
+            for entry in type_group:
+                line = " | ".join([str(entry.get(col, "")) for col in columns])
+                print(self._format_console_row(entry.get('type', ''), line))
+
+        print("Log file:", self.log_path if self.log_path else "N/A")
 
     def update_data_map(self, data=None):
         """Merge one payload into the live snapshot map and return the updated snapshot."""
@@ -1551,10 +1583,12 @@ class AppManager:
             message_code="BASE999",
             data={"elapsed_seconds": round(self.RESULTS.elapsed_seconds, 2)},
         )
+
         self.LOGS = self.logger.logs
 
         if store_outputs:
             self.store_outputs()
+        
 
     # Feature 6.1.11.5
     def run(self):
