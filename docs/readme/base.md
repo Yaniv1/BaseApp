@@ -1,4 +1,4 @@
-# BaseApp V-26.06.17.01
+# BaseApp V-26.06.18.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.18.01)
+
+- **Config file filtering by name and flag** (Feature 6.1.4.1): `Config.__init__` in `utils/baseutils.py` now skips config JSON files based on (1) naming convention (files starting with underscore `_` or dot `.` are skipped before opening) and (2) explicit flag (`LOADME: false` key skips after parsing). This allows users to disable config overrides without deleting files and follow naming conventions for temporary or development configs. Alphabetical load order is preserved for all active files. Build tests verified: 1 run, 0 failures.
 
 ## Release Highlights (26.06.17.01)
 

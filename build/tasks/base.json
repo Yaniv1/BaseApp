@@ -760,6 +760,30 @@
                     "timestamp": "2026-06-17T00:00:00Z"
                 }
             ]
+        },
+        {
+            "id": "BASE-TASK-260618-0002",
+            "uuid": "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9g",
+            "title": "Modify how config files are loaded",
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "Done",
+            "description": [
+                "ignore files that begin with an underscore or dot",
+                "ignore files that contain the key `LOADME` with a value of false."
+            ],
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created. Plan: (1) update config loading mechanism to ignore files based on naming and `LOADME` key; (2) implement loading in alphabetical order; (3) add test to verify correct loading behavior.",
+                    "timestamp": "2026-06-16T00:00:00Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Implemented in Config.__init__ in utils/baseutils.py. Added two skip conditions in the sorted config-file loop: (1) skip any file whose name starts with '_' or '.' (underscore/dot prefix); (2) after loading, skip any file whose parsed dict contains LOADME: false. Both checks run before self.config.set() so excluded files have no effect on the merged config.",
+                    "timestamp": "2026-06-18T00:00:00Z"
+                }
+            ]
         }
     ]
 }

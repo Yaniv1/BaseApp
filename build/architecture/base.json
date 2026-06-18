@@ -623,7 +623,15 @@
                             "name": "utils.baseutils.Config",
                             "description": "Load, merge, evaluate, and populate runtime configuration.",
                             "type": "Folder.PyFile.Class",
-                            "path": "utils/baseutils.py::Config"
+                            "path": "utils/baseutils.py::Config",
+                            "features": {
+                                "6.1.4.1": {
+                                    "name": "utils.baseutils.Config.__init__",
+                                    "description": "Skip config files by naming convention (prefix underscore or dot) and explicit flag (LOADME: false key). Preserve alphabetical load order for active files.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Config.__init__"
+                                }
+                            }
                         },
                         "6.1.5": {
                             "name": "utils.baseutils.resolve_dotted",

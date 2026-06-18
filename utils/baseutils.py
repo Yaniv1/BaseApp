@@ -289,11 +289,16 @@ class Config:
                 continue
             if file_name.lower() == base_config_name:
                 continue
+            if file_name.startswith(("_", ".")):
+                continue
 
             with open(file_path, "r") as f:
                 app_config = json.load(f)
-            if isinstance(app_config, dict):
-                self.config.set(**app_config)
+            if not isinstance(app_config, dict):
+                continue
+            if app_config.get("LOADME") is False:
+                continue
+            self.config.set(**app_config)
        
 
         self.config = self.config \

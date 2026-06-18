@@ -4,15 +4,17 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.17.01
-- App template version: A26.06.17.01
+- Base version: 26.06.18.01
+- App template version: A26.06.18.01
+
+## Highlights (26.06.18.01)
+
+- **Config file filtering by name and flag.** `Config.__init__` now skips config JSON files based on naming convention (underscore `_` or dot `.` prefix) and explicit flag (`LOADME: false` key). This allows users to disable config overrides without deleting files and follow naming conventions for temporary/development configs. Alphabetical load order is preserved for active files.
 
 ## Highlights (26.06.17.01)
 
 - **Error-summary console mode.** Logger now prints ERROR summary to console.
 - **Coverage added for grouped logs.** Post test `test_logs_by_type` validates grouped runtime structure and per-type output file creation.
-
-## Highlights (26.06.16.01)
 
 - **Logger message text placeholders.** `Logger.log()` now accepts `populate=False`. When `True`, `{key}` placeholders in the looked-up message text are replaced with values from the `data` dict before storing or printing. Wrappers are configurable via `message_wrappers` on `Logger` (default `("{","}")`). Message texts updated across `logger.csv` and `base.csv`; all relevant call sites updated with `populate=True`.
 
