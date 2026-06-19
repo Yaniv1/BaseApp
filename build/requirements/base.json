@@ -1122,6 +1122,75 @@
                     "deployment": 1.0
                 }
             ]
+        },
+        {
+            "id": "BASE-REQ-014",
+            "title": "Provide a Local Web-Based Task Management Interface",
+            "description": "The system must provide a locally-hosted web interface that allows developers to create, update, add comments to, and view tasks stored in build/tasks/base.json without requiring an external service or hosting infrastructure.",
+            "priority": "Low",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-014.1",
+                    "description": "Interface requirement: The web UI shall display all tasks grouped by status with a stat summary bar.",
+                    "priority": "Low",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.2",
+                    "description": "Create requirement: The UI shall allow creating a new task with title, description, type, priority, status, and an optional initial comment.",
+                    "priority": "Low",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.3",
+                    "description": "Update requirement: The UI shall allow editing task fields (title, type, priority, status, description) and appending new comments in-place.",
+                    "priority": "Low",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.4",
+                    "description": "Persistence requirement: All create/update/comment operations shall be persisted immediately to build/tasks/base.json.",
+                    "priority": "Low",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.5",
+                    "description": "Verification requirement: A prep test shall validate the load/create/update/comment round-trips and the HTTP API endpoints against a temp copy of the task store.",
+                    "priority": "Low",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "3.6",
+                    "role": "scripts/task_manager.py provides the HTTP server, task store helpers, and single-page UI.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.6.1",
+                    "role": "parse_args parses CLI arguments (--tasks-path, --host, --port, --open-browser).",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.6.2",
+                    "role": "run() binds the server and serves until KeyboardInterrupt.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "5.3.1.7.1",
+                    "role": "test_task_manager_interface prep test validates load/create/update/comment and HTTP round-trips. 6 criteria.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                }
+            ]
         }
     ]
 }

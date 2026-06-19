@@ -390,12 +390,12 @@ def load_runtime_config(app_root: Path) -> Params:
 
 
 def resolve_template_path(app_root: Path, config: Params) -> str:
-    """Resolve HTML template path from config COMMON.HTML_TEMPLATE."""
-    template_value = getattr(getattr(config, "COMMON", Params()), "HTML_TEMPLATE", "../resources/templates/dataset_table.html")
+    """Resolve HTML template path from config COMMON.HTML_TEMPLATE relative to app_root."""
+    template_value = getattr(getattr(config, "COMMON", Params()), "HTML_TEMPLATE", "resources/templates/dataset_table.html")
     template_path = Path(str(template_value))
     if template_path.is_absolute():
         return str(template_path)
-    return str((app_root / "config" / template_path).resolve())
+    return str((app_root / template_path).resolve())
 
 
 def create_pullbase_logger(local_root: Path, local_app_name: str, timestamp: str):

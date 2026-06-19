@@ -108,11 +108,11 @@ class ArchitectureAlignmentTest(AppManager):
         return f"Code item '{name}'."
 
     def _resolve_template_path(self):
-        template_value = getattr(getattr(self.config, "COMMON", object()), "HTML_TEMPLATE", "../resources/templates/dataset_table.html")
+        template_value = getattr(getattr(self.config, "COMMON", object()), "HTML_TEMPLATE", "resources/templates/dataset_table.html")
         template_path = Path(str(template_value))
         if template_path.is_absolute():
             return str(template_path)
-        return str((Path(self.base_dir) / "config" / template_path).resolve())
+        return str((Path(self.base_dir) / template_path).resolve())
 
     def _read_architecture_paths(self):
         if not self.architecture_dir.is_dir():

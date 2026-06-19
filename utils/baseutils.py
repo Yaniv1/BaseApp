@@ -1423,9 +1423,12 @@ class AppManager:
         artifact_data = data
         if output_dict.get('format', '').lower() == 'html':
             title_suffix = output_key.capitalize() if not item_keys else f"{output_key.capitalize()} {' / '.join([str(k) for k in item_keys])}"
+            raw_template = output_dict.get("kwargs", {}).get("template", self.RESULTS.html_template)
+            if raw_template and not os.path.isabs(str(raw_template)):
+                raw_template = os.path.join(self.base_dir, str(raw_template))
             artifact_data = HtmlDoc(
                 data=data,
-                template=output_dict.get("kwargs", {}).get("template", self.RESULTS.html_template),
+                template=raw_template,
                 title=f"{self.RESULTS.app_title} {self.RESULTS.signature} {title_suffix}",
             )
 

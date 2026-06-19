@@ -32,3 +32,5 @@ Avoid modifications to base app artifacts, these should not be modified by the a
 When logging, utilize logger functionality - use message codes instead of text, if necessary add new message codes to `messages/app.csv`. report variable values using data and not in message.
 
 If a generic functionality is needed, submit a task into the `build/tasks/base.json` file so that the functionality will be implemented as a base functionality and be available to all apps utilizing this framework.
+
+Update the app's README.md file and use it to provide an overview of the app and its capabilities, functionalities, and features.

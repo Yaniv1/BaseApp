@@ -165,6 +165,22 @@
                 "inputs": {
                     "message": "Validated config/local.json local override: file exists, overrides app values, preserves non-overridden keys, and config loads fine when local.json is absent"
                 }
+            },
+            {
+                "id": "prep_task_manager_interface",
+                "name": "Prep task manager interface",
+                "callable": "test.tests.base.task_manager.test_task_manager_interface",
+                "inputs": {
+                    "message": "Validated the local task manager UI: load, create, update, comment, and HTTP persistence against build/tasks/base.json"
+                }
+            },
+            {
+                "id": "prep_task_manager_interface",
+                "name": "Prep task manager interface",
+                "callable": "test.tests.base.task_manager.test_task_manager_interface",
+                "inputs": {
+                    "message": "Validated the local task manager UI: load, create, update, comment, and HTTP persistence against build/tasks/base.json"
+                }
             }
         ],
         "live": [

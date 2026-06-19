@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260609-0004] [3.6, 5.3.1.7] [Feature] Local web-based task manager UI",
+        "version": "26.06.19.01",
+        "description": "Added scripts/task_manager.py (Features 3.6, 3.6.1, 3.6.2): a stdlib-only local HTTP server with a single-page web UI that reads and writes build/tasks/base.json directly. Supports creating tasks (title, description, type, priority, status, initial comment), editing any field in-place, and appending comments. Task list displays with a status summary bar; all changes persist immediately to disk. Added prep test test_task_manager_interface (Feature 5.3.1.7.1) with 6 criteria covering store load, create/persist, update fields, append comment, HTTP UI round-trip, and HTTP endpoint persistence. Also fixed HTML template path resolution in utils/baseutils.py (_save_output_artifact now joins relative template paths against self.base_dir), scripts/instantiate.py and scripts/pullbase.py (resolve_template_path no longer inserts a spurious 'config/' segment), and test/tests/base/base.py (ArchitectureAlignmentTest._resolve_template_path). HTML_TEMPLATE in config/base.json is now the project-root-relative value 'resources/templates/dataset_table.html'. Added BASE-REQ-014 and architecture features 3.6, 3.6.1, 3.6.2, 5.3.1.7, 5.3.1.7.1. Build tests: 1 run, 0 failures."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260618-0002] [6.1.4.1] [Feature] Modify config file loading with skip filters",
         "version": "26.06.18.01",
         "description": "Enhanced Config.__init__ in utils/baseutils.py to skip loading config JSON files based on two criteria: (1) files starting with underscore (_) or dot (.) are skipped by name before opening; (2) files containing LOADME: false in their JSON dict are skipped after parsing. This allows users to disable config overrides without deleting files, and follow naming conventions to exclude temporary or development configs. Alphabetical load order is preserved for all active files."
