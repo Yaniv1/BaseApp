@@ -706,6 +706,12 @@ class Logger:
             return False
         return message_key >= self.verbose_key
 
+    def _decode_escapes(self, text):
+        """Convert literal escape sequences (\\n, \\t, \\r) in text into real control characters for console output."""
+        if not text:
+            return text
+        return text.replace("\\n", "\n").replace("\\t", "\t").replace("\\r", "\r")
+
     def _format_console_row(self, message_type, line):
         """Apply console color to the full output line for configured message types."""
         color = self.type_colors.get(message_type)
@@ -949,7 +955,7 @@ class Logger:
             if entry and console and self._should_print(message_key):
 
                 console_event = {
-                    k:str(v) for k,v in event.items() if k in self.console_items.keys()
+                    k:self._decode_escapes(str(v)) for k,v in event.items() if k in self.console_items.keys()
                 }
 
                 # Expand column widths if any value exceeds the current tracked width.
