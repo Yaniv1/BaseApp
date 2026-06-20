@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta id="server-meta" data-tasks-path="__TASKS_PATH__" data-tasks-dir="__TASKS_DIR__" data-app-name="__APP_NAME__">
+<title>__APP_NAME__ Task Manager</title>
+<style>
+:root{
+  --bg:#0f172a;--sf:#1e293b;--sf2:#334155;--ln:rgba(148,163,184,.18);
+  --tx:#e2e8f0;--mu:#94a3b8;--ac:#38bdf8;--gn:#22c55e;--ye:#eab308;--rd:#ef4444;
+  font-family:"Segoe UI",system-ui,sans-serif;font-size:14px;color-scheme:dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);min-height:100vh}
+code{font-family:"Cascadia Code","Fira Code",monospace;font-size:.82em}
+
+/* ── Header ─────────────────────────────────────────────────── */
+header{background:rgba(15,23,42,.92);border-bottom:1px solid var(--ln);padding:11px 20px;
+  position:sticky;top:0;z-index:10;backdrop-filter:blur(8px)}
+.hd{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:1.1rem;letter-spacing:.02em;white-space:nowrap}
+.fbar{display:flex;align-items:center;gap:7px}
+.flbl{color:var(--mu);font-size:.8rem;white-space:nowrap}
+.fsel{background:var(--sf);border:1px solid var(--ln);color:var(--tx);border-radius:8px;
+  padding:5px 9px;font:inherit;cursor:pointer;max-width:300px}
+.dirinp{background:var(--sf);border:1px solid var(--ln);color:var(--tx);border-radius:8px;
+  padding:5px 9px;font:inherit;min-width:360px;max-width:560px}
+
+/* ── Layout ──────────────────────────────────────────────────── */
+main{display:grid;grid-template-columns:296px 1fr;min-height:calc(100vh - 48px)}
+.sidebar{background:var(--sf);border-right:1px solid var(--ln);padding:16px;
+  display:flex;flex-direction:column;gap:12px;overflow-y:auto}
+.content{display:flex;flex-direction:column;overflow-y:auto}
+.sidebar h2{font-size:.78rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em}
+
+/* ── Forms ───────────────────────────────────────────────────── */
+form{display:flex;flex-direction:column;gap:7px}
+label{display:flex;flex-direction:column;gap:3px;font-size:.8rem;color:var(--mu)}
+input,select,textarea{background:var(--bg);border:1px solid var(--ln);color:var(--tx);
+  border-radius:8px;padding:6px 9px;font:inherit;transition:border-color .15s}
+.fsel:focus,input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac)}
+textarea{resize:vertical;min-height:56px}
+.btn{cursor:pointer;border-radius:8px;padding:6px 13px;font:inherit;font-weight:600;
+  border:1px solid transparent;transition:opacity .15s;white-space:nowrap}
+.btn:hover{opacity:.82}
+.primary{background:var(--ac);color:#0f172a}
+.secondary{background:var(--sf2);color:var(--tx);border-color:var(--ln)}
+.sec{background:var(--sf2);color:var(--tx);border-color:var(--ln)}
+.full{width:100%}
+.close-btn{background:transparent;border:none;color:var(--mu);font-size:.95rem;
+  padding:3px 7px;border-radius:6px}
+.close-btn:hover{background:var(--sf2)}
+.msg{font-size:.8rem;min-height:1em}
+.msg.err{color:var(--rd)}
+
+/* ── CLI block ───────────────────────────────────────────────── */
+details.cli-sect{margin-top:2px}
+.cli-sum{cursor:pointer;color:var(--mu);font-size:.8rem;padding:3px 0;user-select:none;list-style:none}
+.cli-sum::-webkit-details-marker{display:none}
+.cli-block{background:#0d1117;border:1px solid var(--ln);border-radius:8px;
+  padding:9px 11px;font-family:"Cascadia Code","Fira Code",monospace;font-size:.72rem;
+  color:#7dd3fc;white-space:pre-wrap;word-break:break-all;margin-top:5px;line-height:1.55}
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.tab-bar{display:flex;gap:2px;border-bottom:1px solid var(--ln);padding:12px 20px 0;flex-shrink:0}
+.tab{background:transparent;border:none;color:var(--mu);padding:7px 12px;font:inherit;
+  cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;
+  transition:color .15s,border-color .15s;border-radius:6px 6px 0 0}
+.tab:hover{color:var(--tx)}
+.tab.active{color:var(--ac);border-bottom-color:var(--ac);font-weight:600}
+.badge{background:var(--sf2);border-radius:999px;padding:1px 7px;font-size:.72rem;
+  margin-left:4px;font-weight:400}
+
+/* ── Task table ──────────────────────────────────────────────── */
+.table-wrap{padding:14px 20px;overflow-x:auto}
+.task-table{width:100%;border-collapse:collapse}
+.task-table th{color:var(--mu);font-weight:600;text-align:left;padding:7px 10px;
+  border-bottom:1px solid var(--ln);font-size:.76rem;text-transform:uppercase;letter-spacing:.05em}
+.task-table td{padding:9px 10px;border-bottom:1px solid rgba(148,163,184,.06);vertical-align:middle}
+.task-row{cursor:pointer;transition:background .1s}
+.task-row:hover{background:rgba(56,189,248,.05)}
+.task-row.selected{background:rgba(56,189,248,.1)}
+.id-col code{color:var(--ac);font-size:.76rem}
+.title-col{font-weight:500;max-width:380px}
+.pri{border-radius:999px;padding:2px 8px;font-size:.72rem;font-weight:600}
+.pri-critical{background:rgba(239,68,68,.2);color:#fca5a5}
+.pri-high{background:rgba(249,115,22,.2);color:#fdba74}
+.pri-medium{background:rgba(234,179,8,.17);color:#fde047}
+.pri-low{background:rgba(148,163,184,.11);color:var(--mu)}
+.empty{color:var(--mu);text-align:center;padding:36px;font-size:.9rem}
+.hidden{display:none!important}
+
+/* ── Detail panel ────────────────────────────────────────────── */
+.detail{border-top:2px solid var(--ac);margin:0 20px 20px;background:var(--sf);
+  border-radius:0 0 12px 12px;padding:18px;display:flex;flex-direction:column;gap:13px}
+.det-top{display:flex;justify-content:space-between;align-items:center}
+.tid{color:var(--ac);font-family:monospace;font-size:.8rem;font-weight:700;letter-spacing:.07em}
+.sbadge{border-radius:999px;padding:3px 10px;font-size:.73rem;font-weight:600;margin-left:8px}
+.s-todo{background:rgba(148,163,184,.11);color:var(--mu)}
+.s-inprogress{background:rgba(234,179,8,.17);color:#fde047}
+.s-done{background:rgba(34,197,94,.17);color:#86efac}
+.det-title{font-size:1.08rem}
+.det-desc{color:var(--mu);white-space:pre-wrap;line-height:1.65;font-size:.88rem}
+.det-actions{display:flex;gap:8px;flex-wrap:wrap}
+.comments-list{display:flex;flex-direction:column;gap:6px}
+.comments-hd{font-size:.78rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.comment-item{background:var(--bg);border-left:3px solid rgba(56,189,248,.35);
+  border-radius:0 8px 8px 0;padding:7px 11px}
+.comment-meta{font-size:.73rem;color:var(--mu);margin-bottom:3px}
+.comment-body{font-size:.88rem;line-height:1.55;white-space:pre-wrap}
+
+/* ── Edit section ────────────────────────────────────────────── */
+details.edit-sect{border:1px solid var(--ln);border-radius:8px;overflow:hidden}
+details.edit-sect>summary{padding:8px 13px;cursor:pointer;color:var(--mu);
+  font-size:.86rem;background:var(--bg);user-select:none;list-style:none}
+details.edit-sect>summary::-webkit-details-marker{display:none}
+.edit-form{padding:12px 13px;background:var(--bg);display:flex;flex-direction:column;
+  gap:8px;border-top:1px solid var(--ln)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+
+/* ── Add comment ─────────────────────────────────────────────── */
+.add-comment{display:flex;flex-direction:column;gap:7px}
+.author-row{display:flex;gap:7px;align-items:flex-end}
+.author-row label{flex:1}
+
+@media(max-width:860px){
+  main{grid-template-columns:1fr}
+  .sidebar{border-right:none;border-bottom:1px solid var(--ln)}
+  .form-row{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <h1 id="app-title">&#128199; __APP_NAME__ Task Manager</h1>
+    <div class="fbar">
+      <label class="flbl" for="tasks-dir-input">Tasks Dir:</label>
+      <input id="tasks-dir-input" class="dirinp" type="text" spellcheck="false">
+      <button id="apply-dir-btn" class="btn sec" title="Apply tasks dir">Apply</button>
+      <label class="flbl" for="file-select">File:</label>
+      <select id="file-select" class="fsel"></select>
+      <button id="reload-btn" class="btn sec" title="Reload tasks">&#8635;</button>
+    </div>
+  </div>
+</header>
+<main>
+  <aside class="sidebar">
+    <h2>Create Task</h2>
+    <form id="create-form" autocomplete="off">
+      <label>Title
+        <input name="title" required placeholder="Short imperative title">
+      </label>
+      <label>Description
+        <textarea name="description" placeholder="What, why, acceptance criteria..."></textarea>
+      </label>
+      <label>Type
+        <input name="type" value="Feature" list="dl-type">
+        <datalist id="dl-type">
+          <option>Feature</option><option>Bug</option><option>Chore</option><option>Doc</option>
+        </datalist>
+      </label>
+      <label>Priority
+        <input name="priority" value="Medium" list="dl-prio">
+        <datalist id="dl-prio">
+          <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+        </datalist>
+      </label>
+      <label>Status
+        <select name="status">
+          <option>ToDo</option><option>InProgress</option><option>Done</option>
+        </select>
+      </label>
+      <label>Initial Comment
+        <textarea name="comment" placeholder="Optional — context, origin..."></textarea>
+      </label>
+      <button class="btn primary full" type="submit">&#43; Create Task</button>
+    </form>
+    <div id="create-msg" class="msg"></div>
+    <details class="cli-sect" open>
+      <summary class="cli-sum">&#128196; CLI equivalent</summary>
+      <pre id="cli-pre" class="cli-block"></pre>
+    </details>
+  </aside>
+
+  <section class="content">
+    <div class="tab-bar">
+      <button class="tab active" data-status="ToDo">ToDo <span id="cnt-ToDo" class="badge">0</span></button>
+      <button class="tab" data-status="InProgress">InProgress <span id="cnt-InProgress" class="badge">0</span></button>
+      <button class="tab" data-status="Done">Done <span id="cnt-Done" class="badge">0</span></button>
+    </div>
+    <div class="table-wrap">
+      <table class="task-table">
+        <thead>
+          <tr><th>ID</th><th>Title</th><th>Type</th><th>Priority</th></tr>
+        </thead>
+        <tbody id="task-tbody"></tbody>
+      </table>
+      <div id="no-tasks" class="empty hidden">No tasks in this status.</div>
+    </div>
+    <div id="detail-panel" class="detail hidden">
+      <div class="det-top">
+        <div>
+          <span id="det-id" class="tid"></span>
+          <span id="det-status" class="sbadge"></span>
+        </div>
+        <button id="close-detail" class="btn close-btn" title="Close">&#x2715;</button>
+      </div>
+      <h3 id="det-title" class="det-title"></h3>
+      <p id="det-desc" class="det-desc"></p>
+      <div class="det-actions">
+        <button id="start-agent-btn" class="btn secondary" type="button">Start Copilot Worker</button>
+      </div>
+      <div id="detail-msg" class="msg"></div>
+      <div id="det-comments" class="comments-list"></div>
+      <details class="edit-sect">
+        <summary>&#9998; Edit task</summary>
+        <form id="edit-form" class="edit-form">
+          <div class="form-row">
+            <label>Title<input id="e-title" name="title"></label>
+            <label>Type
+              <input id="e-type" name="type" list="dl-type2">
+              <datalist id="dl-type2">
+                <option>Feature</option><option>Bug</option><option>Chore</option><option>Doc</option>
+              </datalist>
+            </label>
+            <label>Priority
+              <input id="e-priority" name="priority" list="dl-prio2">
+              <datalist id="dl-prio2">
+                <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+              </datalist>
+            </label>
+            <label>Status
+              <select id="e-status" name="status">
+                <option>ToDo</option><option>InProgress</option><option>Done</option>
+              </select>
+            </label>
+          </div>
+          <label>Description<textarea id="e-desc" name="description"></textarea></label>
+          <button class="btn primary" type="submit">&#10004; Save Changes</button>
+        </form>
+      </details>
+      <div class="add-comment">
+        <label><strong>Add Comment</strong>
+          <textarea id="new-comment" placeholder="Comment text..."></textarea>
+        </label>
+        <div class="author-row">
+          <label>Author<input id="new-author" placeholder="Your name"></label>
+          <button id="post-comment-btn" class="btn secondary">Post Comment</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const SM = document.getElementById('server-meta');
+const defaultPath = SM ? SM.getAttribute('data-tasks-path') : '';
+const defaultTasksDir = SM ? SM.getAttribute('data-tasks-dir') : '';
+const defaultAppName = SM ? SM.getAttribute('data-app-name') : 'App';
+let allTasks = [], currentStatus = 'ToDo', selectedId = null;
+const STATUS_TABS = ['ToDo', 'InProgress', 'Done'];
+
+function normalizeStatus(value) {
+  const raw = String(value ?? '').trim();
+  if (!raw) return 'ToDo';
+  const key = raw.toLowerCase().replace(/[\s_-]+/g, '');
+  if (key === 'todo' || key === 'pending' || key === 'open') return 'ToDo';
+  if (key === 'inprogress' || key === 'doing' || key === 'active' || key === 'wip') return 'InProgress';
+  if (key === 'done' || key === 'complete' || key === 'completed' || key === 'closed') return 'Done';
+  return 'ToDo';
+}
+
+(async () => {
+  await loadConfig();
+  await loadTasks();
+  initCreateForm();
+  initTabs();
+  initDetail();
+})().catch(e => setMsg('create-msg', e.message, true));
+
+// ── Config & file selector ────────────────────────────────────
+async function loadConfig() {
+  let cfg;
+  try { const r = await fetch('/api/config'); cfg = await r.json(); } catch { return; }
+
+  const titleEl = document.getElementById('app-title');
+  const appName = String(cfg.app_name || defaultAppName || 'App').trim() || 'App';
+  document.title = appName + ' Task Manager';
+  if (titleEl) titleEl.innerHTML = '&#128199; ' + esc(appName) + ' Task Manager';
+
+  const dirInput = document.getElementById('tasks-dir-input');
+  if (dirInput) dirInput.value = String(cfg.tasks_dir || defaultTasksDir || '');
+
+  const sel = document.getElementById('file-select');
+  sel.innerHTML = '';
+
+  const files = Array.isArray(cfg.available_files)
+    ? cfg.available_files.filter(f => f && typeof f.path === 'string' && f.path.trim())
+    : [];
+
+  files.forEach(f => {
+    const o = document.createElement('option');
+    o.value = f.path;
+    o.textContent = f.path;
+    sel.appendChild(o);
+  });
+
+  if (!sel.options.length && typeof cfg.tasks_path === 'string' && cfg.tasks_path.trim()) {
+    const o = document.createElement('option');
+    o.value = cfg.tasks_path; o.textContent = cfg.tasks_path;
+    sel.appendChild(o);
+  }
+
+  const availableValues = Array.from(sel.options).map(o => o.value);
+  const saved = localStorage.getItem('tm_file');
+  let active = cfg.tasks_path;
+  if (saved && availableValues.includes(saved)) active = saved;
+
+  if (!active && availableValues.length) active = availableValues[0];
+
+  if (!availableValues.includes(active) && active) {
+    const o = document.createElement('option');
+    o.value = active;
+    o.textContent = active;
+    sel.appendChild(o);
+  }
+
+  sel.value = active;
+  if (active && active !== cfg.tasks_path) await switchFile(active);
+  if (active) localStorage.setItem('tm_file', active);
+
+  sel.addEventListener('change', async () => {
+    localStorage.setItem('tm_file', sel.value);
+    await switchFile(sel.value);
+    selectedId = null; hideDetail();
+    await loadTasks();
+  });
+}
+
+function getQueryTaskHint() {
+  try {
+    const params = new URLSearchParams(window.location.search || '');
+    return params.get('tasks') || params.get('tasks_path') || params.get('file') || '';
+  } catch {
+    return '';
+  }
+}
+
+function resolveTaskHint(hint, files, cfg) {
+  const text = String(hint || '').trim();
+  if (!text) return '';
+  const norm = text.replace(/\\/g, '/').toLowerCase();
+
+  const byPath = files.find(f => String(f.path || '').replace(/\\/g, '/').toLowerCase() === norm);
+  if (byPath) return byPath.path;
+
+  const byDisplay = files.find(f => String(f.display || '').replace(/\\/g, '/').toLowerCase() === norm);
+  if (byDisplay) return byDisplay.path;
+
+  if (typeof cfg.tasks_path === 'string' && cfg.tasks_path && cfg.tasks_path.toLowerCase() === norm) {
+    return cfg.tasks_path;
+  }
+  return '';
+}
+
+async function switchFile(path) {
+  try {
+    await fetch('/api/config', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tasks_path: path }),
+    });
+  } catch {}
+}
+
+async function applyTasksDir() {
+  const dirInput = document.getElementById('tasks-dir-input');
+  if (!dirInput) return;
+  const dir = String(dirInput.value || '').trim();
+  if (!dir) return;
+  try {
+    const r = await fetch('/api/config', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tasks_dir: dir }),
+    });
+    if (!r.ok) {
+      const p = await r.json().catch(() => ({}));
+      throw new Error(p.error || 'Failed to apply tasks dir');
+    }
+    localStorage.removeItem('tm_file');
+    selectedId = null;
+    hideDetail();
+    await loadConfig();
+    await loadTasks();
+  } catch (e) {
+    setMsg('create-msg', e.message, true);
+  }
+}
+
+// ── Task loading ──────────────────────────────────────────────
+async function loadTasks() {
+  let tasks = [];
+  try {
+    const r = await fetch('/api/tasks');
+    const p = await r.json();
+    tasks = Array.isArray(p.tasks) ? p.tasks : [];
+  } catch { return; }
+  allTasks = tasks.map(task => ({ ...task, status: normalizeStatus(task.status) }));
+  renderTable();
+  updateBadges();
+  if (selectedId) {
+    const t = allTasks.find(x => x.id === selectedId);
+    if (t) showDetail(t); else hideDetail();
+  }
+}
+
+function updateBadges() {
+  STATUS_TABS.forEach(s => {
+    const n = allTasks.filter(t => normalizeStatus(t.status) === s).length;
+    const el = document.getElementById('cnt-' + s);
+    if (el) el.textContent = n;
+  });
+}
+
+function renderTable() {
+  currentStatus = normalizeStatus(currentStatus);
+  const tasks = allTasks.filter(t => normalizeStatus(t.status) === currentStatus);
+  const tbody = document.getElementById('task-tbody');
+  const noEl = document.getElementById('no-tasks');
+  tbody.innerHTML = '';
+  if (!tasks.length) { noEl.classList.remove('hidden'); return; }
+  noEl.classList.add('hidden');
+  tasks.forEach(task => {
+    const tr = document.createElement('tr');
+    tr.className = 'task-row' + (task.id === selectedId ? ' selected' : '');
+    tr.dataset.id = task.id;
+    tr.tabIndex = 0;
+    const p = (task.priority || 'Medium').toLowerCase();
+    tr.innerHTML =
+      '<td class="id-col"><code>' + esc(task.id) + '</code></td>' +
+      '<td class="title-col">' + esc(task.title || '') + '</td>' +
+      '<td>' + esc(task.type || 'Feature') + '</td>' +
+      '<td><span class="pri pri-' + p + '">' + esc(task.priority || 'Medium') + '</span></td>';
+    tr.addEventListener('click', () => toggle(task));
+    tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(task); } });
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Detail panel ──────────────────────────────────────────────
+function toggle(task) {
+  if (selectedId === task.id) { selectedId = null; hideDetail(); refreshRows(); }
+  else { selectedId = task.id; refreshRows(); showDetail(task); }
+}
+
+function refreshRows() {
+  document.querySelectorAll('.task-row').forEach(r => r.classList.toggle('selected', r.dataset.id === selectedId));
+}
+
+const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Done: 's-done' }[normalizeStatus(s)] || 's-todo');
+
+function showDetail(task) {
+  const panel = document.getElementById('detail-panel');
+  panel.classList.remove('hidden');
+  panel.dataset.id = task.id;
+  const canonicalStatus = normalizeStatus(task.status);
+
+  document.getElementById('det-id').textContent = task.id;
+  const sb = document.getElementById('det-status');
+  sb.textContent = canonicalStatus;
+  sb.className = 'sbadge ' + statusCls(canonicalStatus);
+  document.getElementById('det-title').textContent = task.title || '';
+
+  const descTxt = Array.isArray(task.description) ? task.description.join('\n') : (task.description || '');
+  document.getElementById('det-desc').textContent = descTxt || '(no description)';
+
+  // Comments
+  const cl = document.getElementById('det-comments');
+  cl.innerHTML = '';
+  const comms = Array.isArray(task.comments) ? task.comments : [];
+  if (comms.length) {
+    const hd = document.createElement('div'); hd.className = 'comments-hd';
+    hd.textContent = 'Comments (' + comms.length + ')'; cl.appendChild(hd);
+    comms.forEach(c => {
+      const d = document.createElement('div'); d.className = 'comment-item';
+      d.innerHTML = '<div class="comment-meta">' + esc(c.author || '') + (c.timestamp ? ' &middot; ' + esc(c.timestamp) : '') + '</div>' +
+        '<div class="comment-body">' + esc(c.content || '') + '</div>';
+      cl.appendChild(d);
+    });
+  }
+
+  // Fill edit form
+  document.getElementById('e-title').value = task.title || '';
+  document.getElementById('e-type').value = task.type || 'Feature';
+  document.getElementById('e-priority').value = task.priority || 'Medium';
+  document.getElementById('e-status').value = canonicalStatus;
+  document.getElementById('e-desc').value = descTxt;
+  document.getElementById('new-comment').value = '';
+  document.getElementById('new-author').value = localStorage.getItem('tm_author') || '';
+  setMsg('detail-msg', '');
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function hideDetail() {
+  document.getElementById('detail-panel').classList.add('hidden');
+}
+
+function initDetail() {
+  document.getElementById('close-detail').addEventListener('click', () => {
+    selectedId = null; hideDetail(); refreshRows();
+  });
+
+  document.getElementById('edit-form').addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const id = document.getElementById('detail-panel').dataset.id;
+    const data = Object.fromEntries(new FormData(ev.target).entries());
+    data.status = normalizeStatus(data.status);
+    const r = await fetch('/api/tasks/' + encodeURIComponent(id), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!r.ok) return;
+    const newStatus = normalizeStatus(data.status);
+    if (newStatus !== currentStatus) {
+      currentStatus = newStatus;
+      document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', b.dataset.status === newStatus));
+    }
+    await loadTasks();
+  });
+
+  document.getElementById('post-comment-btn').addEventListener('click', async () => {
+    const id = document.getElementById('detail-panel').dataset.id;
+    const content = document.getElementById('new-comment').value.trim();
+    const author = document.getElementById('new-author').value.trim() || 'Task Manager UI';
+    if (!content) return;
+    localStorage.setItem('tm_author', author);
+    const ts = new Date().toISOString().slice(0, 19) + 'Z';
+    const r = await fetch('/api/tasks/' + encodeURIComponent(id) + '/comments', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment: { author, content, timestamp: ts } }),
+    });
+    if (r.ok) await loadTasks();
+  });
+
+  document.getElementById('start-agent-btn').addEventListener('click', async () => {
+    const panel = document.getElementById('detail-panel');
+    const id = panel.dataset.id;
+    console.log('Start agent clicked for task:', id);
+    if (!id) {
+      console.warn('No task ID found in detail panel');
+      return;
+    }
+    setMsg('detail-msg', 'Starting Copilot CLI worker...');
+    try {
+      const url = '/api/tasks/' + encodeURIComponent(id) + '/start-agent';
+      console.log('Calling endpoint:', url);
+      const r = await fetch(url, { method: 'POST' });
+      console.log('Response status:', r.status, r.statusText);
+      const payload = await r.json();
+      console.log('Response payload:', payload);
+      if (!r.ok) throw new Error(payload.error || 'Failed to start worker');
+      const text = (payload.message || 'Worker started') + (payload.prompt_file ? '\nPrompt: ' + payload.prompt_file : '');
+      console.log('Success:', text);
+      setMsg('detail-msg', text);
+    } catch (e) {
+      console.error('Start agent error:', e);
+      setMsg('detail-msg', 'Error: ' + e.message, true);
+    }
+  });
+}
+
+// ── Tab bar ───────────────────────────────────────────────────
+function initTabs() {
+  document.querySelectorAll('.tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentStatus = normalizeStatus(btn.dataset.status);
+      selectedId = null; hideDetail();
+      renderTable();
+    });
+  });
+}
+
+// ── Create form ───────────────────────────────────────────────
+function initCreateForm() {
+  const form = document.getElementById('create-form');
+  form.addEventListener('input', updateCli);
+  form.addEventListener('change', updateCli);
+  updateCli();
+  form.addEventListener('submit', async ev => {
+    ev.preventDefault();
+    const data = Object.fromEntries(new FormData(form).entries());
+    data.status = normalizeStatus(data.status);
+    try {
+      const r = await fetch('/api/tasks', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data),
+      });
+      if (!r.ok) throw new Error(await r.text() || 'Create failed');
+      const res = await r.json();
+      form.reset();
+      form.querySelector('[name=status]').value = 'ToDo';
+      form.querySelector('[name=type]').value = 'Feature';
+      form.querySelector('[name=priority]').value = 'Medium';
+      setMsg('create-msg', 'Created: ' + res.task.id);
+      updateCli();
+      await loadTasks();
+    } catch (e) { setMsg('create-msg', e.message, true); }
+  });
+}
+
+function updateCli() {
+  const form = document.getElementById('create-form');
+  const data = Object.fromEntries(new FormData(form).entries());
+  data.status = normalizeStatus(data.status);
+  const p = {};
+  ['title', 'type', 'priority', 'status', 'description', 'comment'].forEach(k => { if (data[k]) p[k] = data[k]; });
+  const host = window.location.host || '127.0.0.1:8765';
+  document.getElementById('cli-pre').textContent =
+    'curl -X POST "http://' + host + '/api/tasks" \\\n  -H "Content-Type: application/json" \\\n  -d \'' + JSON.stringify(p, null, 2) + '\'';
+}
+
+// ── Reload ────────────────────────────────────────────────────
+document.getElementById('reload-btn').addEventListener('click', () => loadTasks());
+document.getElementById('apply-dir-btn').addEventListener('click', () => applyTasksDir());
+document.getElementById('tasks-dir-input').addEventListener('keydown', ev => {
+  if (ev.key === 'Enter') {
+    ev.preventDefault();
+    applyTasksDir();
+  }
+});
+
+// ── Utilities ─────────────────────────────────────────────────
+function esc(v) { return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function setMsg(id, text, isErr) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = 'msg' + (isErr ? ' err' : '');
+  el.textContent = text;
+}
+</script>
+</body>
+</html>

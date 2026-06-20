@@ -1,14 +1,14 @@
 code,type,text,caller_depth
 BASE001,INFO,App initialized,
 BASE002,INFO,Run ID: {run_id},
-BASE003,INFO,Stored output artifact {output_key} to {path},
+BASE003,INFO,Stored output artifact\n\tsource: {output_key}\n\ttarget: {path},
 BASE004,INFO,Opened output for browsing,
-BASE005,INFO,Measured function runtime,
+BASE005,INFO,Measured function runtime {function_name}: {duration:.2f} seconds,
 BASE006,INFO,Loaded input {input_key} from {path} into RESULTS.{target_name},
 BASEW05,WARN,Could not open output {output_key}: {error},4
 BASEW06,WARN,Output worker failed for {output_key}: {error},4
 BASE009,INFO,Resolved input files,
-BASE010,INFO,Loaded input file,
+BASE010,INFO,Loaded input file:\n\tsource: {input_key}\n\ttarget: {path},
 BASE012,INFO,File loading completed,
 BASE013,INFO,Initialized test manager,
 BASE014,INFO,Starting test phase,

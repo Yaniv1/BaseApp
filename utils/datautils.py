@@ -311,10 +311,12 @@ class DataLoader:
                     self.logger.log(
                         message_code="BASE010",
                         data={
-                            "file_path": file_path,
+                            "input_key": key,
+                            "path": file_path,
                             "items": len(self.data[key]) if hasattr(self.data[key], "__len__") else None,
                             "loaded%": round(loaded / len(pending) * 100, 2) if pending else 0,
                         },
+                        populate=True,
                     )
 
             rows = sum(len(v) if hasattr(v, "__len__") else 0 for v in self.data.values())

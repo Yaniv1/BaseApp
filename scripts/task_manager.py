@@ -1,25 +1,56 @@
 #!/usr/bin/env python3
-"""Feature ID: 3.6. Local web interface for managing build/tasks/base.json."""
+"""Feature ID: 3.6. Local web interface for managing task files."""
 
 import argparse
 import datetime as dt
 import html
 import json
+import re
+import shutil
+import subprocess
+import sys
 import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from utils.baseutils import Config
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_TASKS_PATH = PROJECT_ROOT / "build" / "tasks" / "base.json"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
+COPILOT_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "build" / "instructions" / "task.md"
+COPILOT_WORKER_LAUNCH_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "launch_task_agent.ps1"
 
 
 def _now_iso():
     return dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+
+def _default_task_filename_for_context(base_dir):
+    return "base.json" if Path(base_dir).name.lower() == "baseapp" else "app.json"
+
+
+def _default_tasks_dir_for_context(base_dir):
+    return Path(base_dir).resolve() / "build" / "tasks"
+
+
+def _resolve_path(raw_path, base_dir):
+    if raw_path is None:
+        return None
+    text = str(raw_path).strip()
+    if not text:
+        return None
+    candidate = Path(text)
+    if not candidate.is_absolute():
+        candidate = Path(base_dir).resolve() / candidate
+    try:
+        return candidate.resolve()
+    except OSError:
+        return None
 
 
 def _load_tasks_store(tasks_path):
@@ -182,203 +213,213 @@ def _tasks_summary(tasks):
     return summary
 
 
-def _render_index_html(tasks_path):
-    """Render the single-page task manager UI."""
-    escaped_path = html.escape(str(Path(tasks_path).resolve()))
-    return f"""<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>BaseApp Task Manager</title>
-    <style>
-        :root {{
-            --line: rgba(148, 163, 184, 0.28);
-            --text: #e5e7eb;
-            --muted: #94a3b8;
-            --accent: #38bdf8;
-            --accent-2: #22c55e;
-            --shadow: 0 16px 40px rgba(15, 23, 42, 0.24);
-            font-family: "Segoe UI", Arial, sans-serif;
-        }}
-        * {{ box-sizing: border-box; }}
-        body {{ margin: 0; background: linear-gradient(135deg, #0f172a 0%, #111827 45%, #0f172a 100%); color: var(--text); }}
-        header {{ padding: 32px 24px 18px; border-bottom: 1px solid var(--line); background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 2; }}
-        h1 {{ margin: 0 0 8px; font-size: 2rem; letter-spacing: 0.02em; }}
-        .subtle {{ color: var(--muted); margin: 0; }}
-        main {{ display: grid; gap: 18px; padding: 18px 24px 28px; grid-template-columns: minmax(320px, 380px) 1fr; align-items: start; }}
-        .panel {{ background: rgba(17, 24, 39, 0.88); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }}
-        .panel h2 {{ margin: 0; padding: 18px 18px 0; font-size: 1.1rem; }}
-        .panel .content {{ padding: 18px; }}
-        form {{ display: grid; gap: 12px; }}
-        label {{ display: grid; gap: 6px; font-size: 0.92rem; color: var(--text); }}
-        input, select, textarea, button {{ border-radius: 12px; border: 1px solid var(--line); background: rgba(15, 23, 42, 0.75); color: var(--text); padding: 10px 12px; font: inherit; }}
-        textarea {{ min-height: 92px; resize: vertical; }}
-        button {{ cursor: pointer; font-weight: 600; }}
-        .actions {{ display: flex; gap: 10px; flex-wrap: wrap; }}
-        .primary {{ background: linear-gradient(135deg, var(--accent), #0ea5e9); color: #fff; border-color: transparent; }}
-        .secondary {{ background: rgba(30, 41, 59, 0.88); }}
-        .stats {{ display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }}
-        .pill {{ border-radius: 999px; padding: 6px 12px; background: rgba(30, 41, 59, 0.92); color: var(--text); border: 1px solid var(--line); font-size: 0.85rem; }}
-        .task-list {{ display: grid; gap: 14px; }}
-        .task-card {{ padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: rgba(15, 23, 42, 0.78); }}
-        .task-head {{ display: flex; justify-content: space-between; gap: 12px; align-items: start; margin-bottom: 12px; }}
-        .task-id {{ color: var(--accent); font-size: 0.85rem; font-weight: 700; letter-spacing: 0.08em; }}
-        .task-title {{ margin: 4px 0 0; font-size: 1.05rem; }}
-        .task-grid {{ display: grid; gap: 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }}
-        .task-grid .full {{ grid-column: 1 / -1; }}
-        .task-meta {{ display: grid; gap: 4px; color: var(--muted); font-size: 0.85rem; }}
-        .comments {{ margin-top: 12px; display: grid; gap: 10px; }}
-        .comment {{ border-left: 3px solid rgba(56, 189, 248, 0.55); padding: 8px 12px; background: rgba(30, 41, 59, 0.55); border-radius: 10px; }}
-        .comment strong {{ display: block; margin-bottom: 4px; }}
-        .toolbar {{ display: flex; gap: 8px; flex-wrap: wrap; }}
-        .muted {{ color: var(--muted); }}
-        .stack {{ display: grid; gap: 12px; }}
-        .msg {{ margin-top: 10px; color: var(--accent-2); min-height: 1.4em; }}
-        .err {{ color: #fca5a5; }}
-        @media (max-width: 960px) {{ main {{ grid-template-columns: 1fr; }} }}
-    </style>
-</head>
-<body>
-<header>
-    <h1>BaseApp Task Manager</h1>
-    <p class="subtle">Local editor for <span>{escaped_path}</span></p>
-</header>
-<main>
-    <section class="panel">
-        <h2>Create Task</h2>
-        <div class="content">
-            <form id="create-form">
-                <label>Title <input name="title" required></label>
-                <label>Description <textarea name="description" placeholder="Describe the task"></textarea></label>
-                <label>Type <input name="type" value="Feature"></label>
-                <label>Priority <input name="priority" value="Medium"></label>
-                <label>Status
-                    <select name="status">
-                        <option>ToDo</option>
-                        <option>InProgress</option>
-                        <option>Done</option>
-                    </select>
-                </label>
-                <label>Initial Comment <textarea name="comment" placeholder="Optional"></textarea></label>
-                <div class="actions">
-                    <button class="primary" type="submit">Create Task</button>
-                    <button class="secondary" type="button" id="reload-btn">Reload</button>
-                </div>
-            </form>
-            <div class="msg" id="create-msg"></div>
-        </div>
-    </section>
-    <section class="panel">
-        <h2>Tasks</h2>
-        <div class="content">
-            <div class="stats" id="stats"></div>
-            <div class="task-list" id="task-list"></div>
-        </div>
-    </section>
-</main>
-<script>
-const taskList = document.getElementById('task-list');
-const statsEl = document.getElementById('stats');
-const msgEl = document.getElementById('create-msg');
-const createForm = document.getElementById('create-form');
+def _is_task_store_file(path):
+    try:
+        with Path(path).open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+        return isinstance(data, dict) and isinstance(data.get("TASKS"), list)
+    except (OSError, json.JSONDecodeError):
+        return False
 
-function val(v) {{ return Array.isArray(v) ? v.join('\\n') : (v ?? ''); }}
-function esc(v) {{ return String(v ?? ''); }}
-function pill(t) {{
-    const s = document.createElement('span'); s.className = 'pill'; s.textContent = t; return s;
-}}
-function renderStats(tasks) {{
-    const c = tasks.reduce((a, t) => {{ const s = t.status || 'ToDo'; a[s] = (a[s]||0)+1; return a; }}, {{}});
-    statsEl.innerHTML = '';
-    statsEl.appendChild(pill('Total ' + tasks.length));
-    Object.keys(c).sort().forEach(s => statsEl.appendChild(pill(s + ' ' + c[s])));
-}}
-function renderComments(task) {{
-    const box = document.createElement('div'); box.className = 'comments';
-    const comments = Array.isArray(task.comments) ? task.comments : [];
-    if (!comments.length) {{
-        const e = document.createElement('div'); e.className = 'muted'; e.textContent = 'No comments yet.'; box.appendChild(e); return box;
-    }}
-    comments.forEach(c => {{
-        const item = document.createElement('div'); item.className = 'comment';
-        const h = document.createElement('strong'); h.textContent = (c.author||'') + ' \u00b7 ' + (c.timestamp||'');
-        const b = document.createElement('div'); b.textContent = c.content || '';
-        item.append(h, b); box.appendChild(item);
-    }});
-    return box;
-}}
-function taskCard(task) {{
-    const card = document.createElement('article'); card.className = 'task-card'; card.dataset.taskId = task.id;
-    const form = document.createElement('form'); form.className = 'stack';
-    const head = document.createElement('div'); head.className = 'task-head';
-    const hd = document.createElement('div');
-    hd.innerHTML = '<div class="task-id">' + esc(task.id) + '</div><h3 class="task-title"></h3>';
-    hd.querySelector('.task-title').textContent = task.title || '';
-    const meta = document.createElement('div'); meta.className = 'task-meta';
-    meta.innerHTML = '<span>' + esc(task.uuid||'') + '</span><span>' + esc(task.status||'') + '</span>';
-    head.append(hd, meta);
-    const grid = document.createElement('div'); grid.className = 'task-grid';
-    [['Title','title','input'],['Type','type','input'],['Priority','priority','input'],
-     ['Status','status','select'],['Description','description','textarea','full'],
-     ['Add Comment','comment','textarea','full']].forEach(([lbl, name, kind, xc]) => {{
-        const w = document.createElement('label'); if (xc) w.className = xc; w.textContent = lbl;
-        let ctrl;
-        if (kind === 'textarea') {{ ctrl = document.createElement('textarea'); ctrl.name = name; ctrl.value = val(task[name]); }}
-        else if (kind === 'select') {{
-            ctrl = document.createElement('select'); ctrl.name = name;
-            ['ToDo','InProgress','Done'].forEach(o => {{
-                const opt = document.createElement('option'); opt.value = o; opt.textContent = o;
-                if (o === (task[name]||'ToDo')) opt.selected = true; ctrl.appendChild(opt);
-            }});
-        }} else {{ ctrl = document.createElement('input'); ctrl.name = name; ctrl.value = val(task[name]); }}
-        w.appendChild(ctrl); grid.appendChild(w);
-    }});
-    const tb = document.createElement('div'); tb.className = 'toolbar full';
-    const sb = document.createElement('button'); sb.className = 'primary'; sb.type = 'button'; sb.textContent = 'Save Changes';
-    sb.addEventListener('click', () => saveTask(task.id, card));
-    const cb = document.createElement('button'); cb.className = 'secondary'; cb.type = 'button'; cb.textContent = 'Add Comment';
-    cb.addEventListener('click', () => addComment(task.id, card));
-    tb.append(sb, cb); grid.appendChild(tb);
-    form.append(head, grid, renderComments(task)); card.appendChild(form);
-    return card;
-}}
-async function loadTasks() {{
-    const r = await fetch('/api/tasks');
-    if (!r.ok) throw new Error('Load failed (' + r.status + ')');
-    const p = await r.json();
-    const tasks = Array.isArray(p.tasks) ? p.tasks : [];
-    taskList.innerHTML = ''; renderStats(tasks);
-    tasks.forEach(t => taskList.appendChild(taskCard(t)));
-}}
-async function createTask(ev) {{
-    ev.preventDefault(); msgEl.className = 'msg'; msgEl.textContent = '';
-    const r = await fetch('/api/tasks', {{ method: 'POST', headers: {{'Content-Type':'application/json'}}, body: JSON.stringify(Object.fromEntries(new FormData(createForm).entries())) }});
-    if (!r.ok) throw new Error(await r.text() || 'Create failed (' + r.status + ')');
-    createForm.reset(); createForm.status.value = 'ToDo'; createForm.type.value = 'Feature'; createForm.priority.value = 'Medium';
-    msgEl.textContent = 'Task created.'; await loadTasks();
-}}
-async function saveTask(id, card) {{
-    const r = await fetch('/api/tasks/' + encodeURIComponent(id), {{ method: 'PUT', headers: {{'Content-Type':'application/json'}}, body: JSON.stringify(Object.fromEntries(new FormData(card.querySelector('form')).entries())) }});
-    if (!r.ok) throw new Error('Save failed (' + r.status + ')'); await loadTasks();
-}}
-async function addComment(id, card) {{
-    const fd = Object.fromEntries(new FormData(card.querySelector('form')).entries());
-    const r = await fetch('/api/tasks/' + encodeURIComponent(id) + '/comments', {{ method: 'POST', headers: {{'Content-Type':'application/json'}}, body: JSON.stringify({{comment: fd.comment}}) }});
-    if (!r.ok) throw new Error('Comment failed (' + r.status + ')'); await loadTasks();
-}}
-createForm.addEventListener('submit', async ev => {{
-    try {{ await createTask(ev); }} catch(e) {{ msgEl.className = 'msg err'; msgEl.textContent = e.message; }}
-}});
-document.getElementById('reload-btn').addEventListener('click', async () => {{
-    try {{ await loadTasks(); msgEl.className = 'msg'; msgEl.textContent = 'Refreshed.'; }}
-    catch(e) {{ msgEl.className = 'msg err'; msgEl.textContent = e.message; }}
-}});
-loadTasks().catch(e => {{ msgEl.className = 'msg err'; msgEl.textContent = e.message; }});
-</script>
-</body>
-</html>
-"""
+
+def _scan_task_files(tasks_dir):
+    """Feature ID: 3.6.3. Return available task JSON files from tasks_dir only."""
+    directory = Path(tasks_dir).resolve()
+    files = []
+    if not directory.is_dir():
+        return files
+
+    for p in sorted(directory.glob("*.json")):
+        rp = p.resolve()
+        if p.stem == "template" or not _is_task_store_file(rp):
+            continue
+        files.append({
+            "name": rp.name,
+            "path": rp.as_posix(),
+            "display": rp.as_posix(),
+        })
+    return files
+
+
+def _resolve_requested_tasks_path(raw_path, base_dir, tasks_dir):
+    candidate = _resolve_path(raw_path, base_dir)
+    if candidate is None:
+        return None
+    if candidate.suffix.lower() != ".json" or candidate.stem == "template":
+        return None
+    if candidate.parent != Path(tasks_dir).resolve():
+        return None
+    if not candidate.exists() or not _is_task_store_file(candidate):
+        return None
+    return candidate
+
+
+def _choose_tasks_path(base_dir, tasks_dir, requested_path=None):
+    directory = Path(tasks_dir).resolve()
+    requested = _resolve_requested_tasks_path(requested_path, base_dir, directory)
+    if requested is not None:
+        return requested
+
+    default_path = directory / _default_task_filename_for_context(base_dir)
+    if default_path.exists() and _is_task_store_file(default_path):
+        return default_path
+
+    files = _scan_task_files(directory)
+    if files:
+        return Path(files[0]["path"]).resolve()
+
+    return default_path
+
+
+def _description_to_text(description):
+    if isinstance(description, list):
+        return "\n".join(str(line) for line in description)
+    return str(description or "")
+
+
+def _format_context_file_list(directory, pattern):
+    path = Path(directory).resolve()
+    if not path.is_dir():
+        return "- (directory not found)"
+
+    matches = [item.resolve().as_posix() for item in sorted(path.glob(pattern)) if item.is_file()]
+    if not matches:
+        return "- (no matching files found)"
+
+    return "\n".join(f"- {match}" for match in matches)
+
+
+def _stringify_placeholder_value(value):
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, list):
+        if all(isinstance(item, str) for item in value):
+            return "\n".join(value)
+        return json.dumps(value, indent=2, ensure_ascii=False)
+    if isinstance(value, dict):
+        return json.dumps(value, indent=2, ensure_ascii=False)
+    return str(value)
+
+
+def _populate_placeholders(text, params):
+    def replace(match):
+        key = match.group(1)
+        if key not in params:
+            return match.group(0)
+        return str(params[key])
+
+    return re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", replace, text)
+
+
+def _build_copilot_prompt(task, tasks_path):
+    tasks_file = Path(tasks_path).resolve()
+    build_dir = tasks_file.parent.parent
+    workspace_root = build_dir.parent
+    with COPILOT_PROMPT_TEMPLATE_PATH.open("r", encoding="utf-8") as handle:
+        template_text = handle.read()
+
+    prompt_params = {
+        key: _stringify_placeholder_value(value)
+        for key, value in task.items()
+    }
+    prompt_params.update({
+        "id": str(task.get("id", "")).strip(),
+        "title": str(task.get("title", "")).strip(),
+        "type": str(task.get("type", "Feature")).strip() or "Feature",
+        "priority": str(task.get("priority", "Medium")).strip() or "Medium",
+        "status": str(task.get("status", "ToDo")).strip() or "ToDo",
+        "description": _description_to_text(task.get("description", "")).strip() or "(no description provided)",
+        "task_file": tasks_file.as_posix(),
+        "workspace_root": workspace_root.as_posix(),
+        "instruction_files": _format_context_file_list(build_dir / "instructions", "*.md"),
+        "requirement_files": _format_context_file_list(build_dir / "requirements", "*.json"),
+    })
+    return _populate_placeholders(template_text, prompt_params)
+
+
+def _load_app_config(base_dir):
+    """Load the full app config using the app's own Config framework."""
+    base_config_path = Path(base_dir).resolve() / "config" / "base.json"
+    if not base_config_path.is_file():
+        return None
+    try:
+        return Config(base_config_path=str(base_config_path)).config
+    except Exception:
+        return None
+
+
+def _start_copilot_for_task(task, tasks_path, store):
+    copilot_cli = shutil.which("copilot") or shutil.which("github-copilot-cli")
+    if not copilot_cli:
+        raise RuntimeError("Copilot CLI is not available in PATH (expected 'copilot')")
+
+    caller_root = store.base_dir
+    output_prefix = getattr(getattr(store.config, "COMMON", None), "OUTPUT_PREFIX", None) if store.config else None
+    if output_prefix:
+        prompts_dir = Path(str(output_prefix).strip()) / "agent_prompts"
+    else:
+        prompts_dir = caller_root / "build" / "tasks" / "agent_prompts"
+    prompts_dir.mkdir(parents=True, exist_ok=True)
+
+    safe_task_id = str(task.get("id", "task")).replace("/", "_").replace("\\", "_")
+    session_name = (str(task.get("title", "")).strip() or f"Task {safe_task_id}")[:100]
+    prompt_path = prompts_dir / f"{safe_task_id}.md"
+    prompt_path.write_text(_build_copilot_prompt(task, tasks_path), encoding="utf-8")
+
+    creationflags = subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
+    subprocess.Popen(
+        [
+            "pwsh", "-NoExit", "-File", str(COPILOT_WORKER_LAUNCH_SCRIPT_PATH),
+            "-WorkspaceRoot", str(caller_root),
+            "-TaskId", safe_task_id,
+            "-PromptFile", str(prompt_path),
+            "-TaskFile", str(Path(tasks_path).resolve()),
+            "-CopilotCli", copilot_cli,
+            "-SessionName", session_name,
+        ],
+        cwd=str(caller_root),
+        creationflags=creationflags,
+    )
+    return prompt_path
+
+
+def _build_query_url(host, port, store):
+    query = urlencode({
+        "base_dir": store.base_dir.as_posix(),
+        "tasks_dir": store.tasks_dir.as_posix(),
+        "tasks_file": store.tasks_path.name,
+    })
+    return f"http://{host}:{port}/?{query}"
+
+
+def _render_index_html(store):
+    """Load and render the task manager HTML template from resources/templates/task_manager.html."""
+    template_path = PROJECT_ROOT / "resources" / "templates" / "task_manager.html"
+    with template_path.open("r", encoding="utf-8") as handle:
+        template = handle.read()
+
+    replacements = {
+        "__TASKS_PATH__": html.escape(store.tasks_path.resolve().as_posix()),
+        "__TASKS_DIR__": html.escape(store.tasks_dir.resolve().as_posix()),
+        "__APP_NAME__": html.escape(store.app_name),
+    }
+    for key, value in replacements.items():
+        template = template.replace(key, value)
+    return template
+
+
+class _TaskStore:
+    """Container for mutable task manager state for a caller app context."""
+
+    def __init__(self, base_dir=None, tasks_dir=None, tasks_path=None):
+        self.base_dir = Path(base_dir or PROJECT_ROOT).resolve()
+        self.config = _load_app_config(self.base_dir)
+        self.tasks_dir = Path(tasks_dir or _default_tasks_dir_for_context(self.base_dir)).resolve()
+        self.tasks_path = _choose_tasks_path(self.base_dir, self.tasks_dir, tasks_path)
+        app_name = getattr(getattr(self.config, "COMMON", None), "APP_NAME", None) if self.config else None
+        self.app_name = str(app_name).strip() if app_name else (self.base_dir.name or "App")
 
 
 class _TaskManagerHandler(BaseHTTPRequestHandler):
@@ -410,17 +451,69 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/":
-            body = _render_index_html(self.__class__.store.tasks_path).encode("utf-8")
+            query = parse_qs(parsed.query)
+            current = self.__class__.store
+
+            base_dir_q = query.get("base_dir", [""])[0]
+            tasks_dir_q = query.get("tasks_dir", [""])[0]
+            tasks_file_q = query.get("tasks_file", [""])[0]
+            if not tasks_file_q:
+                for key in ("tasks", "tasks_path", "file"):
+                    values = query.get(key, [])
+                    if values:
+                        tasks_file_q = values[0]
+                        break
+
+            base_dir = _resolve_path(base_dir_q, current.base_dir) if base_dir_q else current.base_dir
+            if base_dir is None:
+                base_dir = current.base_dir
+
+            tasks_dir = _resolve_path(tasks_dir_q, base_dir) if tasks_dir_q else _default_tasks_dir_for_context(base_dir)
+            if tasks_dir is None:
+                tasks_dir = _default_tasks_dir_for_context(base_dir)
+
+            self.__class__.store = _TaskStore(base_dir=base_dir, tasks_dir=tasks_dir, tasks_path=tasks_file_q or None)
+
+            body = _render_index_html(self.__class__.store).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
             return
+
+        if parsed.path == "/api/config":
+            store = self.__class__.store
+            files = _scan_task_files(store.tasks_dir)
+            resolved_store_path = store.tasks_path.resolve().as_posix()
+            if not any(file_info.get("path") == resolved_store_path for file_info in files):
+                files.append({
+                    "name": store.tasks_path.name,
+                    "path": resolved_store_path,
+                    "display": resolved_store_path,
+                })
+
+            files.sort(key=lambda item: item.get("display", "").lower())
+            query_url = _build_query_url(self.server.server_address[0], self.server.server_address[1], store)
+            self._send_json(200, {
+                "tasks_path": resolved_store_path,
+                "tasks_display": resolved_store_path,
+                "tasks_dir": store.tasks_dir.resolve().as_posix(),
+                "app_name": store.app_name,
+                "url": query_url,
+                "available_files": files,
+            })
+            return
+
         if parsed.path == "/api/tasks":
             data = self._get_tasks()
-            self._send_json(200, {"tasks": data["TASKS"], "summary": _tasks_summary(data["TASKS"]), "tasks_path": str(self.__class__.store.tasks_path)})
+            self._send_json(200, {
+                "tasks": data["TASKS"],
+                "summary": _tasks_summary(data["TASKS"]),
+                "tasks_path": self.__class__.store.tasks_path.resolve().as_posix(),
+            })
             return
+
         if parsed.path.startswith("/api/tasks/"):
             task_id = parsed.path.removeprefix("/api/tasks/").split("/", 1)[0]
             data = self._get_tasks()
@@ -430,6 +523,7 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
                 return
             self._send_json(200, {"task": task})
             return
+
         self._send_json(404, {"error": "not found"})
 
     def do_POST(self):
@@ -440,6 +534,28 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             self._write_tasks(data)
             self._send_json(201, {"task": task})
             return
+
+        if parsed.path.startswith("/api/tasks/") and parsed.path.endswith("/start-agent"):
+            task_id = parsed.path.removeprefix("/api/tasks/").removesuffix("/start-agent").strip("/")
+            _, task = _find_task(data["TASKS"], task_id)
+            if task is None:
+                self._send_json(404, {"error": "task not found", "task_id": task_id})
+                return
+            try:
+                prompt_path = _start_copilot_for_task(task, self.__class__.store.tasks_path, self.__class__.store)
+            except RuntimeError as error:
+                self._send_json(500, {"error": str(error), "task_id": task_id})
+                return
+            task["status"] = "InProgress"
+            self._write_tasks(data)
+            self._send_json(200, {
+                "task_id": task_id,
+                "prompt_file": prompt_path.as_posix(),
+                "message": "Started a Copilot CLI terminal session with a task-focused prompt.",
+                "task": task,
+            })
+            return
+
         if parsed.path.startswith("/api/tasks/") and parsed.path.endswith("/comments"):
             task_id = parsed.path.removeprefix("/api/tasks/").removesuffix("/comments").strip("/")
             try:
@@ -450,13 +566,45 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             self._write_tasks(data)
             self._send_json(200, {"task": task})
             return
+
         self._send_json(404, {"error": "not found"})
 
     def do_PUT(self):
         parsed = urlparse(self.path)
+        if parsed.path == "/api/config":
+            payload = self._read_body()
+            current = self.__class__.store
+
+            base_dir_raw = payload.get("base_dir")
+            tasks_dir_raw = payload.get("tasks_dir")
+            tasks_path_raw = payload.get("tasks_path")
+
+            base_dir = _resolve_path(base_dir_raw, current.base_dir) if base_dir_raw is not None else current.base_dir
+            if base_dir is None:
+                self._send_json(400, {"error": "invalid base_dir"})
+                return
+
+            tasks_dir = _resolve_path(tasks_dir_raw, base_dir) if tasks_dir_raw is not None else current.tasks_dir
+            if tasks_dir is None:
+                self._send_json(400, {"error": "invalid tasks_dir"})
+                return
+
+            if tasks_path_raw is not None and not str(tasks_path_raw).strip().endswith(".json"):
+                self._send_json(400, {"error": "tasks_path must be a .json file"})
+                return
+
+            self.__class__.store = _TaskStore(base_dir=base_dir, tasks_dir=tasks_dir, tasks_path=tasks_path_raw)
+            self._send_json(200, {
+                "tasks_path": self.__class__.store.tasks_path.resolve().as_posix(),
+                "tasks_dir": self.__class__.store.tasks_dir.resolve().as_posix(),
+                "app_name": self.__class__.store.app_name,
+            })
+            return
+
         if not parsed.path.startswith("/api/tasks/"):
             self._send_json(404, {"error": "not found"})
             return
+
         task_id = parsed.path.removeprefix("/api/tasks/").strip("/")
         data = self._get_tasks()
         try:
@@ -471,27 +619,21 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
         return
 
 
-class _TaskStore:
-    """Container for the task manager's mutable state (tasks file path)."""
-
-    def __init__(self, tasks_path):
-        self.tasks_path = Path(tasks_path)
-
-
 # Feature 3.6.1
 def parse_args(argv=None):
     """Feature ID: 3.6.1. Parse CLI arguments for the local task manager."""
     parser = argparse.ArgumentParser(description="Run the BaseApp task manager UI.")
-    parser.add_argument("--tasks-path", default=str(DEFAULT_TASKS_PATH), help="Path to build/tasks/base.json")
+    parser.add_argument("--base-dir", default=str(PROJECT_ROOT), help="Caller app base directory")
+    parser.add_argument("--tasks-dir", default="", help="Task files directory (defaults to <base-dir>/build/tasks)")
+    parser.add_argument("--tasks-path", default="", help="Task file path or file name inside tasks-dir")
     parser.add_argument("--host", default=DEFAULT_HOST, help="Host interface to bind")
     parser.add_argument("--port", default=DEFAULT_PORT, type=int, help="Port to bind")
     parser.add_argument("--open-browser", action="store_true", help="Open the UI in a browser after startup")
     return parser.parse_args(argv)
 
 
-def _create_server(host, port, tasks_path):
+def _create_server(host, port, store):
     """Create and return a ThreadingHTTPServer bound to the given host/port."""
-    store = _TaskStore(tasks_path)
     _TaskManagerHandler.store = store
     server = ThreadingHTTPServer((host, int(port)), _TaskManagerHandler)
     server.allow_reuse_address = True
@@ -502,13 +644,19 @@ def _create_server(host, port, tasks_path):
 def run(argv=None):
     """Feature ID: 3.6.2. Run the local task manager web app."""
     args = parse_args(argv)
-    server = _create_server(args.host, args.port, args.tasks_path)
-    url = f"http://{server.server_address[0]}:{server.server_address[1]}"
+    base_dir = Path(args.base_dir).resolve()
+    tasks_dir = Path(args.tasks_dir).resolve() if args.tasks_dir else _default_tasks_dir_for_context(base_dir)
+    initial_store = _TaskStore(base_dir=base_dir, tasks_dir=tasks_dir, tasks_path=(args.tasks_path or None))
+
+    server = _create_server(args.host, args.port, initial_store)
+    url = _build_query_url(server.server_address[0], server.server_address[1], initial_store)
     if args.open_browser:
         webbrowser.open(url)
     try:
         print(f"Task manager listening at {url}")
-        print(f"Editing {Path(args.tasks_path).resolve()}")
+        print(f"Caller: {initial_store.app_name}")
+        print(f"Tasks dir: {initial_store.tasks_dir.resolve()}")
+        print(f"Editing: {initial_store.tasks_path.resolve()}")
         server.serve_forever()
     except KeyboardInterrupt:
         pass

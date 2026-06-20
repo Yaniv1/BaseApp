@@ -33,6 +33,10 @@
         {
             "source": "build/instructions/app.md",
             "target": "build/instructions/app.md"
+        },
+        {
+            "source": "build/instructions/task.md",
+            "target": "build/instructions/task.md"
         }, 
         {
             "source": "docs/readme/base.md"
@@ -81,7 +85,7 @@
         },
         {
             "source": "scripts"
-        },
+        },        
         {
             "source": "test/config/base.json"
         },

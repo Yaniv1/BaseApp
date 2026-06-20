@@ -9,7 +9,7 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Highlights (26.06.19.01)
 
-- **Local task manager web UI.** `scripts/task_manager.py` provides a zero-dependency local web interface (stdlib HTTP server + single-page JS) for `build/tasks/base.json`. Create tasks with title, description, type, priority, status, and an optional initial comment; edit any field in-place; append comments. All changes persist immediately to disk. Run with `python scripts/task_manager.py --open-browser`.
+- **Local task manager web UI.** `scripts/task_manager.py` provides a zero-dependency local web interface (stdlib HTTP server + single-page JS) for task management. All changes persist immediately to disk. Run with `python scripts/task_manager.py --open-browser`.
 - **HTML template path fix.** Relative `HTML_TEMPLATE` values in config are now resolved against the project root (`base_dir`) in all three call sites (`utils/baseutils.py`, `scripts/instantiate.py`, `scripts/pullbase.py`). The config value is now the clean project-root-relative path `resources/templates/dataset_table.html`.
 
 ## Highlights (26.06.18.01)
