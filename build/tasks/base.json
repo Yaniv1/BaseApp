@@ -1066,6 +1066,20 @@
             "priority": "Medium",
             "status": "ToDo",
             "comments": []
+        },
+        {
+            "id": "BASE-TASK-260622-0003",
+            "uuid": "f22bd58c-7655-492b-8afb-0b380970b3f8",
+            "title": "Task Manager Update Task Attributes",
+            "description": [
+                "Currently the task manager UI does not allow to update the task.",
+                "Add a capability to change the task attributes - title, description, type, priority, status.",
+                "Add a comment about every task update."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": []
         }
     ]
 }
