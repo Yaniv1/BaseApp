@@ -563,6 +563,11 @@
                     "author": "GitHub Copilot",
                     "content": "Completed. Added scripts/task_manager.py (Features 3.6, 3.6.1, 3.6.2): stdlib HTTP server + single-page UI for build/tasks/base.json. Supports create/update/comment with immediate disk persistence. Added prep test test_task_manager_interface (Feature 5.3.1.7.1) with 6 criteria, all PASS. Also fixed HTML_TEMPLATE path resolution in baseutils.py, instantiate.py, pullbase.py, and base.py test. Added BASE-REQ-014 and architecture features. Version bumped to 26.06.19.01. Build tests: 1 run, 0 failures.",
                     "timestamp": "2026-06-19T00:00:00Z"
+                },
+                {
+                    "author": "Yaniv",
+                    "content": "You just need to finalize this task.",
+                    "timestamp": "2026-06-22T08:04:22Z"
                 }
             ]
         },
@@ -823,7 +828,7 @@
             "description": "When the task manager UI creates a task it has to auto-add the initial comment of creating the task. Use the local user's ID to identify the author.",
             "type": "Feature",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "GitHub Copilot",
@@ -834,6 +839,11 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Add an owner dropdown when creating a task. let the user choose from previous authors or type in a new author. by default use the last author in the list. make sure the authors are shown in alphabetical order in the dropdown list.",
                     "timestamp": "2026-06-22T07:13:06Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Added Author dropdown to the Create Task form in resources/templates/task_manager.html. The dropdown (datalist-backed input) is populated from all unique comment authors across loaded tasks, sorted alphabetically. Defaults to the last author alphabetically. Allows free-form entry for new authors. The selected author is sent as the 'author' field in the POST payload and used as the creation comment's author in _create_task(). Also included 'author' in the CLI equivalent preview. Updated BASE-REQ-014.2 in build/requirements/base.json.",
+                    "timestamp": "2026-06-22T08:00:00Z"
                 }
             ]
         },
@@ -916,7 +926,7 @@
             ],
             "type": "Bug",
             "priority": "High",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "GitHub Copilot",
