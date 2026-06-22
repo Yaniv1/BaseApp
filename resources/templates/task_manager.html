@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta id="server-meta" data-tasks-path="__TASKS_PATH__" data-tasks-dir="__TASKS_DIR__" data-app-name="__APP_NAME__">
+<meta id="server-meta" data-tasks-path="__TASKS_PATH__" data-tasks-dir="__TASKS_DIR__" data-app-name="__APP_NAME__" data-git-repo="__GIT_REPO__" data-git-repo-display="__GIT_REPO_DISPLAY__" data-git-repo-available="__GIT_REPO_AVAILABLE__">
 <title>__APP_NAME__ Task Manager</title>
 <style>
 :root{
@@ -18,14 +18,19 @@ code{font-family:"Cascadia Code","Fira Code",monospace;font-size:.82em}
 /* ── Header ─────────────────────────────────────────────────── */
 header{background:rgba(15,23,42,.92);border-bottom:1px solid var(--ln);padding:11px 20px;
   position:sticky;top:0;z-index:10;backdrop-filter:blur(8px)}
-.hd{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;row-gap:10px}
 header h1{font-size:1.1rem;letter-spacing:.02em;white-space:nowrap}
-.fbar{display:flex;align-items:center;gap:7px}
+.fbar{display:flex;align-items:center;gap:7px;flex-wrap:nowrap;justify-content:flex-end;max-width:100%}
 .flbl{color:var(--mu);font-size:.8rem;white-space:nowrap}
+.git-sidebar{margin-top:auto;padding-top:10px;border-top:1px solid var(--ln);display:flex;flex-direction:column;gap:8px}
+.git-sidebar .git-label{background:rgba(30,41,59,.72);border:1px solid var(--ln);border-radius:8px;padding:7px 9px;font-size:.78rem;color:var(--mu);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.git-sidebar .btn{width:100%}
 .fsel{background:var(--sf);border:1px solid var(--ln);color:var(--tx);border-radius:8px;
   padding:5px 9px;font:inherit;cursor:pointer;max-width:300px}
 .dirinp{background:var(--sf);border:1px solid var(--ln);color:var(--tx);border-radius:8px;
-  padding:5px 9px;font:inherit;min-width:360px;max-width:560px}
+  padding:5px 9px;font:inherit;min-width:220px;width:min(360px, 100%);max-width:560px;flex:1 1 260px}
+.fbar .dirinp,.fbar .fsel{flex:0 0 auto}
+.git-label{font-size:.75rem;color:var(--mu);white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
 
 /* ── Layout ──────────────────────────────────────────────────── */
 main{display:grid;grid-template-columns:296px 1fr;min-height:calc(100vh - 48px)}
@@ -42,8 +47,10 @@ input,select,textarea{background:var(--bg);border:1px solid var(--ln);color:var(
 .fsel:focus,input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ac)}
 textarea{resize:vertical;min-height:56px}
 .btn{cursor:pointer;border-radius:8px;padding:6px 13px;font:inherit;font-weight:600;
-  border:1px solid transparent;transition:opacity .15s;white-space:nowrap}
+  border:1px solid transparent;transition:opacity .15s;white-space:nowrap;display:inline-flex;
+  align-items:center;justify-content:center;min-height:30px}
 .btn:hover{opacity:.82}
+.btn:disabled{opacity:.7;cursor:not-allowed;filter:grayscale(.15)}
 .primary{background:var(--ac);color:#0f172a}
 .secondary{background:var(--sf2);color:var(--tx);border-color:var(--ln)}
 .sec{background:var(--sf2);color:var(--tx);border-color:var(--ln)}
@@ -102,7 +109,9 @@ details.cli-sect{margin-top:2px}
 .s-done{background:rgba(34,197,94,.17);color:#86efac}
 .det-title{font-size:1.08rem}
 .det-desc{color:var(--mu);white-space:pre-wrap;line-height:1.65;font-size:.88rem}
-.det-actions{display:flex;gap:8px;flex-wrap:wrap}
+.det-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.perm-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--ln);border-radius:999px;background:rgba(30,41,59,.58);font-size:.8rem;color:var(--mu);cursor:pointer}
+.perm-toggle input{margin:0}
 .comments-list{display:flex;flex-direction:column;gap:6px}
 .comments-hd{font-size:.78rem;color:var(--mu);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
 .comment-item{background:var(--bg);border-left:3px solid rgba(56,189,248,.35);
@@ -128,6 +137,9 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
   main{grid-template-columns:1fr}
   .sidebar{border-right:none;border-bottom:1px solid var(--ln)}
   .form-row{grid-template-columns:1fr}
+  .fbar{justify-content:flex-start;flex-wrap:wrap}
+  .dirinp{width:100%;max-width:none;min-width:0}
+  .fbar .dirinp,.fbar .fsel{flex:1 1 auto}
 }
 </style>
 </head>
@@ -172,6 +184,10 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
           <option>ToDo</option><option>InProgress</option><option>Done</option>
         </select>
       </label>
+      <label>Author
+        <input name="author" id="create-author" list="dl-author" placeholder="Author name" autocomplete="off">
+        <datalist id="dl-author"></datalist>
+      </label>
       <label>Initial Comment
         <textarea name="comment" placeholder="Optional — context, origin..."></textarea>
       </label>
@@ -182,6 +198,11 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       <summary class="cli-sum">&#128196; CLI equivalent</summary>
       <pre id="cli-pre" class="cli-block"></pre>
     </details>
+    <div class="git-sidebar">
+      <span id="git-repo-label" class="git-label">Git: none</span>
+      <button id="sync-git-btn" class="btn primary" type="button">Sync Git</button>
+      <div id="git-status-msg" class="msg"></div>
+    </div>
   </aside>
 
   <section class="content">
@@ -210,6 +231,9 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       <h3 id="det-title" class="det-title"></h3>
       <p id="det-desc" class="det-desc"></p>
       <div class="det-actions">
+        <label class="perm-toggle"><input id="full-read-perm" type="checkbox" checked> Full read</label>
+        <label class="perm-toggle"><input id="full-edit-perm" type="checkbox"> Full edit</label>
+        <label class="perm-toggle"><input id="full-exec-perm" type="checkbox"> Full execution</label>
         <button id="start-agent-btn" class="btn secondary" type="button">Start Copilot Worker</button>
       </div>
       <div id="detail-msg" class="msg"></div>
@@ -272,7 +296,41 @@ function normalizeStatus(value) {
   return 'ToDo';
 }
 
+function ensureGitSidebar() {
+  const hasLabel = !!document.getElementById('git-repo-label');
+  const hasButton = !!document.getElementById('sync-git-btn');
+  if (hasLabel && hasButton) return;
+
+  const sidebar = document.querySelector('.sidebar');
+  if (!sidebar) return;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'git-sidebar';
+
+  const label = document.createElement('span');
+  label.id = 'git-repo-label';
+  label.className = 'git-label';
+  label.textContent = 'Git: none';
+
+  const btn = document.createElement('button');
+  btn.id = 'sync-git-btn';
+  btn.className = 'btn primary';
+  btn.type = 'button';
+  btn.textContent = 'Sync Git';
+
+  wrap.appendChild(label);
+  wrap.appendChild(btn);
+
+  const cli = sidebar.querySelector('details.cli-sect');
+  if (cli && cli.parentNode) {
+    cli.parentNode.insertBefore(wrap, cli.nextSibling);
+  } else {
+    sidebar.appendChild(wrap);
+  }
+}
+
 (async () => {
+  ensureGitSidebar();
   await loadConfig();
   await loadTasks();
   initCreateForm();
@@ -282,8 +340,8 @@ function normalizeStatus(value) {
 
 // ── Config & file selector ────────────────────────────────────
 async function loadConfig() {
-  let cfg;
-  try { const r = await fetch('/api/config'); cfg = await r.json(); } catch { return; }
+  let cfg = {};
+  try { const r = await fetch('/api/config'); cfg = await r.json(); } catch {}
 
   const titleEl = document.getElementById('app-title');
   const appName = String(cfg.app_name || defaultAppName || 'App').trim() || 'App';
@@ -292,6 +350,22 @@ async function loadConfig() {
 
   const dirInput = document.getElementById('tasks-dir-input');
   if (dirInput) dirInput.value = String(cfg.tasks_dir || defaultTasksDir || '');
+
+  const gitLabel = document.getElementById('git-repo-label');
+  const syncBtn = document.getElementById('sync-git-btn');
+  const metaGitRepo = SM ? SM.getAttribute('data-git-repo') : '';
+  const metaGitRepoDisplay = SM ? SM.getAttribute('data-git-repo-display') : '';
+  const metaGitRepoAvailable = SM ? SM.getAttribute('data-git-repo-available') : '';
+  const repoAvailable = typeof cfg?.git_repo_available === 'boolean'
+    ? cfg.git_repo_available
+    : (metaGitRepoAvailable === 'true');
+  const gitText = repoAvailable
+    ? (cfg?.git_repo_display || cfg?.git_repo || metaGitRepoDisplay || metaGitRepo || 'linked repo')
+    : 'none';
+  if (gitLabel) gitLabel.textContent = 'Git: ' + gitText;
+  if (syncBtn) syncBtn.disabled = !repoAvailable;
+  if (syncBtn && !repoAvailable) syncBtn.title = 'No linked git repo available';
+  if (syncBtn && repoAvailable) syncBtn.title = 'Sync task updates to the linked git repo';
 
   const sel = document.getElementById('file-select');
   sel.innerHTML = '';
@@ -407,6 +481,7 @@ async function loadTasks() {
     tasks = Array.isArray(p.tasks) ? p.tasks : [];
   } catch { return; }
   allTasks = tasks.map(task => ({ ...task, status: normalizeStatus(task.status) }));
+  populateAuthorDropdown();
   renderTable();
   updateBadges();
   if (selectedId) {
@@ -544,10 +619,35 @@ function initDetail() {
     if (r.ok) await loadTasks();
   });
 
+  document.getElementById('sync-git-btn').addEventListener('click', async () => {
+    const panel = document.getElementById('detail-panel');
+    const id = panel.dataset.id;
+    setMsg('git-status-msg', 'Syncing task updates to git...');
+    try {
+      const r = await fetch('/api/tasks/sync-git', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: id ? 'Update task store for ' + id : 'Update task store',
+        }),
+      });
+      const payload = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(payload.error || 'Failed to sync git');
+      setMsg('git-status-msg', payload.message || 'Task updates synced to git.');
+      await loadConfig();
+      await loadTasks();
+    } catch (e) {
+      setMsg('git-status-msg', 'Error: ' + e.message, true);
+    }
+  });
+
   document.getElementById('start-agent-btn').addEventListener('click', async () => {
     const panel = document.getElementById('detail-panel');
     const id = panel.dataset.id;
-    console.log('Start agent clicked for task:', id);
+    const fullRead = !!document.getElementById('full-read-perm')?.checked;
+    const fullEdit = !!document.getElementById('full-edit-perm')?.checked;
+    const fullExec = !!document.getElementById('full-exec-perm')?.checked;
+    console.log('Start agent clicked for task:', id, { fullRead, fullEdit, fullExec });
     if (!id) {
       console.warn('No task ID found in detail panel');
       return;
@@ -556,7 +656,11 @@ function initDetail() {
     try {
       const url = '/api/tasks/' + encodeURIComponent(id) + '/start-agent';
       console.log('Calling endpoint:', url);
-      const r = await fetch(url, { method: 'POST' });
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ full_read: fullRead, full_edit: fullEdit, full_execution: fullExec }),
+      });
       console.log('Response status:', r.status, r.statusText);
       const payload = await r.json();
       console.log('Response payload:', payload);
@@ -584,9 +688,39 @@ function initTabs() {
   });
 }
 
+// ── Author dropdown ───────────────────────────────────────────
+function populateAuthorDropdown() {
+  const dl = document.getElementById('dl-author');
+  const input = document.getElementById('create-author');
+  if (!dl || !input) return;
+  const seen = new Set();
+  allTasks.forEach(task => {
+    (task.comments || []).forEach(c => {
+      const a = String(c.author || '').trim();
+      if (a) seen.add(a);
+    });
+  });
+  const sorted = Array.from(seen).sort((a, b) => a.localeCompare(b));
+  dl.innerHTML = '';
+  sorted.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a;
+    dl.appendChild(opt);
+  });
+  // Default to last author alphabetically if not already set by the user
+  if (!input.dataset.userEdited && sorted.length) {
+    input.value = sorted[sorted.length - 1];
+  }
+}
+
 // ── Create form ───────────────────────────────────────────────
 function initCreateForm() {
   const form = document.getElementById('create-form');
+  const authorInput = document.getElementById('create-author');
+  // Track whether the user has manually typed an author so we can distinguish from the auto-default
+  if (authorInput) {
+    authorInput.addEventListener('input', () => { authorInput.dataset.userEdited = '1'; });
+  }
   form.addEventListener('input', updateCli);
   form.addEventListener('change', updateCli);
   updateCli();
@@ -604,6 +738,8 @@ function initCreateForm() {
       form.querySelector('[name=status]').value = 'ToDo';
       form.querySelector('[name=type]').value = 'Feature';
       form.querySelector('[name=priority]').value = 'Medium';
+      // Clear user-edited flag and restore default author after reset
+      if (authorInput) { delete authorInput.dataset.userEdited; }
       setMsg('create-msg', 'Created: ' + res.task.id);
       updateCli();
       await loadTasks();
@@ -616,7 +752,7 @@ function updateCli() {
   const data = Object.fromEntries(new FormData(form).entries());
   data.status = normalizeStatus(data.status);
   const p = {};
-  ['title', 'type', 'priority', 'status', 'description', 'comment'].forEach(k => { if (data[k]) p[k] = data[k]; });
+  ['title', 'type', 'priority', 'status', 'description', 'author', 'comment'].forEach(k => { if (data[k]) p[k] = data[k]; });
   const host = window.location.host || '127.0.0.1:8765';
   document.getElementById('cli-pre').textContent =
     'curl -X POST "http://' + host + '/api/tasks" \\\n  -H "Content-Type: application/json" \\\n  -d \'' + JSON.stringify(p, null, 2) + '\'';

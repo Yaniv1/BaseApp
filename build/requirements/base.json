@@ -1138,7 +1138,7 @@
                 },
                 {
                     "id": "BASE-REQ-014.2",
-                    "description": "Create requirement: The UI shall allow creating a new task with title, description, type, priority, status, and an optional initial comment.",
+                    "description": "Create requirement: The UI shall allow creating a new task with title, description, type, priority, status, author, and an optional initial comment. On creation, the system shall automatically prepend a 'Task created: <title>' comment attributed to the selected author. The create form shall provide an author dropdown pre-populated with all previously seen comment authors (sorted alphabetically), defaulting to the last author alphabetically, while also allowing free-form entry of a new author name.",
                     "priority": "Low",
                     "comments": []
                 },

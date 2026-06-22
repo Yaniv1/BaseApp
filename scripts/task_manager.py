@@ -487,7 +487,7 @@ def _load_app_config(base_dir):
         return None
 
 
-def _start_copilot_for_task(task, tasks_path, store):
+def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, enable_full_edit=False, enable_full_execution=False):
     copilot_cli = shutil.which("copilot") or shutil.which("github-copilot-cli")
     if not copilot_cli:
         raise RuntimeError("Copilot CLI is not available in PATH (expected 'copilot')")
@@ -508,17 +508,25 @@ def _start_copilot_for_task(task, tasks_path, store):
     prompt_path = prompts_dir / f"{safe_task_id}.md"
     prompt_path.write_text(_build_copilot_prompt(task, tasks_path), encoding="utf-8")
 
+    launch_args = [
+        "pwsh", "-NoExit", "-File", str(COPILOT_WORKER_LAUNCH_SCRIPT_PATH),
+        "-WorkspaceRoot", str(caller_root),
+        "-TaskId", safe_task_id,
+        "-PromptFile", str(prompt_path),
+        "-TaskFile", str(Path(tasks_path).resolve()),
+        "-CopilotCli", copilot_cli,
+        "-SessionName", session_name,
+    ]
+    if enable_full_read:
+        launch_args.extend(["-EnableFullRead"])
+    if enable_full_edit:
+        launch_args.extend(["-EnableFullEdit"])
+    if enable_full_execution:
+        launch_args.extend(["-EnableFullExecution"])
+
     creationflags = subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
     subprocess.Popen(
-        [
-            "pwsh", "-NoExit", "-File", str(COPILOT_WORKER_LAUNCH_SCRIPT_PATH),
-            "-WorkspaceRoot", str(caller_root),
-            "-TaskId", safe_task_id,
-            "-PromptFile", str(prompt_path),
-            "-TaskFile", str(Path(tasks_path).resolve()),
-            "-CopilotCli", copilot_cli,
-            "-SessionName", session_name,
-        ],
+        launch_args,
         cwd=str(caller_root),
         creationflags=creationflags,
     )
@@ -705,8 +713,16 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             if task is None:
                 self._send_json(404, {"error": "task not found", "task_id": task_id})
                 return
+            payload = self._read_body()
             try:
-                prompt_path = _start_copilot_for_task(task, self.__class__.store.tasks_path, self.__class__.store)
+                prompt_path = _start_copilot_for_task(
+                    task,
+                    self.__class__.store.tasks_path,
+                    self.__class__.store,
+                    enable_full_read=bool(payload.get("full_read", False)),
+                    enable_full_edit=bool(payload.get("full_edit", False)),
+                    enable_full_execution=bool(payload.get("full_execution", False)),
+                )
             except RuntimeError as error:
                 self._send_json(500, {"error": str(error), "task_id": task_id})
                 return
@@ -717,6 +733,11 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
                 "prompt_file": prompt_path.as_posix(),
                 "message": "Started a Copilot CLI terminal session with a task-focused prompt.",
                 "task": task,
+                "permissions": {
+                    "full_read": bool(payload.get("full_read", False)),
+                    "full_edit": bool(payload.get("full_edit", False)),
+                    "full_execution": bool(payload.get("full_execution", False)),
+                },
             })
             return
 

@@ -4,8 +4,15 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.19.01
-- App template version: A26.06.19.01
+- Base version: 26.06.22.01
+- App template version: A26.06.22.01
+
+## Highlights (26.06.22.01)
+
+- **Task Manager UI author dropdown.** The Create Task form now includes an Author field backed by a datalist dropdown. Authors are drawn from all existing comment authors across loaded tasks, sorted alphabetically. Defaults to the last author alphabetically; free-form entry is supported. The selected author is recorded as the creator of the auto-generated "Task created" comment.
+- **Task Manager auto-creation comment.** Creating a task now always prepends a `"Task created: <title>"` comment attributed to the selected author (or the local OS user via `getpass.getuser()` as fallback), ensuring every task has a creation audit trail.
+- **Logger renders escape sequences in console output.** `Logger._decode_escapes()` converts literal `\n`, `\t`, `\r` sequences to real control characters for console display; stored CSV/log entries retain the original text.
+- **Copilot CLI worker launched in interactive mode.** `scripts/launch_task_agent.ps1` now starts the Copilot worker with `-i` (interactive), `-C` (workspace), `--add-dir` (repo root), and `--allow-all` (autonomous edits), resolving the permission-denied failures in non-interactive stdin mode.
 
 ## Highlights (26.06.19.01)
 

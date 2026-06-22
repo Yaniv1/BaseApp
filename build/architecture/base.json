@@ -307,8 +307,26 @@
                             "description": "Run the local task manager web app: bind the HTTP server and serve until KeyboardInterrupt.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::run"
+                        },
+                        "3.6.3": {
+                            "name": "scripts.task_manager._local_user",
+                            "description": "Return the local OS username via getpass.getuser() as the default task author, falling back to 'Task Manager UI' on error.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_local_user"
+                        },
+                        "3.6.4": {
+                            "name": "scripts.task_manager._create_task",
+                            "description": "Create and append a new task to the task list, always prepending an auto-generated 'Task created' comment attributed to the local or provided author.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_create_task"
                         }
                     }
+                },
+                "3.7": {
+                    "name": "scripts.sync_task_repo",
+                    "description": "PowerShell helper that stages the task file, commits with a provided message, and pushes to the linked git remote. Invoked by the task manager UI Sync Git button.",
+                    "type": "Folder.Ps1File",
+                    "path": "scripts/sync_task_repo.ps1"
                 }
             }
         },
@@ -752,6 +770,12 @@
                                     "description": "Print a concise summary for console output when summary-only mode is enabled.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::Logger.print_summary"
+                                },
+                                "6.1.9.25": {
+                                    "name": "utils.baseutils.Logger._decode_escapes",
+                                    "description": "Convert literal escape sequences (\\n, \\t, \\r) in a string to real control characters for console rendering without mutating the stored log value.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Logger._decode_escapes"
                                 }
                             }
                         },
