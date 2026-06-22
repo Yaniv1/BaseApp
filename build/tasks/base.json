@@ -1037,6 +1037,35 @@
             "priority": "Medium",
             "status": "ToDo",
             "comments": []
+        },
+        {
+            "id": "BASE-TASK-260622-0001",
+            "uuid": "87e9a30a-8e1f-4e2f-bbb4-960160a94a95",
+            "title": "Task Manager UI - Add a Close button to close the browser and python background process",
+            "description": [
+                "If you close the task manager ui tab the python process keeps running in the background.",
+                "Make sure that if the browser is closed then the python background process is also stopped.",
+                "Also add a close button to close the python and tab."
+            ],
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": []
+        },
+        {
+            "id": "BASE-TASK-260622-0002",
+            "uuid": "8d95bd86-ef75-4453-9d42-c52c6c0fb437",
+            "title": "Task Manager UI - Maintain a Window for each app",
+            "description": [
+                "Open the task manager ui in a seperate window (not tab).",
+                "Return to the same window and don't open multiple tabs.",
+                "Keep a single window instance for each app.",
+                "If BaseApp and a variant app are calling the task manager at the same time, and multiple times, each app will always have a single window."
+            ],
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": []
         }
     ]
 }
