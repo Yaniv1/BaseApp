@@ -3,10 +3,12 @@
 
 import argparse
 import datetime as dt
+import getpass
 import html
 import json
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import uuid
@@ -24,6 +26,7 @@ DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 COPILOT_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "build" / "instructions" / "task.md"
 COPILOT_WORKER_LAUNCH_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "launch_task_agent.ps1"
+GIT_SYNC_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "sync_task_repo.ps1"
 
 
 def _now_iso():
@@ -133,6 +136,13 @@ def _find_task(tasks, task_id):
     return None, None
 
 
+def _local_user():
+    try:
+        return getpass.getuser()
+    except Exception:
+        return "Task Manager UI"
+
+
 def _create_task(tasks, payload):
     task = {
         key: value
@@ -147,10 +157,17 @@ def _create_task(tasks, payload):
     task["priority"] = str(payload.get("priority") or "Medium").strip() or "Medium"
     task["status"] = str(payload.get("status") or "ToDo").strip() or "ToDo"
 
+    creation_author = payload.get("author") or _local_user()
+    creation_comment = _normalise_comment({
+        "author": creation_author,
+        "content": f"Task created: {task['title']}",
+        "timestamp": _now_iso(),
+    })
+
     comments = payload.get("comments") or []
     if not isinstance(comments, list):
         comments = [comments]
-    task["comments"] = [
+    task["comments"] = [creation_comment] + [
         _normalise_comment(comment)
         for comment in comments
         if str(comment or "").strip()
@@ -339,6 +356,126 @@ def _build_copilot_prompt(task, tasks_path):
     return _populate_placeholders(template_text, prompt_params)
 
 
+def _get_store_base_dir(store):
+    if hasattr(store, "base_dir") and store.base_dir is not None:
+        return Path(store.base_dir).resolve()
+    tasks_path = getattr(store, "tasks_path", None)
+    if tasks_path is not None:
+        task_path = Path(tasks_path).resolve()
+        if task_path.exists() and task_path.is_file():
+            return task_path.parent
+        return task_path.parent
+    return PROJECT_ROOT
+
+
+def _run_git_command(repo_root, *args, check=False):
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), *args],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if check and result.returncode != 0:
+        stderr = result.stderr.strip()
+        stdout = result.stdout.strip()
+        raise RuntimeError(stderr or stdout or f"git {' '.join(args)} failed")
+    return result
+
+
+def _detect_git_repo(base_dir):
+    repo_root = Path(base_dir).resolve()
+    repo_result = _run_git_command(repo_root, "rev-parse", "--show-toplevel")
+    if repo_result.returncode != 0:
+        return {
+            "repo_root": None,
+            "repo_remote": None,
+            "repo_available": False,
+            "repo_display": "(no linked git repo)",
+        }
+
+    repo_root = Path(repo_result.stdout.strip()).resolve()
+    remote_result = _run_git_command(repo_root, "remote", "get-url", "origin")
+    remote_url = remote_result.stdout.strip() if remote_result.returncode == 0 else None
+    return {
+        "repo_root": repo_root,
+        "repo_remote": remote_url,
+        "repo_available": True,
+        "repo_display": remote_url or repo_root.as_posix(),
+    }
+
+
+def _sync_task_store_to_git(store, message=None):
+    base_dir = _get_store_base_dir(store)
+    repo_info = _detect_git_repo(base_dir)
+    if not repo_info["repo_available"]:
+        raise RuntimeError("No linked git repo is available for this working directory.")
+
+    repo_root = repo_info["repo_root"]
+    task_path = Path(getattr(store, "tasks_path", base_dir / "tasks.json")).resolve()
+    try:
+        task_rel = task_path.relative_to(repo_root)
+    except ValueError:
+        task_rel = task_path.name
+
+    status = _run_git_command(repo_root, "status", "--porcelain", "--", str(task_rel), check=False)
+    if status.returncode != 0:
+        raise RuntimeError(status.stderr.strip() or status.stdout.strip() or "Unable to inspect git status")
+
+    changes_detected = bool(status.stdout.strip())
+    commit_message = str(message).strip() or f"Update task store {task_path.name}"
+    if sys.platform == "win32":
+        launch_args = [
+            "cmd.exe",
+            "/c",
+            "start",
+            "Git Sync",
+            "pwsh",
+            "-NoProfile",
+            "-NoExit",
+            "-File",
+            str(GIT_SYNC_SCRIPT_PATH),
+            "-RepoRoot",
+            str(repo_root),
+            "-TaskFile",
+            str(task_rel.as_posix()),
+            "-CommitMessage",
+            commit_message,
+        ]
+        creationflags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+        try:
+            subprocess.Popen(launch_args, creationflags=creationflags)
+        except OSError as exc:
+            raise RuntimeError(f"Unable to launch the git sync window: {exc}") from exc
+    else:
+        try:
+            subprocess.Popen(
+                [
+                    "pwsh",
+                    "-NoProfile",
+                    "-NoExit",
+                    "-File",
+                    str(GIT_SYNC_SCRIPT_PATH),
+                    "-RepoRoot",
+                    str(repo_root),
+                    "-TaskFile",
+                    str(task_rel.as_posix()),
+                    "-CommitMessage",
+                    commit_message,
+                ]
+            )
+        except OSError as exc:
+            raise RuntimeError(f"Unable to launch the git sync window: {exc}") from exc
+
+    return {
+        "success": True,
+        "message": "Git sync launched in a visible terminal window." + (" No task-file changes were detected." if not changes_detected else ""),
+        "task_file": task_path.as_posix(),
+        "repo_root": repo_root.as_posix(),
+        "repo_remote": repo_info["repo_remote"],
+        "commit_message": commit_message,
+    }
+
+
 def _load_app_config(base_dir):
     """Load the full app config using the app's own Config framework."""
     base_config_path = Path(base_dir).resolve() / "config" / "base.json"
@@ -357,7 +494,10 @@ def _start_copilot_for_task(task, tasks_path, store):
 
     caller_root = store.base_dir
     output_prefix = getattr(getattr(store.config, "COMMON", None), "OUTPUT_PREFIX", None) if store.config else None
-    if output_prefix:
+    output_path = getattr(getattr(store.config, "COMMON", None), "OUTPUT_PATH", None) if store.config else None
+    if output_path:
+        prompts_dir = Path(str(output_path).strip()) / "agent_prompts"
+    elif output_prefix:
         prompts_dir = Path(str(output_prefix).strip()) / "agent_prompts"
     else:
         prompts_dir = caller_root / "build" / "tasks" / "agent_prompts"
@@ -400,10 +540,14 @@ def _render_index_html(store):
     with template_path.open("r", encoding="utf-8") as handle:
         template = handle.read()
 
+    repo_info = _detect_git_repo(_get_store_base_dir(store))
     replacements = {
         "__TASKS_PATH__": html.escape(store.tasks_path.resolve().as_posix()),
         "__TASKS_DIR__": html.escape(store.tasks_dir.resolve().as_posix()),
         "__APP_NAME__": html.escape(store.app_name),
+        "__GIT_REPO__": html.escape(repo_info["repo_root"].as_posix() if repo_info["repo_root"] else ""),
+        "__GIT_REPO_DISPLAY__": html.escape(repo_info["repo_display"] or ""),
+        "__GIT_REPO_AVAILABLE__": "true" if repo_info["repo_available"] else "false",
     }
     for key, value in replacements.items():
         template = template.replace(key, value)
@@ -432,6 +576,9 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
+        self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.send_header("Pragma", "no-cache")
+        self.send_header("Expires", "0")
         self.end_headers()
         self.wfile.write(encoded)
 
@@ -478,6 +625,9 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
             self.end_headers()
             self.wfile.write(body)
             return
@@ -485,6 +635,7 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/config":
             store = self.__class__.store
             files = _scan_task_files(store.tasks_dir)
+            repo_info = _detect_git_repo(_get_store_base_dir(store))
             resolved_store_path = store.tasks_path.resolve().as_posix()
             if not any(file_info.get("path") == resolved_store_path for file_info in files):
                 files.append({
@@ -502,6 +653,9 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
                 "app_name": store.app_name,
                 "url": query_url,
                 "available_files": files,
+                "git_repo": repo_info["repo_root"].as_posix() if repo_info["repo_root"] else None,
+                "git_repo_display": repo_info["repo_display"],
+                "git_repo_available": repo_info["repo_available"],
             })
             return
 
@@ -533,6 +687,16 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             task = _create_task(data["TASKS"], self._read_body())
             self._write_tasks(data)
             self._send_json(201, {"task": task})
+            return
+
+        if parsed.path == "/api/tasks/sync-git":
+            payload = self._read_body()
+            try:
+                result = _sync_task_store_to_git(self.__class__.store, message=payload.get("message"))
+            except RuntimeError as error:
+                self._send_json(500, {"success": False, "error": str(error)})
+                return
+            self._send_json(200, result)
             return
 
         if parsed.path.startswith("/api/tasks/") and parsed.path.endswith("/start-agent"):
@@ -628,14 +792,25 @@ def parse_args(argv=None):
     parser.add_argument("--tasks-path", default="", help="Task file path or file name inside tasks-dir")
     parser.add_argument("--host", default=DEFAULT_HOST, help="Host interface to bind")
     parser.add_argument("--port", default=DEFAULT_PORT, type=int, help="Port to bind")
-    parser.add_argument("--open-browser", action="store_true", help="Open the UI in a browser after startup")
+    parser.add_argument("--browser-off", action="store_true", help="Do not open the UI in a browser after startup")
     return parser.parse_args(argv)
+
+
+def _pick_available_port(host, port):
+    """Return a free port, falling back to an ephemeral port when the preferred one is busy."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind((host, int(port)))
+            return sock.getsockname()[1]
+    except OSError:
+        return 0
 
 
 def _create_server(host, port, store):
     """Create and return a ThreadingHTTPServer bound to the given host/port."""
     _TaskManagerHandler.store = store
-    server = ThreadingHTTPServer((host, int(port)), _TaskManagerHandler)
+    effective_port = _pick_available_port(host, port)
+    server = ThreadingHTTPServer((host, effective_port), _TaskManagerHandler)
     server.allow_reuse_address = True
     return server
 
@@ -650,8 +825,21 @@ def run(argv=None):
 
     server = _create_server(args.host, args.port, initial_store)
     url = _build_query_url(server.server_address[0], server.server_address[1], initial_store)
-    if args.open_browser:
-        webbrowser.open(url)
+    if not args.browser_off:
+        if sys.platform == "win32":
+            browser_candidates = [
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+                r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            ]
+            browser_path = next((p for p in browser_candidates if Path(p).exists()), None)
+            if browser_path:
+                subprocess.Popen([browser_path, "--new-window", url], shell=False)
+            else:
+                subprocess.Popen(["cmd", "/c", "start", "", url], shell=False)
+        else:
+            webbrowser.open(url, new=1, autoraise=True)
     try:
         print(f"Task manager listening at {url}")
         print(f"Caller: {initial_store.app_name}")

@@ -823,8 +823,14 @@
             "description": "When the task manager UI creates a task it has to auto-add the initial comment of creating the task. Use the local user's ID to identify the author.",
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
-            "comments": []
+            "status": "Done",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Implemented in scripts/task_manager.py. Added _local_user() helper using getpass.getuser() and modified _create_task() to always prepend an auto-creation comment (\"Task created: <title>\") with the OS username as author before any user-provided comments.",
+                    "timestamp": "2026-06-22T06:50:00Z"
+                }
+            ]
         },
         {
             "id": "BASE-TASK-260619-0003",
