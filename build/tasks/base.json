@@ -823,12 +823,17 @@
             "description": "When the task manager UI creates a task it has to auto-add the initial comment of creating the task. Use the local user's ID to identify the author.",
             "type": "Feature",
             "priority": "Medium",
-            "status": "Done",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "GitHub Copilot",
                     "content": "Implemented in scripts/task_manager.py. Added _local_user() helper using getpass.getuser() and modified _create_task() to always prepend an auto-creation comment (\"Task created: <title>\") with the OS username as author before any user-provided comments.",
                     "timestamp": "2026-06-22T06:50:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Add an owner dropdown when creating a task. let the user choose from previous authors or type in a new author. by default use the last author in the list. make sure the authors are shown in alphabetical order in the dropdown list.",
+                    "timestamp": "2026-06-22T07:13:06Z"
                 }
             ]
         },
@@ -1086,6 +1091,42 @@
             "priority": "High",
             "status": "ToDo",
             "comments": []
+        },
+        {
+            "id": "BASE-TASK-260622-0004",
+            "uuid": "46d1fdf0-f99b-4dc1-82b0-ca5358e77bb4",
+            "title": "Task Manager UI allow sorting task list by priority, type, and ID",
+            "description": [
+                "currently the task list is static and the user cannot sort it by relevant columns.",
+                "Add sorting by each column, ascending/descending/none.",
+                "Add filtering on each column by values in the column (e..g filter Type to Bug/Feature)"
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": []
+        },
+        {
+            "id": "BASE-TASK-260622-0005",
+            "uuid": "c6f416fb-37d6-4cfb-bf26-1d2e4016726f",
+            "title": "Task Manager UI Allow task deletion",
+            "description": [
+                "Allow user to delete a task.",
+                "Deleting a task moves it the status \"Deleted\".",
+                "A tab with deleted tasks will be added next to the rest of the status tabs.",
+                "In the deleted tasks tab, if a task is delted again, it will get removed from the task list.",
+                "A deleted task cannot be acted upon or modified except for its status."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "ymord",
+                    "content": "Task created: Task Manager UI Allow task deletion",
+                    "timestamp": "2026-06-22T07:00:02Z"
+                }
+            ]
         }
     ]
 }
