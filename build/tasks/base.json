@@ -1142,6 +1142,27 @@
                     "timestamp": "2026-06-22T07:00:02Z"
                 }
             ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260623-0001",
+            "uuid": "3c8fd4d8-54ee-44b5-92d7-83bd53a066cc",
+            "title": "Update task exec instructions to create and run a PS script that loads the diffs in VS CODE",
+            "description": [
+                "The way Copilot CLI presents the modified files is not actionable.",
+                "Ins addition to displaying the list of modified files, instruct the CLI to create a PS script that activates VS code to browse all the modified files, and run the script.",
+                "This would allow the engineer to get a better observability and understanding of the modifications to the code before approving."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Update task exec instructions to create and run a PS script that loads the diffs in VS CODE",
+                    "timestamp": "2026-06-23T02:50:11Z"
+                }
+            ]
         }
     ]
 }
