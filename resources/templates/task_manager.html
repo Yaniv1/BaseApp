@@ -168,16 +168,14 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
         <textarea name="description" placeholder="What, why, acceptance criteria..."></textarea>
       </label>
       <label>Type
-        <input name="type" value="Feature" list="dl-type">
-        <datalist id="dl-type">
+        <select name="type">
           <option>Feature</option><option>Bug</option><option>Chore</option><option>Doc</option>
-        </datalist>
+        </select>
       </label>
       <label>Priority
-        <input name="priority" value="Medium" list="dl-prio">
-        <datalist id="dl-prio">
-          <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
-        </datalist>
+        <select name="priority">
+          <option>Critical</option><option>High</option><option selected>Medium</option><option>Low</option>
+        </select>
       </label>
       <label>Status
         <select name="status">
@@ -244,16 +242,14 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
           <div class="form-row">
             <label>Title<input id="e-title" name="title"></label>
             <label>Type
-              <input id="e-type" name="type" list="dl-type2">
-              <datalist id="dl-type2">
+              <select id="e-type" name="type">
                 <option>Feature</option><option>Bug</option><option>Chore</option><option>Doc</option>
-              </datalist>
+              </select>
             </label>
             <label>Priority
-              <input id="e-priority" name="priority" list="dl-prio2">
-              <datalist id="dl-prio2">
+              <select id="e-priority" name="priority">
                 <option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
-              </datalist>
+              </select>
             </label>
             <label>Status
               <select id="e-status" name="status">

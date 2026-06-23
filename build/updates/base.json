@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260621-0005] [3.6] [Feature] Task Manager UI dropdowns now show all options on open",
+        "version": "26.06.22.02",
+        "description": "Fixed the Create Task and Edit Task forms in resources/templates/task_manager.html so the Type and Priority controls display all available options immediately when opened. These were previously datalist-backed <input> fields, which browsers filter against the current value and only reveal matching options once the user starts typing. Replaced them with native <select> dropdowns (matching the existing Status control), removing the dl-type/dl-prio/dl-type2/dl-prio2 datalists. The free-form Author datalist is unchanged. Existing JS that sets e-type/e-priority values on edit continues to work against the selects."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260619-0002] [3.6] [Feature] Task Manager UI author dropdown and auto-creation comment",
         "version": "26.06.22.01",
         "description": "Added an Author dropdown to the Create Task form in resources/templates/task_manager.html. The dropdown (datalist-backed input) is populated from all unique comment authors across loaded tasks, sorted alphabetically, and defaults to the last author alphabetically while allowing free-form entry. Added _local_user() helper in scripts/task_manager.py using getpass.getuser(). Modified _create_task() to always prepend an auto 'Task created: <title>' comment attributed to the selected/local author. Author is included in the CLI equivalent preview. Updated BASE-REQ-014.2 in build/requirements/base.json."

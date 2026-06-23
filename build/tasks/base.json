@@ -6,7 +6,7 @@
             "title": "Finalize version 26.06.03.01",
             "description": "Finalize the current release by syncing manifest entries for requirements/tasks artifacts, updating requirement baselines, and publishing version/update metadata.",
             "priority": "High",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "GitHub Copilot",
@@ -28,7 +28,8 @@
                     "content": "Finalized release metadata: bumped config/base.json, config/app.json, docs/version/base.txt, docs/version/app.txt, and prepended updates/base.json with this release entry.",
                     "timestamp": "2026-06-03T00:00:00Z"
                 }
-            ]
+            ],
+            "type": "Feature"
         },
         {
             "id": "BASE-TASK-260603-0002",
@@ -1061,8 +1062,10 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
-            "comments": []
+            "status": "Done",
+            "comments": [
+                "Replaced the datalist-backed Type and Priority inputs with native <select> dropdowns in both the Create Task and Edit Task forms (resources/templates/task_manager.html). Datalist inputs only revealed matching options after the user started typing; selects show all options on open, matching the existing Status control. Removed the now-unused dl-type/dl-prio/dl-type2/dl-prio2 datalists. Validated the template parses and all four selects render."
+            ]
         },
         {
             "id": "BASE-TASK-260622-0001",
@@ -1161,6 +1164,78 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Update task exec instructions to create and run a PS script that loads the diffs in VS CODE",
                     "timestamp": "2026-06-23T02:50:11Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260623-0002",
+            "uuid": "a0325470-67e3-4ef9-9cd0-9d8a4a128a8d",
+            "title": "Sync tasks with Git Repo automatically when starting Task Manager UI",
+            "description": [
+                "Automatically execute the task status sync to git when task manager ui is activated.",
+                "For each app vis-a-vis its git repo."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Sync tasks with Git Repo automatically when starting Task Manager UI",
+                    "timestamp": "2026-06-23T02:55:30Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260623-0003",
+            "uuid": "d7eb8b5b-59c3-4d08-bd01-f0a0a9dd281a",
+            "title": "Add state Ready between InProgress and Done",
+            "description": [
+                "Currently, tasks are changed from InProgress to Done without a user review.",
+                "When the AI agent is done working on a task, change the status from InProgress to Ready.",
+                "Only after user approval, finalize all changes and comitts, change status to Done, commit the task file, and push.",
+                "This flow should be reflected in the instructions to the agent.",
+                "In addition , the Task Manager has to show a separate tab for Ready tasks, so that the engineer will be able to know which tasks are ready for review.",
+                "When the task is Ready, the copilot activation will take the user to the available copilot window to review the modifications.",
+                "If the task was accomplished elsewhere or the copilot window was already closed, and is not traceable, start the copilot with a dedicated task review instruction focusing on helping the engineer understand what changes were made and if the requirements are fulfilled."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Add state Ready between InProgress and Done",
+                    "timestamp": "2026-06-23T03:28:28Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260623-0004",
+            "uuid": "755cbcba-4cb8-4c6b-b95a-0d2f396721c7",
+            "title": "Task Manager UI is assigning BASE prefix to APP tasks",
+            "description": [
+                "C:/Users/ymordecai/Code/AI4EDG/build/tasks/app.json",
+                "For example:",
+                "BASE-TASK-260623-0001",
+                "BASE-TASK-260623-0002",
+                "BASE-TASK-260623-0003",
+                "Adjust the task's prefix to APP",
+                "and fix the issue that causes the selection of this prefix for app tasks.",
+                "The logic should be:",
+                "use the basename of the tasks file with uppercase as the prefix."
+            ],
+            "type": "Bug",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Manager UI is assigning BASE prefix to APP tasks",
+                    "timestamp": "2026-06-23T04:29:54Z"
                 }
             ]
         }
