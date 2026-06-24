@@ -1137,14 +1137,26 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "ymord",
                     "content": "Task created: Task Manager UI Allow task deletion",
                     "timestamp": "2026-06-22T07:00:02Z"
+                },
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Implemented task deletion end-to-end. Backend (scripts/task_manager.py): added _delete_task plus a DELETE /api/tasks/<id> endpoint that soft-deletes a task to the 'Deleted' status, or permanently removes it when it is already deleted; _update_task now restricts deleted tasks to status-only changes; the start-agent and comments endpoints reject deleted tasks with 409. UI (resources/templates/task_manager.html): added a 'Deleted' status tab (with badge/count), a 'Delete Task'/'Delete Permanently' button in the detail panel, Deleted status styling/option, and disabling of all edit/comment/worker controls for deleted tasks except status. Added requirement BASE-REQ-014.7, architecture feature 3.6.7, and tests. Verify: run `.venv\\Scripts\\python -m pytest test/tests/base/task_manager.py` (new tests: test_task_manager_template_has_deleted_tab, test_delete_task_soft_deletes_then_removes, test_update_task_on_deleted_only_changes_status, and the http_delete_soft_then_permanent criterion in test_task_manager_interface). Two pre-existing failures (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port_when_requested_port_is_busy) are unrelated to this change. Manually: launch the Task Manager UI, open a task, click Delete Task -> it appears under the Deleted tab; open it there and click Delete Permanently -> it is removed.",
+                    "timestamp": "2026-06-24T19:45:00Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 43844,
+                "window_title": "Copilot Review BASE-TASK-260622-0005",
+                "mode": "review",
+                "prompt_file": "C:/data/MyApp/20260624/agent_prompts/BASE-TASK-260622-0005-review.md",
+                "started_at": "2026-06-24T20:23:04Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1178,14 +1190,26 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Sync tasks with Git Repo automatically when starting Task Manager UI",
                     "timestamp": "2026-06-23T02:55:30Z"
+                },
+                {
+                    "author": "Copilot Task BASE-TASK-260623-0002",
+                    "content": "Implemented automatic git sync on Task Manager UI startup. Added scripts/task_manager.py::_sync_apps_on_startup (Feature 3.6.8): on run() startup it scans every task store file in the tasks directory (each represents an app) and syncs each one against its own linked git repo via the existing _sync_task_store_to_git helper; apps without a linked repo are skipped and per-app failures are reported but never block startup or the remaining apps. run() now invokes it before serving, and a new --no-startup-sync CLI flag disables it. Registered architecture feature 3.6.8 (build/architecture/base.json), requirement BASE-REQ-014.8 and its solution row (build/requirements/base.json). Added unit tests test_sync_apps_on_startup_syncs_each_task_file and test_sync_apps_on_startup_skips_apps_without_repo (test/tests/base/task_manager.py). VERIFY: (1) run `.venv/Scripts/python -m pytest test/tests/base/task_manager.py -k sync_apps` -> both pass; (2) run `python scripts/task_manager.py --help` -> shows --no-startup-sync; (3) launch `python scripts/task_manager.py` in a git repo -> a Git Sync terminal window opens automatically for each task file (use --no-startup-sync to skip); (4) `python test/tests/build.py` -> Build phase 0 failures. NOTE: two pre-existing unrelated pytest failures (test_create_server_falls_back_to_free_port, test_build_copilot_prompt_uses_plain_task_request) fail on the clean tree before this change and are untouched here.",
+                    "timestamp": "2026-06-24T20:32:00Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 21216,
+                "window_title": "Copilot Task BASE-TASK-260623-0002",
+                "mode": "work",
+                "prompt_file": "C:/data/MyApp/20260624/agent_prompts/BASE-TASK-260623-0002.md",
+                "started_at": "2026-06-24T20:24:20Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1261,7 +1285,7 @@
             "description": "Created through the UI service",
             "type": "Bug",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Deleted",
             "comments": [
                 {
                     "author": "ymordecai",
@@ -1287,7 +1311,7 @@
             "description": "Created through the UI service",
             "type": "Bug",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Deleted",
             "comments": [
                 {
                     "author": "ymordecai",
@@ -1313,7 +1337,7 @@
             "description": "Created through the UI service",
             "type": "Bug",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Deleted",
             "comments": [
                 {
                     "author": "ymordecai",
@@ -1329,6 +1353,119 @@
                     "author": "Task Manager UI",
                     "content": "Persisted through the endpoint",
                     "timestamp": "2026-06-23T22:59:25Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260624-0001",
+            "uuid": "25f78f55-b993-4b3c-9854-53c93485fbc1",
+            "title": "Create a separate branch for each task you're working on",
+            "description": [
+                "Currently, you're using the existing local branch for all the tasks you're working on.",
+                "In this situation, there might be a confusion across changes for multiple tasks being worked on at the same time.",
+                "From now on each task will create a short-lived branch that will get closed after the task is pushed and the branch is merged into the main branch.",
+                "In order to distinguish completion from deployment, add a final task status called Deployed, after Done. Deployed happens when the task's ad-hoc branch is merged into main and dissolved.",
+                "During the merge process, the integration engineer will supervise and make sure there are no conflicts that we need to solve in order to complete the merge successfully.",
+                "Update the instructions accordingly.",
+                "Update the Task Manager UI accordingly."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Create a separate branch for each task you're working on",
+                    "timestamp": "2026-06-24T19:32:17Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260624-0002",
+            "uuid": "ae6e4201-2e7c-467a-9915-d79521b09a0d",
+            "title": "Task Manager UI Apply Scrolling to task list block and task details block",
+            "description": [
+                "Currently the task detals block is displayed below the list, resulting in whole window scrolling.",
+                "Create two fixed blocks - one for the task list and for task details - one below the other.",
+                "Each block will have its own scrolling.",
+                "The height will be adjustable - the user will be able to move the bar to give  more space to the list or the details block. by default the division will be 60% for task list and 40% for details block"
+            ],
+            "type": "Feature",
+            "priority": "Low",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Manager UI Apply Scrolling to task list block and task details block",
+                    "timestamp": "2026-06-24T19:35:49Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260624-0003",
+            "uuid": "840d7570-b2e1-4dad-8936-362e6e4a0ac6",
+            "title": "Rewrite the README.doc to provide an overview of the app in its final form and not a list of updates",
+            "description": [
+                "Currently the README.md file reads like a list of updates and not like an overview of the app, its functionality, structure, and features.",
+                "Rewrite this file to provide an overview of the app, what it does, and how to set it up to work for you - run it, instantiate it, pull updates from the instance apps, and how to build (using the task manager)"
+            ],
+            "type": "Feature",
+            "priority": "Critical",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Rewrite the README.doc to provide an overview of the app in its final form and not a list of updates",
+                    "timestamp": "2026-06-24T19:50:54Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260624-0004",
+            "uuid": "b940ba53-1ce9-44ea-b2a9-87c614f65775",
+            "title": "Log summary of successful and failed requests",
+            "description": [
+                "Provide a summary in the log of how many successful requests were handled and how many failed. Include value placehoders in the message text for the metrics and populate them.",
+                "Calculate the success rate.",
+                "If the success rate is above the required success rate, the instantiated message type will be GOOD. If it is above 50% of the requirement it will be WARN and if it is below 50% of the requirement it will be FAIL.",
+                "The message spec can be INFO because it will get overriden by the logging.",
+                "If the sucess rate"
+            ],
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "Deleted",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Log summary of successful and failed requests",
+                    "timestamp": "2026-06-24T20:04:02Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260624-0005",
+            "uuid": "85d2bfc1-b36a-4920-bc9d-7d4c1061496b",
+            "title": "Rebuilt Task Manager as a dedicated app that builds on BaseApp",
+            "description": [
+                "Currently task manager is a combination of items stitched into BaseApp.",
+                "I want to rebuild it as its own app that you woud run by calling TaskManager/app/app.py rather then BaseApp/scripts/task_manager.py",
+                "Task Manager will utilize config management ,logging, testing and other services from BaseApp. It will be possible to activate it to manage any task list including its own. this way there will be a single task manager entry point that will be able to manage multiple stores, rather than having a copy of the functionality in each instance app repo.",
+                "after the refactoring the entire task management functionality can be removed from the BaseApp codebase, except for the task list that each app keeps managing for itself.",
+                "The new task manager codebase will sit in a repo next to BaseApp's repo."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Rebuilt Task Manager as a dedicated app that builds on BaseApp",
+                    "timestamp": "2026-06-24T20:30:00Z"
                 }
             ]
         }
