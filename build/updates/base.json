@@ -1,5 +1,10 @@
 [ 
     {
+        "name": "[BaseApp] [BASE-TASK-260623-0003] [3.6] [Feature] Add Ready task state between InProgress and Done with review activation",
+        "version": "26.06.24.01",
+        "description": "Introduced a 'Ready' task state in the ToDo -> InProgress -> Ready -> Done lifecycle. Updated build/instructions/base.md, app.md, and task.md so the Copilot worker sets a task to Ready (not Done) when finished and only finalizes/commits/pushes/sets Done after explicit engineer approval. Added the build/instructions/task-review.md review prompt template. In scripts/task_manager.py: each launched worker now records its session (pid + console window title) on the task; added _process_alive, _activate_copilot_window, and _build_review_prompt helpers and a POST /api/tasks/{id}/activate endpoint that re-focuses the existing Copilot window when traceable or starts a dedicated review session otherwise. scripts/launch_task_agent.ps1 now sets a deterministic console window title. resources/templates/task_manager.html adds a Ready tab/badge, s-ready styling, Ready dropdown options, Ready status normalization, and a status-aware 'Review Changes' action button. Added requirement BASE-REQ-014.6 and architecture features 3.6.5/3.6.6, plus new prep tests in test/tests/base/task_manager.py."
+    },
+    {
         "name": "[BaseApp] [BASE-TASK-260621-0005] [3.6] [Feature] Task Manager UI dropdowns now show all options on open",
         "version": "26.06.22.02",
         "description": "Fixed the Create Task and Edit Task forms in resources/templates/task_manager.html so the Type and Priority controls display all available options immediately when opened. These were previously datalist-backed <input> fields, which browsers filter against the current value and only reveal matching options once the user starts typing. Replaced them with native <select> dropdowns (matching the existing Status control), removing the dl-type/dl-prio/dl-type2/dl-prio2 datalists. The free-form Author datalist is unchanged. Existing JS that sets e-type/e-priority values on edit continues to work against the selects."

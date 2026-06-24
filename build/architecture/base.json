@@ -319,6 +319,18 @@
                             "description": "Create and append a new task to the task list, always prepending an auto-generated 'Task created' comment attributed to the local or provided author.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_create_task"
+                        },
+                        "3.6.5": {
+                            "name": "scripts.task_manager._activate_copilot_window",
+                            "description": "Trace a Ready task's recorded worker session (pid + window title) and re-focus the still-running Copilot console window for review; returns False when the window is no longer traceable.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_activate_copilot_window"
+                        },
+                        "3.6.6": {
+                            "name": "scripts.task_manager._build_review_prompt",
+                            "description": "Build a review-focused Copilot prompt for a Ready task from build/instructions/task-review.md, used to start a dedicated review session when the worker window is not traceable.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_build_review_prompt"
                         }
                     }
                 },

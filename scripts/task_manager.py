@@ -6,6 +6,7 @@ import datetime as dt
 import getpass
 import html
 import json
+import os
 import re
 import shutil
 import socket
@@ -25,6 +26,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8765
 COPILOT_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "build" / "instructions" / "task.md"
+COPILOT_REVIEW_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "build" / "instructions" / "task-review.md"
 COPILOT_WORKER_LAUNCH_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "launch_task_agent.ps1"
 GIT_SYNC_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "sync_task_repo.ps1"
 
@@ -114,9 +116,22 @@ def _normalise_comment(comment):
     }
 
 
-def _next_task_id(tasks):
+def _task_id_prefix_token(tasks_path):
+    """Derive the task-id prefix token from the tasks file basename.
+
+    Uses the uppercased basename (without extension) of the tasks file so that,
+    for example, ``app.json`` yields ``APP`` and ``base.json`` yields ``BASE``.
+    """
+    if tasks_path:
+        stem = Path(tasks_path).stem.strip()
+        if stem:
+            return stem.upper()
+    return "BASE"
+
+
+def _next_task_id(tasks, tasks_path=None):
     today = dt.datetime.utcnow().strftime("%y%m%d")
-    prefix = f"BASE-TASK-{today}-"
+    prefix = f"{_task_id_prefix_token(tasks_path)}-TASK-{today}-"
     next_number = 1
     for task in tasks:
         task_id = str(task.get("id", ""))
@@ -143,13 +158,13 @@ def _local_user():
         return "Task Manager UI"
 
 
-def _create_task(tasks, payload):
+def _create_task(tasks, payload, tasks_path=None):
     task = {
         key: value
         for key, value in payload.items()
         if key not in {"id", "uuid", "title", "description", "type", "priority", "status", "comments", "comment"}
     }
-    task["id"] = str(payload.get("id") or _next_task_id(tasks)).strip()
+    task["id"] = str(payload.get("id") or _next_task_id(tasks, tasks_path)).strip()
     task["uuid"] = str(payload.get("uuid") or uuid.uuid4())
     task["title"] = str(payload.get("title", "")).strip()
     task["description"] = _split_description(payload.get("description", ""))
@@ -330,11 +345,11 @@ def _populate_placeholders(text, params):
     return re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", replace, text)
 
 
-def _build_copilot_prompt(task, tasks_path):
+def _build_copilot_prompt(task, tasks_path, template_path=COPILOT_PROMPT_TEMPLATE_PATH):
     tasks_file = Path(tasks_path).resolve()
     build_dir = tasks_file.parent.parent
     workspace_root = build_dir.parent
-    with COPILOT_PROMPT_TEMPLATE_PATH.open("r", encoding="utf-8") as handle:
+    with Path(template_path).open("r", encoding="utf-8") as handle:
         template_text = handle.read()
 
     prompt_params = {
@@ -354,6 +369,11 @@ def _build_copilot_prompt(task, tasks_path):
         "requirement_files": _format_context_file_list(build_dir / "requirements", "*.json"),
     })
     return _populate_placeholders(template_text, prompt_params)
+
+
+def _build_review_prompt(task, tasks_path):
+    """Build a review-focused Copilot prompt for a task that is in the Ready state."""
+    return _build_copilot_prompt(task, tasks_path, template_path=COPILOT_REVIEW_PROMPT_TEMPLATE_PATH)
 
 
 def _get_store_base_dir(store):
@@ -487,7 +507,71 @@ def _load_app_config(base_dir):
         return None
 
 
-def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, enable_full_edit=False, enable_full_execution=False):
+def _process_alive(pid):
+    """Return True if a process with the given pid is currently running."""
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if pid <= 0:
+        return False
+    if sys.platform == "win32":
+        try:
+            result = subprocess.run(
+                ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        except OSError:
+            return False
+        return str(pid) in (result.stdout or "")
+    try:
+        os.kill(pid, 0)
+    except (OSError, ProcessLookupError):
+        return False
+    return True
+
+
+def _activate_copilot_window(session):
+    """Bring an existing Copilot worker console window to the foreground.
+
+    Returns True when a traceable, still-running window was activated, and False
+    when the session is missing or the window can no longer be traced (e.g. it
+    was closed or the task was completed elsewhere).
+    """
+    if not isinstance(session, dict):
+        return False
+    pid = session.get("pid")
+    window_title = str(session.get("window_title") or "").strip()
+    if not _process_alive(pid):
+        return False
+    if sys.platform != "win32":
+        # Best-effort: the process is alive, but we cannot raise a console
+        # window on non-Windows hosts, so report it as traceable.
+        return True
+
+    targets = [str(int(pid))]
+    if window_title:
+        targets.append(window_title)
+    activate_expr = ";".join(
+        "if($s.AppActivate('" + t.replace("'", "''") + "')){exit 0}"
+        for t in targets
+    )
+    command = "$s=New-Object -ComObject WScript.Shell;" + activate_expr + ";exit 1"
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-Command", command],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return False
+    return result.returncode == 0
+
+
+def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, enable_full_edit=False, enable_full_execution=False, mode="work"):
     copilot_cli = shutil.which("copilot") or shutil.which("github-copilot-cli")
     if not copilot_cli:
         raise RuntimeError("Copilot CLI is not available in PATH (expected 'copilot')")
@@ -505,8 +589,12 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
 
     safe_task_id = str(task.get("id", "task")).replace("/", "_").replace("\\", "_")
     session_name = (str(task.get("title", "")).strip() or f"Task {safe_task_id}")[:100]
-    prompt_path = prompts_dir / f"{safe_task_id}.md"
-    prompt_path.write_text(_build_copilot_prompt(task, tasks_path), encoding="utf-8")
+    is_review = str(mode).strip().lower() == "review"
+    window_title = f"Copilot {'Review' if is_review else 'Task'} {safe_task_id}"
+    prompt_suffix = "-review" if is_review else ""
+    prompt_path = prompts_dir / f"{safe_task_id}{prompt_suffix}.md"
+    prompt_text = _build_review_prompt(task, tasks_path) if is_review else _build_copilot_prompt(task, tasks_path)
+    prompt_path.write_text(prompt_text, encoding="utf-8")
 
     launch_args = [
         "pwsh", "-NoExit", "-File", str(COPILOT_WORKER_LAUNCH_SCRIPT_PATH),
@@ -516,6 +604,7 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
         "-TaskFile", str(Path(tasks_path).resolve()),
         "-CopilotCli", copilot_cli,
         "-SessionName", session_name,
+        "-WindowTitle", window_title,
     ]
     if enable_full_read:
         launch_args.extend(["-EnableFullRead"])
@@ -525,11 +614,21 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
         launch_args.extend(["-EnableFullExecution"])
 
     creationflags = subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
-    subprocess.Popen(
+    process = subprocess.Popen(
         launch_args,
         cwd=str(caller_root),
         creationflags=creationflags,
     )
+
+    # Record the launched session on the task so a later "Ready" review can
+    # trace and re-focus this console window instead of starting from scratch.
+    task["worker_session"] = {
+        "pid": getattr(process, "pid", None),
+        "window_title": window_title,
+        "mode": "review" if is_review else "work",
+        "prompt_file": prompt_path.as_posix(),
+        "started_at": _now_iso(),
+    }
     return prompt_path
 
 
@@ -623,9 +722,17 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             if base_dir is None:
                 base_dir = current.base_dir
 
-            tasks_dir = _resolve_path(tasks_dir_q, base_dir) if tasks_dir_q else _default_tasks_dir_for_context(base_dir)
+            tasks_dir = _resolve_path(tasks_dir_q, base_dir) if tasks_dir_q else None
+            if tasks_dir is None:
+                tasks_dir = current.tasks_dir if isinstance(current, _TaskStore) else _default_tasks_dir_for_context(base_dir)
             if tasks_dir is None:
                 tasks_dir = _default_tasks_dir_for_context(base_dir)
+
+            # Preserve the currently selected tasks file on a bare reload so a
+            # plain GET "/" without query params does not silently reset the
+            # store to the default context.
+            if not tasks_file_q and isinstance(current, _TaskStore):
+                tasks_file_q = current.tasks_path
 
             self.__class__.store = _TaskStore(base_dir=base_dir, tasks_dir=tasks_dir, tasks_path=tasks_file_q or None)
 
@@ -692,7 +799,7 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         data = self._get_tasks()
         if parsed.path == "/api/tasks":
-            task = _create_task(data["TASKS"], self._read_body())
+            task = _create_task(data["TASKS"], self._read_body(), self.__class__.store.tasks_path)
             self._write_tasks(data)
             self._send_json(201, {"task": task})
             return
@@ -738,6 +845,50 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
                     "full_edit": bool(payload.get("full_edit", False)),
                     "full_execution": bool(payload.get("full_execution", False)),
                 },
+            })
+            return
+
+        if parsed.path.startswith("/api/tasks/") and parsed.path.endswith("/activate"):
+            task_id = parsed.path.removeprefix("/api/tasks/").removesuffix("/activate").strip("/")
+            _, task = _find_task(data["TASKS"], task_id)
+            if task is None:
+                self._send_json(404, {"error": "task not found", "task_id": task_id})
+                return
+            payload = self._read_body()
+
+            # First, try to bring an existing, still-running worker window to the
+            # foreground so the engineer can review the modifications in place.
+            if _activate_copilot_window(task.get("worker_session")):
+                self._send_json(200, {
+                    "task_id": task_id,
+                    "mode": "activated",
+                    "message": "Brought the existing Copilot window to the foreground for review.",
+                    "task": task,
+                })
+                return
+
+            # The window is not traceable (closed, or the task was completed
+            # elsewhere): start a dedicated review session instead.
+            try:
+                prompt_path = _start_copilot_for_task(
+                    task,
+                    self.__class__.store.tasks_path,
+                    self.__class__.store,
+                    enable_full_read=bool(payload.get("full_read", True)),
+                    enable_full_edit=bool(payload.get("full_edit", False)),
+                    enable_full_execution=bool(payload.get("full_execution", False)),
+                    mode="review",
+                )
+            except RuntimeError as error:
+                self._send_json(500, {"error": str(error), "task_id": task_id})
+                return
+            self._write_tasks(data)
+            self._send_json(200, {
+                "task_id": task_id,
+                "mode": "review",
+                "prompt_file": prompt_path.as_posix(),
+                "message": "Started a dedicated Copilot review session for this Ready task.",
+                "task": task,
             })
             return
 
@@ -828,7 +979,15 @@ def _pick_available_port(host, port):
 
 
 def _create_server(host, port, store):
-    """Create and return a ThreadingHTTPServer bound to the given host/port."""
+    """Create and return a ThreadingHTTPServer bound to the given host/port.
+
+    ``store`` may be a :class:`_TaskStore` or a path-like pointing at a tasks
+    file; a bare path is wrapped in a :class:`_TaskStore` so callers can pass
+    either form.
+    """
+    if not isinstance(store, _TaskStore):
+        path = Path(store)
+        store = _TaskStore(tasks_dir=path.parent, tasks_path=path)
     _TaskManagerHandler.store = store
     effective_port = _pick_available_port(host, port)
     server = ThreadingHTTPServer((host, effective_port), _TaskManagerHandler)

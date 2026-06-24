@@ -106,6 +106,7 @@ details.cli-sect{margin-top:2px}
 .sbadge{border-radius:999px;padding:3px 10px;font-size:.73rem;font-weight:600;margin-left:8px}
 .s-todo{background:rgba(148,163,184,.11);color:var(--mu)}
 .s-inprogress{background:rgba(234,179,8,.17);color:#fde047}
+.s-ready{background:rgba(56,189,248,.17);color:#7dd3fc}
 .s-done{background:rgba(34,197,94,.17);color:#86efac}
 .det-title{font-size:1.08rem}
 .det-desc{color:var(--mu);white-space:pre-wrap;line-height:1.65;font-size:.88rem}
@@ -179,7 +180,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       </label>
       <label>Status
         <select name="status">
-          <option>ToDo</option><option>InProgress</option><option>Done</option>
+          <option>ToDo</option><option>InProgress</option><option>Ready</option><option>Done</option>
         </select>
       </label>
       <label>Author
@@ -207,6 +208,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
     <div class="tab-bar">
       <button class="tab active" data-status="ToDo">ToDo <span id="cnt-ToDo" class="badge">0</span></button>
       <button class="tab" data-status="InProgress">InProgress <span id="cnt-InProgress" class="badge">0</span></button>
+      <button class="tab" data-status="Ready">Ready <span id="cnt-Ready" class="badge">0</span></button>
       <button class="tab" data-status="Done">Done <span id="cnt-Done" class="badge">0</span></button>
     </div>
     <div class="table-wrap">
@@ -253,7 +255,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
             </label>
             <label>Status
               <select id="e-status" name="status">
-                <option>ToDo</option><option>InProgress</option><option>Done</option>
+                <option>ToDo</option><option>InProgress</option><option>Ready</option><option>Done</option>
               </select>
             </label>
           </div>
@@ -280,7 +282,7 @@ const defaultPath = SM ? SM.getAttribute('data-tasks-path') : '';
 const defaultTasksDir = SM ? SM.getAttribute('data-tasks-dir') : '';
 const defaultAppName = SM ? SM.getAttribute('data-app-name') : 'App';
 let allTasks = [], currentStatus = 'ToDo', selectedId = null;
-const STATUS_TABS = ['ToDo', 'InProgress', 'Done'];
+const STATUS_TABS = ['ToDo', 'InProgress', 'Ready', 'Done'];
 
 function normalizeStatus(value) {
   const raw = String(value ?? '').trim();
@@ -288,6 +290,7 @@ function normalizeStatus(value) {
   const key = raw.toLowerCase().replace(/[\s_-]+/g, '');
   if (key === 'todo' || key === 'pending' || key === 'open') return 'ToDo';
   if (key === 'inprogress' || key === 'doing' || key === 'active' || key === 'wip') return 'InProgress';
+  if (key === 'ready' || key === 'review' || key === 'forreview' || key === 'readyforreview') return 'Ready';
   if (key === 'done' || key === 'complete' || key === 'completed' || key === 'closed') return 'Done';
   return 'ToDo';
 }
@@ -529,7 +532,7 @@ function refreshRows() {
   document.querySelectorAll('.task-row').forEach(r => r.classList.toggle('selected', r.dataset.id === selectedId));
 }
 
-const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Done: 's-done' }[normalizeStatus(s)] || 's-todo');
+const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Ready: 's-ready', Done: 's-done' }[normalizeStatus(s)] || 's-todo');
 
 function showDetail(task) {
   const panel = document.getElementById('detail-panel');
@@ -541,6 +544,18 @@ function showDetail(task) {
   const sb = document.getElementById('det-status');
   sb.textContent = canonicalStatus;
   sb.className = 'sbadge ' + statusCls(canonicalStatus);
+  const agentBtn = document.getElementById('start-agent-btn');
+  if (agentBtn) {
+    if (canonicalStatus === 'Ready') {
+      agentBtn.textContent = 'Review Changes';
+      agentBtn.dataset.action = 'review';
+      agentBtn.title = 'Bring the existing Copilot window to the front, or start a dedicated review session if it is no longer available.';
+    } else {
+      agentBtn.textContent = 'Start Copilot Worker';
+      agentBtn.dataset.action = 'work';
+      agentBtn.title = 'Start a Copilot CLI worker session for this task.';
+    }
+  }
   document.getElementById('det-title').textContent = task.title || '';
 
   const descTxt = Array.isArray(task.description) ? task.description.join('\n') : (task.description || '');
@@ -640,17 +655,20 @@ function initDetail() {
   document.getElementById('start-agent-btn').addEventListener('click', async () => {
     const panel = document.getElementById('detail-panel');
     const id = panel.dataset.id;
+    const btn = document.getElementById('start-agent-btn');
+    const isReview = btn && btn.dataset.action === 'review';
     const fullRead = !!document.getElementById('full-read-perm')?.checked;
     const fullEdit = !!document.getElementById('full-edit-perm')?.checked;
     const fullExec = !!document.getElementById('full-exec-perm')?.checked;
-    console.log('Start agent clicked for task:', id, { fullRead, fullEdit, fullExec });
+    console.log('Agent button clicked for task:', id, { isReview, fullRead, fullEdit, fullExec });
     if (!id) {
       console.warn('No task ID found in detail panel');
       return;
     }
-    setMsg('detail-msg', 'Starting Copilot CLI worker...');
+    setMsg('detail-msg', isReview ? 'Opening Copilot review for this Ready task...' : 'Starting Copilot CLI worker...');
     try {
-      const url = '/api/tasks/' + encodeURIComponent(id) + '/start-agent';
+      const endpoint = isReview ? '/activate' : '/start-agent';
+      const url = '/api/tasks/' + encodeURIComponent(id) + endpoint;
       console.log('Calling endpoint:', url);
       const r = await fetch(url, {
         method: 'POST',
@@ -660,12 +678,13 @@ function initDetail() {
       console.log('Response status:', r.status, r.statusText);
       const payload = await r.json();
       console.log('Response payload:', payload);
-      if (!r.ok) throw new Error(payload.error || 'Failed to start worker');
-      const text = (payload.message || 'Worker started') + (payload.prompt_file ? '\nPrompt: ' + payload.prompt_file : '');
+      if (!r.ok) throw new Error(payload.error || (isReview ? 'Failed to open review' : 'Failed to start worker'));
+      const text = (payload.message || (isReview ? 'Review opened' : 'Worker started')) + (payload.prompt_file ? '\nPrompt: ' + payload.prompt_file : '');
       console.log('Success:', text);
       setMsg('detail-msg', text);
+      if (!isReview) await loadTasks();
     } catch (e) {
-      console.error('Start agent error:', e);
+      console.error('Agent button error:', e);
       setMsg('detail-msg', 'Error: ' + e.message, true);
     }
   });

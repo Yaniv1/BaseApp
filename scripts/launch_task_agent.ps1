@@ -5,12 +5,19 @@ param(
     [string]$TaskFile,
     [string]$CopilotCli,
     [string]$SessionName,
+    [string]$WindowTitle,
     [switch]$EnableFullRead,
     [switch]$EnableFullEdit,
     [switch]$EnableFullExecution
 )
 
 Set-Location -LiteralPath $WorkspaceRoot
+
+# Set a deterministic console window title so the task manager can trace and
+# re-focus this window when the task later moves to the Ready review state.
+if (-not [string]::IsNullOrWhiteSpace($WindowTitle)) {
+    try { $Host.UI.RawUI.WindowTitle = $WindowTitle } catch { }
+}
 
 Write-Host "Starting Copilot CLI task session for $TaskId"
 Write-Host "Prompt file: $PromptFile"

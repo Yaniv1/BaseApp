@@ -1159,6 +1159,12 @@
                     "description": "Verification requirement: A prep test shall validate the load/create/update/comment round-trips and the HTTP API endpoints against a temp copy of the task store.",
                     "priority": "Low",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.6",
+                    "description": "Lifecycle requirement: The system shall support a 'Ready' task state between 'InProgress' and 'Done'. The Copilot worker, when finished, shall set the task to 'Ready' (not 'Done') and stop without finalizing or pushing; only after explicit engineer approval shall the task move to 'Done', be finalized, committed, and pushed. The Task Manager UI shall display a dedicated 'Ready' tab. Activating Copilot on a 'Ready' task shall bring the existing, still-running worker window to the foreground when traceable; otherwise (window closed or the task completed elsewhere) it shall start a dedicated Copilot review session using a review-focused prompt that helps the engineer understand the changes and verify requirement fulfilment.",
+                    "priority": "High",
+                    "comments": []
                 }
             ],
             "solution": [
@@ -1179,6 +1185,20 @@
                 {
                     "feature": "3.6.2",
                     "role": "run() binds the server and serves until KeyboardInterrupt.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.6.5",
+                    "role": "_activate_copilot_window traces a Ready task's recorded worker session (pid + window title) and re-focuses the still-running Copilot console window for review.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.6.6",
+                    "role": "_build_review_prompt / _start_copilot_for_task(mode='review') start a dedicated review session using build/instructions/task-review.md when the worker window is not traceable.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0

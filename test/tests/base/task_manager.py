@@ -16,7 +16,9 @@ from scripts.task_manager import (
     _create_server,
     _create_task,
     _load_tasks_store,
+    _next_task_id,
     _save_tasks_store,
+    _task_id_prefix_token,
     _update_task,
 )
 
@@ -64,6 +66,73 @@ def test_build_copilot_prompt_uses_plain_task_request():
     prompt = task_manager._build_copilot_prompt(task, tasks_path)
     assert prompt.startswith("Implement the requested task")
     assert "Implement the requested behavior." in prompt
+
+
+def test_build_review_prompt_uses_review_template():
+    task = {
+        "id": "BASE-TASK-0042",
+        "title": "Ready sample task",
+        "type": "Feature",
+        "priority": "High",
+        "status": "Ready",
+        "description": "Review the requested behavior.",
+    }
+    tasks_path = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    prompt = task_manager._build_review_prompt(task, tasks_path)
+    assert "this is a dedicated review session" in prompt.lower()
+    assert "Review the requested behavior." in prompt
+    assert "BASE-TASK-0042" in prompt
+
+
+def test_activate_copilot_window_handles_missing_or_dead_session(monkeypatch):
+    assert task_manager._activate_copilot_window(None) is False
+    assert task_manager._activate_copilot_window({}) is False
+    monkeypatch.setattr(task_manager, "_process_alive", lambda pid: False)
+    assert task_manager._activate_copilot_window({"pid": 1234, "window_title": "Copilot Task X"}) is False
+
+
+def test_activate_copilot_window_focuses_live_window(monkeypatch):
+    monkeypatch.setattr(task_manager, "_process_alive", lambda pid: True)
+    monkeypatch.setattr(task_manager.sys, "platform", "win32")
+
+    class DummyResult:
+        returncode = 0
+
+    calls = []
+    monkeypatch.setattr(task_manager.subprocess, "run", lambda *a, **k: calls.append((a, k)) or DummyResult())
+    assert task_manager._activate_copilot_window({"pid": 4321, "window_title": "Copilot Task X"}) is True
+    assert calls, "expected an activation command to be issued"
+
+
+def test_start_copilot_for_task_records_worker_session(monkeypatch, tmp_path):
+    class DummyProc:
+        pid = 24680
+
+    class DummyStore:
+        base_dir = tmp_path
+        config = None
+
+    task = {"id": "BASE-TASK-7777", "title": "Session test"}
+    tasks_path = tmp_path / "tasks.json"
+    tasks_path.write_text("{}", encoding="utf-8")
+
+    monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
+    monkeypatch.setattr(task_manager.subprocess, "Popen", lambda *args, **kwargs: DummyProc())
+    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path: "review prompt")
+
+    task_manager._start_copilot_for_task(task, tasks_path, DummyStore(), mode="review")
+    session = task.get("worker_session")
+    assert session and session["pid"] == 24680
+    assert session["mode"] == "review"
+    assert session["window_title"].startswith("Copilot Review")
+
+
+def test_task_manager_template_has_ready_tab():
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    assert 'data-status="Ready"' in template
+    assert 'id="cnt-Ready"' in template
+    assert "'ToDo', 'InProgress', 'Ready', 'Done'" in template
 
 
 def test_start_copilot_for_task_passes_permission_flags(monkeypatch, tmp_path):
@@ -143,6 +212,48 @@ def test_sync_task_store_launches_sync_window_even_when_task_file_is_clean(monke
     assert launched
 
 
+def test_activate_endpoint_focuses_or_starts_review(monkeypatch, tmp_path):
+    source_tasks = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    temp_tasks = tmp_path / "base.json"
+    shutil.copyfile(source_tasks, temp_tasks)
+
+    data = _load_tasks_store(temp_tasks)
+    ready = _create_task(data["TASKS"], {
+        "title": "Ready review task",
+        "description": "Awaiting review",
+        "status": "Ready",
+    }, temp_tasks)
+    _save_tasks_store(temp_tasks, data)
+
+    server = _create_server("127.0.0.1", 0, temp_tasks)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    time.sleep(0.2)
+    port = server.server_address[1]
+    base = f"http://127.0.0.1:{port}/api/tasks/{ready['id']}/activate"
+    try:
+        # Traceable window: should activate in place without starting a session.
+        monkeypatch.setattr(task_manager, "_activate_copilot_window", lambda session: True)
+        status, payload = _request_json(base, method="POST", payload={})
+        assert status == 200 and payload.get("mode") == "activated"
+
+        # Not traceable: should fall back to a dedicated review session.
+        started = {}
+        monkeypatch.setattr(task_manager, "_activate_copilot_window", lambda session: False)
+        monkeypatch.setattr(
+            task_manager,
+            "_start_copilot_for_task",
+            lambda task, tasks_path, store, **kwargs: started.update(kwargs) or Path(tasks_path),
+        )
+        status, payload = _request_json(base, method="POST", payload={})
+        assert status == 200 and payload.get("mode") == "review"
+        assert started.get("mode") == "review"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
 def test_create_server_falls_back_to_free_port_when_requested_port_is_busy():
     occupied_server = None
     server = None
@@ -196,7 +307,7 @@ def test_task_manager_interface(manager=None, message=None, **kwargs):
             "priority": "Low",
             "status": "InProgress",
             "comment": "Seeded by the prep test",
-        })
+        }, temp_tasks)
         _save_tasks_store(temp_tasks, data)
         reloaded = _load_tasks_store(temp_tasks)
         persisted = len(reloaded["TASKS"]) == original_count + 1 and any(task.get("id") == created["id"] for task in reloaded["TASKS"])
@@ -207,6 +318,21 @@ def test_task_manager_interface(manager=None, message=None, **kwargs):
             "expected": created["id"],
             "success": persisted,
             "status": "PASS" if persisted else "FAIL",
+        })
+
+        # The task-id prefix must derive from the uppercased basename of the
+        # tasks file, so a base.json store yields BASE-TASK-* and an app.json
+        # store yields APP-TASK-*.
+        base_prefix_ok = created["id"].startswith("BASE-TASK-")
+        app_id = _next_task_id(data["TASKS"], Path(workdir) / "app.json")
+        prefix_ok = base_prefix_ok and app_id.startswith("APP-TASK-") and _task_id_prefix_token("config/app.json") == "APP"
+        criteria.append({
+            "name": "task_id_prefix_uses_tasks_file_basename",
+            "operator": "eq",
+            "actual": app_id.split("-TASK-", 1)[0],
+            "expected": "APP",
+            "success": prefix_ok,
+            "status": "PASS" if prefix_ok else "FAIL",
         })
 
         updated = _update_task(reloaded["TASKS"], created["id"], {
@@ -245,7 +371,7 @@ def test_task_manager_interface(manager=None, message=None, **kwargs):
         port = server.server_address[1]
         root_status, root_html = _request_text(f"http://127.0.0.1:{port}/")
         api_status, api_payload = _request_json(f"http://127.0.0.1:{port}/api/tasks")
-        http_ok = root_status == 200 and api_status == 200 and "BaseApp Task Manager" in root_html and any(task.get("id") == created["id"] for task in api_payload.get("tasks", []))
+        http_ok = root_status == 200 and api_status == 200 and "Task Manager</title>" in root_html and any(task.get("id") == created["id"] for task in api_payload.get("tasks", []))
         criteria.append({
             "name": "http_interface_round_trip",
             "operator": "eq",

@@ -1203,12 +1203,22 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Add state Ready between InProgress and Done",
                     "timestamp": "2026-06-23T03:28:28Z"
+                },
+                {
+                    "author": "Copilot CLI",
+                    "content": "Implemented the Ready state end-to-end. (1) Instructions: base.md/app.md/task.md now define the ToDo->InProgress->Ready->Done lifecycle; the worker sets Ready (not Done) on completion and only finalizes/commits/pushes after engineer approval. (2) New review prompt template build/instructions/task-review.md. (3) task_manager.py: tracks each worker session (pid + window title) on the task, adds _activate_copilot_window/_process_alive/_build_review_prompt and a POST /api/tasks/{id}/activate endpoint that re-focuses the existing Copilot window when traceable or starts a dedicated review session otherwise. (4) launch_task_agent.ps1 sets a deterministic console window title. (5) task_manager.html adds a Ready tab/badge, s-ready styling, Ready dropdown options, normalizeStatus/statusCls handling, and a status-aware 'Review Changes' action button. (6) Requirements BASE-REQ-014.6 + architecture 3.6.5/3.6.6. (7) Added tests (all passing). Per this new flow, leaving the task in Ready for review; not committing/pushing. Note: two pre-existing test failures (test_build_copilot_prompt stale assertion on HEAD; test_create_server broken by concurrent in-progress work in _create_server) are unrelated to this change.",
+                    "timestamp": "2026-06-23T23:11:44Z"
+                },
+                {
+                    "author": "Copilot CLI",
+                    "content": "Engineer reviewed and approved the staged changes. Finalized version 26.06.24.01: bumped resources/version/base.txt (26.06.24.01) and app.txt (A26.06.24.01) and config/base.json COMMON.VERSION; prepended the update entry to build/updates/base.json; refreshed docs/readme/base.md and README.md highlights. Build tests passed (1 run, 0 failures). Marking the task Done and committing/pushing all changes.",
+                    "timestamp": "2026-06-24T19:12:30Z"
                 }
             ]
         },
@@ -1230,12 +1240,95 @@
             ],
             "type": "Bug",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager UI is assigning BASE prefix to APP tasks",
                     "timestamp": "2026-06-23T04:29:54Z"
+                },
+                {
+                    "author": "Copilot",
+                    "content": "Fixed _next_task_id in scripts/task_manager.py to derive the task-id prefix from the uppercased basename of the tasks file (e.g. app.json -> APP-TASK-, base.json -> BASE-TASK-) via new _task_id_prefix_token helper. Threaded the tasks_path through _create_task and the POST handler. Also fixed tightly-coupled issues in the same module: _create_server now accepts a path-like store, and a bare GET / preserves the selected tasks file/dir instead of resetting to default. Added a prep-test criterion and the suite passes (build phase 0 failures).",
+                    "timestamp": "2026-06-23T23:05:00Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260623-0005",
+            "uuid": "949646cf-c3ba-48a5-b6a8-d4a606565d30",
+            "title": "HTTP created task updated",
+            "description": "Created through the UI service",
+            "type": "Bug",
+            "priority": "Medium",
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "ymordecai",
+                    "content": "Task created: HTTP created task",
+                    "timestamp": "2026-06-23T22:58:03Z"
+                },
+                {
+                    "author": "Task Manager UI",
+                    "content": "Created through the HTTP endpoint",
+                    "timestamp": "2026-06-23T22:58:03Z"
+                },
+                {
+                    "author": "Task Manager UI",
+                    "content": "Persisted through the endpoint",
+                    "timestamp": "2026-06-23T22:58:04Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260623-0006",
+            "uuid": "0f283bd1-99fe-495d-84eb-e09f2f75badb",
+            "title": "HTTP created task updated",
+            "description": "Created through the UI service",
+            "type": "Bug",
+            "priority": "Medium",
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "ymordecai",
+                    "content": "Task created: HTTP created task",
+                    "timestamp": "2026-06-23T22:58:14Z"
+                },
+                {
+                    "author": "Task Manager UI",
+                    "content": "Created through the HTTP endpoint",
+                    "timestamp": "2026-06-23T22:58:14Z"
+                },
+                {
+                    "author": "Task Manager UI",
+                    "content": "Persisted through the endpoint",
+                    "timestamp": "2026-06-23T22:58:14Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260623-0007",
+            "uuid": "6b296b8f-7c50-4fe6-bc6f-b5d99acdd9e3",
+            "title": "HTTP created task updated",
+            "description": "Created through the UI service",
+            "type": "Bug",
+            "priority": "Medium",
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "ymordecai",
+                    "content": "Task created: HTTP created task",
+                    "timestamp": "2026-06-23T22:59:25Z"
+                },
+                {
+                    "author": "Task Manager UI",
+                    "content": "Created through the HTTP endpoint",
+                    "timestamp": "2026-06-23T22:59:25Z"
+                },
+                {
+                    "author": "Task Manager UI",
+                    "content": "Persisted through the endpoint",
+                    "timestamp": "2026-06-23T22:59:25Z"
                 }
             ]
         }

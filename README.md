@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.22.01
-- App template version: A26.06.22.01
+- Base version: 26.06.24.01
+- App template version: A26.06.24.01
+
+## Highlights (26.06.24.01)
+
+- **Reviewable `Ready` task state.** Tasks now move through `ToDo -> InProgress -> Ready -> Done`. When the Copilot worker finishes, it marks the task `Ready` and pauses instead of finalizing — the engineer reviews the change and only then is it finalized, committed, pushed, and marked `Done`. The Task Manager web UI adds a dedicated **Ready** tab, and activating Copilot on a Ready task brings the original worker window back to the foreground for review, or starts a focused review session that explains the changes and checks requirement fulfilment when that window is no longer available.
 
 ## Highlights (26.06.22.01)
 

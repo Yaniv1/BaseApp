@@ -1,4 +1,4 @@
-# BaseApp V-26.06.18.01
+# BaseApp V-26.06.24.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.24.01)
+
+- **`Ready` task state and review activation** (Features 3.6.5, 3.6.6; Requirement BASE-REQ-014.6): Tasks now follow a `ToDo -> InProgress -> Ready -> Done` lifecycle. The agent instructions (`build/instructions/base.md`, `app.md`, `task.md`) require the Copilot worker to set a task to `Ready` (not `Done`) when its work is finished and to defer finalizing, committing, pushing, and marking `Done` until the engineer reviews and approves. The Task Manager UI (`resources/templates/task_manager.html`) gains a dedicated `Ready` tab. Activating Copilot on a `Ready` task re-focuses the original worker console window when it is still traceable (each worker records its pid + window title via `scripts/launch_task_agent.ps1`); if the window was closed or the work was done elsewhere, it launches a dedicated review session using the new `build/instructions/task-review.md` prompt (`_build_review_prompt`) that helps the engineer understand the changes and verify requirement fulfilment. New helpers `_process_alive` and `_activate_copilot_window` and a `POST /api/tasks/{id}/activate` endpoint back this flow in `scripts/task_manager.py`. Build tests verified: 1 run, 0 failures.
 
 ## Release Highlights (26.06.18.01)
 
