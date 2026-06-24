@@ -125,8 +125,7 @@ def test_start_copilot_for_task_records_worker_session(monkeypatch, tmp_path):
     session = task.get("worker_session")
     assert session and session["pid"] == 24680
     assert session["mode"] == "review"
-    assert session["window_title"].startswith("Copilot Review")
-    assert "Session test" in session["window_title"]
+    assert session["window_title"] == "Session test (BASE-TASK-7777)"
 
 
 def test_task_manager_template_has_ready_tab():

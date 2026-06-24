@@ -5,7 +5,7 @@
             "$}"
         ],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.06.24.02",
+        "VERSION": "26.06.24.03",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",

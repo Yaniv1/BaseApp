@@ -1209,13 +1209,18 @@
                 },
                 {
                     "author": "Copilot Task BASE-TASK-260623-0002",
-                    "content": "Follow-up fix: Copilot worker/review windows were all showing the CLI's auto-generated title (e.g. 'Review Agent Prompts Document') instead of the task. Two changes: (1) scripts/launch_task_agent.ps1 now starts a background TaskWindowTitleKeeper thread (Win32 SetConsoleTitle, re-asserted every 750ms) that keeps forcing the console window title to the task's title for the life of the Copilot session and stops/re-sets it once the session ends, so the CLI can no longer override it; (2) scripts/task_manager.py::_start_copilot_for_task now builds the window title from the task title ('Copilot Task/Review <id> - <title>') so each window is named after its task. Verified in an isolated PowerShell console that the keeper restores the task title within ~750ms after an external override. Test test_start_copilot_for_task_records_worker_session now also asserts the task title is present in the recorded window_title. VERIFY: launch a worker from the UI -> the new console window stays titled with the task (e.g. 'Copilot Task BASE-TASK-260623-0002 - Sync tasks with Git Repo...') even after Copilot starts.",
+                    "content": "Follow-up fix: Copilot worker/review windows were all showing the CLI's auto-generated title (e.g. 'Review Agent Prompts Document') instead of the task. Two changes: (1) scripts/launch_task_agent.ps1 now starts a background TaskWindowTitleKeeper thread (Win32 SetConsoleTitle, re-asserted every 750ms) that keeps forcing the console window title to the task's title for the life of the Copilot session and stops/re-sets it once the session ends, so the CLI can no longer override it; (2) scripts/task_manager.py::_start_copilot_for_task now sets the window title to '<title> (<id>)' so each window is identifiable by its task. Verified in an isolated PowerShell console that the keeper restores the task title within ~750ms after an external override. Test test_start_copilot_for_task_records_worker_session asserts window_title == 'Session test (BASE-TASK-7777)'. VERIFY: launch a worker from the UI -> the new console window stays titled like 'Sync tasks with Git Repo automatically when starting Task Manager UI (BASE-TASK-260623-0002)' even after Copilot starts.",
                     "timestamp": "2026-06-24T21:39:00Z"
                 },
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Builder approved. Engineer reviewed and approved the automatic git-sync-on-startup feature. Finalized at version 26.06.24.02: status set to Done, versions bumped (resources/version/base.txt, app.txt, config/base.json), updates/base.json and README files updated. Staged and committed together with the task-deletion task; not pushed per engineer instruction.",
                     "timestamp": "2026-06-24T22:45:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Builder approved (follow-up). Engineer approved the Copilot window-title polish (window titles now render as '<title> (<id>)'). Re-finalized at version 26.06.24.03: base.txt -> 26.06.24.03, app.txt -> A26.06.24.03, config/base.json VERSION -> 26.06.24.03, updates/base.json and docs/readme/base.md refreshed. Committed locally; not pushed per engineer instruction.",
+                    "timestamp": "2026-06-24T22:52:00Z"
                 }
             ],
             "worker_session": {

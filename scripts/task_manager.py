@@ -670,11 +670,10 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     task_title = str(task.get("title", "")).strip()
     session_name = (task_title or f"Task {safe_task_id}")[:100]
     is_review = str(mode).strip().lower() == "review"
-    # Keep the task title in the window title so each Copilot window is named
-    # after its task (and stays unique via the task id) rather than the
-    # auto-generated session name the Copilot CLI would otherwise apply.
-    window_label = f"Copilot {'Review' if is_review else 'Task'} {safe_task_id}"
-    window_title = f"{window_label} - {session_name}" if task_title else window_label
+    # Name each Copilot window "<title> (<id>)" so it is identifiable by its
+    # task (and unique via the task id) rather than the auto-generated session
+    # name the Copilot CLI would otherwise apply.
+    window_title = f"{session_name} ({safe_task_id})"
     prompt_suffix = "-review" if is_review else ""
     prompt_path = prompts_dir / f"{safe_task_id}{prompt_suffix}.md"
     prompt_text = _build_review_prompt(task, tasks_path) if is_review else _build_copilot_prompt(task, tasks_path)
