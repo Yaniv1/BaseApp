@@ -1,7 +1,7 @@
 [ 
     {
         "name": "[BaseApp] [BASE-TASK-260622-0005] [3.6.7] [Feature] Task Manager UI - allow task deletion with Deleted status",
-        "version": "26.06.24.02",
+        "version": "26.06.24.04",
         "description": "Added task deletion to the Task Manager. Backend (scripts/task_manager.py): _delete_task plus a DELETE /api/tasks/<id> endpoint soft-delete a task to the 'Deleted' status, or permanently remove it when it is already deleted; _update_task now restricts deleted tasks to status-only changes, and the start-agent and comments endpoints reject deleted tasks with HTTP 409. UI (resources/templates/task_manager.html): added a 'Deleted' status tab with badge/count, a 'Delete Task'/'Delete Permanently' button in the detail panel, Deleted status styling/option and normalization, and disabling of all edit/comment/worker controls for deleted tasks except status. Added requirement BASE-REQ-014.7, architecture feature 3.6.7, and tests in test/tests/base/task_manager.py."
     },
     {
