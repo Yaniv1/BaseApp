@@ -108,6 +108,7 @@ details.cli-sect{margin-top:2px}
 .s-inprogress{background:rgba(234,179,8,.17);color:#fde047}
 .s-ready{background:rgba(56,189,248,.17);color:#7dd3fc}
 .s-done{background:rgba(34,197,94,.17);color:#86efac}
+.s-deleted{background:rgba(239,68,68,.17);color:#fca5a5}
 .det-title{font-size:1.08rem}
 .det-desc{color:var(--mu);white-space:pre-wrap;line-height:1.65;font-size:.88rem}
 .det-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -210,6 +211,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       <button class="tab" data-status="InProgress">InProgress <span id="cnt-InProgress" class="badge">0</span></button>
       <button class="tab" data-status="Ready">Ready <span id="cnt-Ready" class="badge">0</span></button>
       <button class="tab" data-status="Done">Done <span id="cnt-Done" class="badge">0</span></button>
+      <button class="tab" data-status="Deleted">Deleted <span id="cnt-Deleted" class="badge">0</span></button>
     </div>
     <div class="table-wrap">
       <table class="task-table">
@@ -235,6 +237,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
         <label class="perm-toggle"><input id="full-edit-perm" type="checkbox"> Full edit</label>
         <label class="perm-toggle"><input id="full-exec-perm" type="checkbox"> Full execution</label>
         <button id="start-agent-btn" class="btn secondary" type="button">Start Copilot Worker</button>
+        <button id="delete-task-btn" class="btn secondary" type="button">Delete Task</button>
       </div>
       <div id="detail-msg" class="msg"></div>
       <div id="det-comments" class="comments-list"></div>
@@ -255,7 +258,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
             </label>
             <label>Status
               <select id="e-status" name="status">
-                <option>ToDo</option><option>InProgress</option><option>Ready</option><option>Done</option>
+                <option>ToDo</option><option>InProgress</option><option>Ready</option><option>Done</option><option>Deleted</option>
               </select>
             </label>
           </div>
@@ -282,7 +285,7 @@ const defaultPath = SM ? SM.getAttribute('data-tasks-path') : '';
 const defaultTasksDir = SM ? SM.getAttribute('data-tasks-dir') : '';
 const defaultAppName = SM ? SM.getAttribute('data-app-name') : 'App';
 let allTasks = [], currentStatus = 'ToDo', selectedId = null;
-const STATUS_TABS = ['ToDo', 'InProgress', 'Ready', 'Done'];
+const STATUS_TABS = ['ToDo', 'InProgress', 'Ready', 'Done', 'Deleted'];
 
 function normalizeStatus(value) {
   const raw = String(value ?? '').trim();
@@ -292,6 +295,7 @@ function normalizeStatus(value) {
   if (key === 'inprogress' || key === 'doing' || key === 'active' || key === 'wip') return 'InProgress';
   if (key === 'ready' || key === 'review' || key === 'forreview' || key === 'readyforreview') return 'Ready';
   if (key === 'done' || key === 'complete' || key === 'completed' || key === 'closed') return 'Done';
+  if (key === 'deleted' || key === 'delete' || key === 'removed' || key === 'trash' || key === 'trashed') return 'Deleted';
   return 'ToDo';
 }
 
@@ -532,13 +536,14 @@ function refreshRows() {
   document.querySelectorAll('.task-row').forEach(r => r.classList.toggle('selected', r.dataset.id === selectedId));
 }
 
-const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Ready: 's-ready', Done: 's-done' }[normalizeStatus(s)] || 's-todo');
+const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Ready: 's-ready', Done: 's-done', Deleted: 's-deleted' }[normalizeStatus(s)] || 's-todo');
 
 function showDetail(task) {
   const panel = document.getElementById('detail-panel');
   panel.classList.remove('hidden');
   panel.dataset.id = task.id;
   const canonicalStatus = normalizeStatus(task.status);
+  const isDeleted = canonicalStatus === 'Deleted';
 
   document.getElementById('det-id').textContent = task.id;
   const sb = document.getElementById('det-status');
@@ -555,6 +560,16 @@ function showDetail(task) {
       agentBtn.dataset.action = 'work';
       agentBtn.title = 'Start a Copilot CLI worker session for this task.';
     }
+    // A deleted task cannot be acted upon.
+    agentBtn.disabled = isDeleted;
+    agentBtn.classList.toggle('hidden', isDeleted);
+  }
+  const delBtn = document.getElementById('delete-task-btn');
+  if (delBtn) {
+    delBtn.textContent = isDeleted ? 'Delete Permanently' : 'Delete Task';
+    delBtn.title = isDeleted
+      ? 'Permanently remove this task from the task list.'
+      : 'Move this task to the Deleted status.';
   }
   document.getElementById('det-title').textContent = task.title || '';
 
@@ -585,6 +600,13 @@ function showDetail(task) {
   document.getElementById('new-comment').value = '';
   document.getElementById('new-author').value = localStorage.getItem('tm_author') || '';
   setMsg('detail-msg', '');
+
+  // A deleted task can only be modified through its status, so lock down every
+  // other editable control while it sits in the Deleted state.
+  ['e-title', 'e-type', 'e-priority', 'e-desc', 'new-comment', 'new-author', 'post-comment-btn']
+    .forEach(elId => { const el = document.getElementById(elId); if (el) el.disabled = isDeleted; });
+  const saveBtn = document.querySelector('#edit-form button[type="submit"]');
+  if (saveBtn) saveBtn.disabled = false;
 
   panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
@@ -649,6 +671,29 @@ function initDetail() {
       await loadTasks();
     } catch (e) {
       setMsg('git-status-msg', 'Error: ' + e.message, true);
+    }
+  });
+
+  document.getElementById('delete-task-btn').addEventListener('click', async () => {
+    const panel = document.getElementById('detail-panel');
+    const id = panel.dataset.id;
+    if (!id) return;
+    const task = allTasks.find(t => t.id === id);
+    const isDeleted = task && normalizeStatus(task.status) === 'Deleted';
+    const prompt = isDeleted
+      ? 'Permanently remove task ' + id + ' from the task list? This cannot be undone.'
+      : 'Move task ' + id + ' to the Deleted status?';
+    if (!confirm(prompt)) return;
+    setMsg('detail-msg', isDeleted ? 'Removing task...' : 'Deleting task...');
+    try {
+      const r = await fetch('/api/tasks/' + encodeURIComponent(id), { method: 'DELETE' });
+      const payload = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(payload.error || 'Failed to delete task');
+      setMsg('detail-msg', payload.message || 'Task deleted.');
+      if (payload.removed) { selectedId = null; hideDetail(); }
+      await loadTasks();
+    } catch (e) {
+      setMsg('detail-msg', 'Error: ' + e.message, true);
     }
   });
 

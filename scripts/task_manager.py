@@ -196,10 +196,47 @@ def _create_task(tasks, payload, tasks_path=None):
     return task
 
 
+DELETED_STATUS = "Deleted"
+
+
+def _is_deleted(task):
+    return str(task.get("status") or "").strip().lower() == DELETED_STATUS.lower()
+
+
+def _delete_task(tasks, task_id):
+    """Feature ID: 3.6.7. Soft-delete a task, or permanently remove it if already deleted.
+
+    A task that is not yet ``Deleted`` is moved to the ``Deleted`` status. Deleting a
+    task that is already ``Deleted`` removes it from the task list entirely. Returns a
+    ``(task, removed)`` tuple where ``removed`` indicates a permanent removal.
+    """
+    index, task = _find_task(tasks, task_id)
+    if task is None:
+        raise KeyError(task_id)
+
+    if _is_deleted(task):
+        tasks.pop(index)
+        return task, True
+
+    task["status"] = DELETED_STATUS
+    tasks[index] = task
+    return task, False
+
+
 def _update_task(tasks, task_id, payload):
     index, task = _find_task(tasks, task_id)
     if task is None:
         raise KeyError(task_id)
+
+    # A deleted task cannot be acted upon or modified except for its status.
+    if _is_deleted(task):
+        new_status = payload.get("status")
+        if new_status is not None:
+            value = str(new_status).strip()
+            if value:
+                task["status"] = value
+        tasks[index] = task
+        return task
 
     for field in ("title", "type", "priority", "status"):
         if field in payload and payload[field] is not None:
@@ -424,7 +461,7 @@ def _detect_git_repo(base_dir):
     }
 
 
-def _sync_task_store_to_git(store, message=None):
+def _sync_task_store_to_git(store, message=None, wait=False):
     base_dir = _get_store_base_dir(store)
     repo_info = _detect_git_repo(base_dir)
     if not repo_info["repo_available"]:
@@ -443,7 +480,39 @@ def _sync_task_store_to_git(store, message=None):
 
     changes_detected = bool(status.stdout.strip())
     commit_message = str(message).strip() or f"Update task store {task_path.name}"
-    if sys.platform == "win32":
+    script_args = [
+        str(GIT_SYNC_SCRIPT_PATH),
+        "-RepoRoot",
+        str(repo_root),
+        "-TaskFile",
+        str(task_rel.as_posix()),
+        "-CommitMessage",
+        commit_message,
+    ]
+
+    if wait:
+        # Blocking sync that is still visible: open a new console window so the
+        # user can watch the git output, but wait for it to finish before the
+        # caller (UI startup) continues, so the task list reflects the sync.
+        if sys.platform == "win32":
+            launch_args = ["pwsh", "-NoProfile", "-File", *script_args]
+            creationflags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
+            try:
+                proc = subprocess.Popen(launch_args, creationflags=creationflags)
+                returncode = proc.wait()
+            except OSError as exc:
+                raise RuntimeError(f"Unable to run the git sync: {exc}") from exc
+            if returncode != 0:
+                raise RuntimeError(f"git sync failed (exit code {returncode}). See the Git Sync window for details.")
+        else:
+            try:
+                completed = subprocess.run(["pwsh", "-NoProfile", "-File", *script_args], check=False)
+            except OSError as exc:
+                raise RuntimeError(f"Unable to run the git sync: {exc}") from exc
+            if completed.returncode != 0:
+                raise RuntimeError(f"git sync failed (exit code {completed.returncode}).")
+        sync_message = "Git sync completed."
+    elif sys.platform == "win32":
         launch_args = [
             "cmd.exe",
             "/c",
@@ -453,47 +522,57 @@ def _sync_task_store_to_git(store, message=None):
             "-NoProfile",
             "-NoExit",
             "-File",
-            str(GIT_SYNC_SCRIPT_PATH),
-            "-RepoRoot",
-            str(repo_root),
-            "-TaskFile",
-            str(task_rel.as_posix()),
-            "-CommitMessage",
-            commit_message,
+            *script_args,
         ]
         creationflags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0)
         try:
             subprocess.Popen(launch_args, creationflags=creationflags)
         except OSError as exc:
             raise RuntimeError(f"Unable to launch the git sync window: {exc}") from exc
+        sync_message = "Git sync launched in a visible terminal window."
     else:
         try:
-            subprocess.Popen(
-                [
-                    "pwsh",
-                    "-NoProfile",
-                    "-NoExit",
-                    "-File",
-                    str(GIT_SYNC_SCRIPT_PATH),
-                    "-RepoRoot",
-                    str(repo_root),
-                    "-TaskFile",
-                    str(task_rel.as_posix()),
-                    "-CommitMessage",
-                    commit_message,
-                ]
-            )
+            subprocess.Popen(["pwsh", "-NoProfile", "-NoExit", "-File", *script_args])
         except OSError as exc:
             raise RuntimeError(f"Unable to launch the git sync window: {exc}") from exc
+        sync_message = "Git sync launched in a visible terminal window."
 
     return {
         "success": True,
-        "message": "Git sync launched in a visible terminal window." + (" No task-file changes were detected." if not changes_detected else ""),
+        "message": sync_message + (" No task-file changes were detected." if not changes_detected else ""),
         "task_file": task_path.as_posix(),
         "repo_root": repo_root.as_posix(),
         "repo_remote": repo_info["repo_remote"],
         "commit_message": commit_message,
     }
+
+
+# Feature 3.6.8
+def _sync_selected_app_on_startup(store, message=None):
+    """Feature ID: 3.6.8. Automatically sync the selected app's task file with its git repo on UI startup.
+
+    Only the currently selected task store (``store.tasks_path``) is synced
+    against its own linked git repository (vis-a-vis its repo), reusing
+    :func:`_sync_task_store_to_git` synchronously (``wait=True``) so the caller
+    blocks until the sync finishes before the task list is served. The sync is
+    skipped when no git repo is linked, and any failure is reported but never
+    blocks UI startup.
+    """
+    task_path = Path(getattr(store, "tasks_path", "")).resolve()
+    repo_info = _detect_git_repo(_get_store_base_dir(store))
+    if not repo_info["repo_available"]:
+        print(f"[task-manager] Skipping git sync for {task_path.name}: no linked git repo.")
+        return {"task_file": task_path.as_posix(), "synced": False, "reason": "no linked git repo"}
+
+    commit_message = (message or "").strip() or f"Auto-sync {task_path.name} on task manager startup"
+    try:
+        result = _sync_task_store_to_git(store, message=commit_message, wait=True)
+    except RuntimeError as exc:
+        print(f"[task-manager] Git sync failed for {task_path.name}: {exc}")
+        return {"task_file": task_path.as_posix(), "synced": False, "reason": str(exc)}
+
+    print(f"[task-manager] {result['message']} ({task_path.name})")
+    return {"task_file": task_path.as_posix(), "synced": True, "repo_root": result["repo_root"]}
 
 
 def _load_app_config(base_dir):
@@ -588,9 +667,14 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     prompts_dir.mkdir(parents=True, exist_ok=True)
 
     safe_task_id = str(task.get("id", "task")).replace("/", "_").replace("\\", "_")
-    session_name = (str(task.get("title", "")).strip() or f"Task {safe_task_id}")[:100]
+    task_title = str(task.get("title", "")).strip()
+    session_name = (task_title or f"Task {safe_task_id}")[:100]
     is_review = str(mode).strip().lower() == "review"
-    window_title = f"Copilot {'Review' if is_review else 'Task'} {safe_task_id}"
+    # Keep the task title in the window title so each Copilot window is named
+    # after its task (and stays unique via the task id) rather than the
+    # auto-generated session name the Copilot CLI would otherwise apply.
+    window_label = f"Copilot {'Review' if is_review else 'Task'} {safe_task_id}"
+    window_title = f"{window_label} - {session_name}" if task_title else window_label
     prompt_suffix = "-review" if is_review else ""
     prompt_path = prompts_dir / f"{safe_task_id}{prompt_suffix}.md"
     prompt_text = _build_review_prompt(task, tasks_path) if is_review else _build_copilot_prompt(task, tasks_path)
@@ -820,6 +904,9 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             if task is None:
                 self._send_json(404, {"error": "task not found", "task_id": task_id})
                 return
+            if _is_deleted(task):
+                self._send_json(409, {"error": "deleted tasks cannot be acted upon", "task_id": task_id})
+                return
             payload = self._read_body()
             try:
                 prompt_path = _start_copilot_for_task(
@@ -894,6 +981,10 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
 
         if parsed.path.startswith("/api/tasks/") and parsed.path.endswith("/comments"):
             task_id = parsed.path.removeprefix("/api/tasks/").removesuffix("/comments").strip("/")
+            _, existing = _find_task(data["TASKS"], task_id)
+            if existing is not None and _is_deleted(existing):
+                self._send_json(409, {"error": "deleted tasks cannot be modified", "task_id": task_id})
+                return
             try:
                 task = _append_comment(data["TASKS"], task_id, self._read_body())
             except KeyError:
@@ -951,6 +1042,31 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
         self._write_tasks(data)
         self._send_json(200, {"task": task})
 
+    def do_DELETE(self):
+        parsed = urlparse(self.path)
+        if not parsed.path.startswith("/api/tasks/"):
+            self._send_json(404, {"error": "not found"})
+            return
+
+        task_id = parsed.path.removeprefix("/api/tasks/").strip("/")
+        data = self._get_tasks()
+        try:
+            task, removed = _delete_task(data["TASKS"], task_id)
+        except KeyError:
+            self._send_json(404, {"error": "task not found", "task_id": task_id})
+            return
+        self._write_tasks(data)
+        self._send_json(200, {
+            "task_id": task_id,
+            "removed": removed,
+            "task": None if removed else task,
+            "message": (
+                "Task permanently removed from the task list."
+                if removed
+                else "Task moved to the Deleted status."
+            ),
+        })
+
     def log_message(self, format, *args):
         return
 
@@ -965,6 +1081,7 @@ def parse_args(argv=None):
     parser.add_argument("--host", default=DEFAULT_HOST, help="Host interface to bind")
     parser.add_argument("--port", default=DEFAULT_PORT, type=int, help="Port to bind")
     parser.add_argument("--browser-off", action="store_true", help="Do not open the UI in a browser after startup")
+    parser.add_argument("--no-startup-sync", action="store_true", help="Do not auto-sync each app's task file with its git repo on startup")
     return parser.parse_args(argv)
 
 
@@ -1002,6 +1119,9 @@ def run(argv=None):
     base_dir = Path(args.base_dir).resolve()
     tasks_dir = Path(args.tasks_dir).resolve() if args.tasks_dir else _default_tasks_dir_for_context(base_dir)
     initial_store = _TaskStore(base_dir=base_dir, tasks_dir=tasks_dir, tasks_path=(args.tasks_path or None))
+
+    if not args.no_startup_sync:
+        _sync_selected_app_on_startup(initial_store)
 
     server = _create_server(args.host, args.port, initial_store)
     url = _build_query_url(server.server_address[0], server.server_address[1], initial_store)

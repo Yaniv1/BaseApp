@@ -15,6 +15,7 @@ from scripts.task_manager import (
     _append_comment,
     _create_server,
     _create_task,
+    _delete_task,
     _load_tasks_store,
     _next_task_id,
     _save_tasks_store,
@@ -125,6 +126,7 @@ def test_start_copilot_for_task_records_worker_session(monkeypatch, tmp_path):
     assert session and session["pid"] == 24680
     assert session["mode"] == "review"
     assert session["window_title"].startswith("Copilot Review")
+    assert "Session test" in session["window_title"]
 
 
 def test_task_manager_template_has_ready_tab():
@@ -133,6 +135,52 @@ def test_task_manager_template_has_ready_tab():
     assert 'data-status="Ready"' in template
     assert 'id="cnt-Ready"' in template
     assert "'ToDo', 'InProgress', 'Ready', 'Done'" in template
+
+
+def test_task_manager_template_has_deleted_tab():
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    assert 'data-status="Deleted"' in template
+    assert 'id="cnt-Deleted"' in template
+    assert "'ToDo', 'InProgress', 'Ready', 'Done', 'Deleted'" in template
+    assert 'id="delete-task-btn"' in template
+
+
+def test_delete_task_soft_deletes_then_removes():
+    tasks = [
+        {"id": "BASE-TASK-0001", "title": "Keep", "status": "ToDo"},
+        {"id": "BASE-TASK-0002", "title": "Drop", "status": "InProgress"},
+    ]
+    task, removed = _delete_task(tasks, "BASE-TASK-0002")
+    assert removed is False
+    assert task["status"] == "Deleted"
+    assert len(tasks) == 2
+
+    task, removed = _delete_task(tasks, "BASE-TASK-0002")
+    assert removed is True
+    assert len(tasks) == 1
+    assert all(t["id"] != "BASE-TASK-0002" for t in tasks)
+
+
+def test_update_task_on_deleted_only_changes_status():
+    tasks = [{
+        "id": "BASE-TASK-0003",
+        "title": "Original",
+        "type": "Feature",
+        "priority": "High",
+        "status": "Deleted",
+        "description": "Original description",
+    }]
+    updated = _update_task(tasks, "BASE-TASK-0003", {
+        "title": "Hacked title",
+        "priority": "Low",
+        "description": "New description",
+        "status": "ToDo",
+    })
+    assert updated["title"] == "Original"
+    assert updated["priority"] == "High"
+    assert updated["description"] == "Original description"
+    assert updated["status"] == "ToDo"
 
 
 def test_start_copilot_for_task_passes_permission_flags(monkeypatch, tmp_path):
@@ -210,6 +258,64 @@ def test_sync_task_store_launches_sync_window_even_when_task_file_is_clean(monke
     result = task_manager._sync_task_store_to_git(DummyStore(), message="test")
     assert result["success"] is True
     assert launched
+
+
+def test_sync_selected_app_on_startup_syncs_only_selected_store(monkeypatch, tmp_path):
+    source_tasks = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    selected = tmp_path / "base.json"
+    shutil.copyfile(source_tasks, selected)
+
+    class DummyStore:
+        base_dir = tmp_path
+        tasks_path = selected
+
+    synced = []
+    monkeypatch.setattr(task_manager, "_detect_git_repo", lambda base_dir: {
+        "repo_root": Path(base_dir).resolve(),
+        "repo_remote": "https://example.com/repo.git",
+        "repo_available": True,
+        "repo_display": "https://example.com/repo.git",
+    })
+    monkeypatch.setattr(
+        task_manager,
+        "_sync_task_store_to_git",
+        lambda store, message=None, wait=False: synced.append((Path(store.tasks_path).name, message, wait))
+        or {"success": True, "message": "synced", "repo_root": str(store.base_dir)},
+    )
+
+    result = task_manager._sync_selected_app_on_startup(DummyStore())
+
+    assert [name for name, _, _ in synced] == ["base.json"]
+    assert synced[0][2] is True
+    assert result["synced"] is True
+
+
+def test_sync_selected_app_on_startup_skips_when_no_repo(monkeypatch, tmp_path):
+    source_tasks = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    selected = tmp_path / "base.json"
+    shutil.copyfile(source_tasks, selected)
+
+    class DummyStore:
+        base_dir = tmp_path
+        tasks_path = selected
+
+    called = []
+    monkeypatch.setattr(task_manager, "_detect_git_repo", lambda base_dir: {
+        "repo_root": None,
+        "repo_remote": None,
+        "repo_available": False,
+        "repo_display": "(no linked git repo)",
+    })
+    monkeypatch.setattr(
+        task_manager,
+        "_sync_task_store_to_git",
+        lambda store, message=None, wait=False: called.append(store) or {"success": True, "message": "synced", "repo_root": ""},
+    )
+
+    result = task_manager._sync_selected_app_on_startup(DummyStore())
+
+    assert called == []
+    assert result["synced"] is False
 
 
 def test_activate_endpoint_focuses_or_starts_review(monkeypatch, tmp_path):
@@ -424,6 +530,43 @@ def test_task_manager_interface(manager=None, message=None, **kwargs):
             },
             "success": http_round_trip_ok,
             "status": "PASS" if http_round_trip_ok else "FAIL",
+        })
+
+        # Delete the HTTP-created task: first call soft-deletes (moves to the
+        # Deleted status), the second call permanently removes it from the store.
+        http_softdelete_status, http_softdelete = _request_json(
+            f"http://127.0.0.1:{port}/api/tasks/{http_created_id}", method="DELETE")
+        soft_store = _load_tasks_store(temp_tasks)
+        soft_task = next((task for task in soft_store["TASKS"] if task.get("id") == http_created_id), None)
+        http_harddelete_status, http_harddelete = _request_json(
+            f"http://127.0.0.1:{port}/api/tasks/{http_created_id}", method="DELETE")
+        hard_store = _load_tasks_store(temp_tasks)
+        delete_ok = (
+            http_softdelete_status == 200
+            and http_softdelete.get("removed") is False
+            and soft_task is not None
+            and soft_task.get("status") == "Deleted"
+            and http_harddelete_status == 200
+            and http_harddelete.get("removed") is True
+            and all(task.get("id") != http_created_id for task in hard_store["TASKS"])
+        )
+        criteria.append({
+            "name": "http_delete_soft_then_permanent",
+            "operator": "eq",
+            "actual": {
+                "soft_status": http_softdelete_status,
+                "soft_removed": http_softdelete.get("removed"),
+                "hard_status": http_harddelete_status,
+                "hard_removed": http_harddelete.get("removed"),
+            },
+            "expected": {
+                "soft_status": 200,
+                "soft_removed": False,
+                "hard_status": 200,
+                "hard_removed": True,
+            },
+            "success": delete_ok,
+            "status": "PASS" if delete_ok else "FAIL",
         })
 
         overall = "PASS" if all(item["success"] for item in criteria) else "FAIL"

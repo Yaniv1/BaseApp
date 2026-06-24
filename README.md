@@ -4,8 +4,13 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.24.01
-- App template version: A26.06.24.01
+- Base version: 26.06.24.02
+- App template version: A26.06.24.02
+
+## Highlights (26.06.24.02)
+
+- **Delete tasks from the Task Manager.** Tasks can now be deleted from the web UI. Deleting a task moves it to a new **Deleted** tab; deleting it again from there removes it permanently. A deleted task is read-only and cannot be worked on, edited, or commented — only its status can change.
+- **Automatic task sync on startup.** When the Task Manager UI starts, it automatically syncs the selected app's task list with its linked git repository before showing the tasks, so what you see reflects the latest synced state. It is skipped when no repository is linked, never blocks startup on failure, and can be turned off with `--no-startup-sync`.
 
 ## Highlights (26.06.24.01)
 

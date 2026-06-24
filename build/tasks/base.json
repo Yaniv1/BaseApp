@@ -1137,7 +1137,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Ready",
+            "status": "Done",
             "comments": [
                 {
                     "author": "ymord",
@@ -1148,6 +1148,11 @@
                     "author": "GitHub Copilot",
                     "content": "Implemented task deletion end-to-end. Backend (scripts/task_manager.py): added _delete_task plus a DELETE /api/tasks/<id> endpoint that soft-deletes a task to the 'Deleted' status, or permanently removes it when it is already deleted; _update_task now restricts deleted tasks to status-only changes; the start-agent and comments endpoints reject deleted tasks with 409. UI (resources/templates/task_manager.html): added a 'Deleted' status tab (with badge/count), a 'Delete Task'/'Delete Permanently' button in the detail panel, Deleted status styling/option, and disabling of all edit/comment/worker controls for deleted tasks except status. Added requirement BASE-REQ-014.7, architecture feature 3.6.7, and tests. Verify: run `.venv\\Scripts\\python -m pytest test/tests/base/task_manager.py` (new tests: test_task_manager_template_has_deleted_tab, test_delete_task_soft_deletes_then_removes, test_update_task_on_deleted_only_changes_status, and the http_delete_soft_then_permanent criterion in test_task_manager_interface). Two pre-existing failures (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port_when_requested_port_is_busy) are unrelated to this change. Manually: launch the Task Manager UI, open a task, click Delete Task -> it appears under the Deleted tab; open it there and click Delete Permanently -> it is removed.",
                     "timestamp": "2026-06-24T19:45:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Builder approved. Engineer reviewed and approved the task deletion feature. Finalized at version 26.06.24.02: status set to Done, versions bumped (resources/version/base.txt, app.txt, config/base.json), updates/base.json and README files updated. Staged and committed together with the auto-sync-on-startup task; not pushed per engineer instruction.",
+                    "timestamp": "2026-06-24T22:45:00Z"
                 }
             ],
             "worker_session": {
@@ -1190,7 +1195,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Ready",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1206,6 +1211,11 @@
                     "author": "Copilot Task BASE-TASK-260623-0002",
                     "content": "Follow-up fix: Copilot worker/review windows were all showing the CLI's auto-generated title (e.g. 'Review Agent Prompts Document') instead of the task. Two changes: (1) scripts/launch_task_agent.ps1 now starts a background TaskWindowTitleKeeper thread (Win32 SetConsoleTitle, re-asserted every 750ms) that keeps forcing the console window title to the task's title for the life of the Copilot session and stops/re-sets it once the session ends, so the CLI can no longer override it; (2) scripts/task_manager.py::_start_copilot_for_task now builds the window title from the task title ('Copilot Task/Review <id> - <title>') so each window is named after its task. Verified in an isolated PowerShell console that the keeper restores the task title within ~750ms after an external override. Test test_start_copilot_for_task_records_worker_session now also asserts the task title is present in the recorded window_title. VERIFY: launch a worker from the UI -> the new console window stays titled with the task (e.g. 'Copilot Task BASE-TASK-260623-0002 - Sync tasks with Git Repo...') even after Copilot starts.",
                     "timestamp": "2026-06-24T21:39:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Builder approved. Engineer reviewed and approved the automatic git-sync-on-startup feature. Finalized at version 26.06.24.02: status set to Done, versions bumped (resources/version/base.txt, app.txt, config/base.json), updates/base.json and README files updated. Staged and committed together with the task-deletion task; not pushed per engineer instruction.",
+                    "timestamp": "2026-06-24T22:45:00Z"
                 }
             ],
             "worker_session": {

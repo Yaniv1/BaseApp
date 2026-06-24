@@ -1165,6 +1165,18 @@
                     "description": "Lifecycle requirement: The system shall support a 'Ready' task state between 'InProgress' and 'Done'. The Copilot worker, when finished, shall set the task to 'Ready' (not 'Done') and stop without finalizing or pushing; only after explicit engineer approval shall the task move to 'Done', be finalized, committed, and pushed. The Task Manager UI shall display a dedicated 'Ready' tab. Activating Copilot on a 'Ready' task shall bring the existing, still-running worker window to the foreground when traceable; otherwise (window closed or the task completed elsewhere) it shall start a dedicated Copilot review session using a review-focused prompt that helps the engineer understand the changes and verify requirement fulfilment.",
                     "priority": "High",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.7",
+                    "description": "Deletion requirement: The UI shall allow deleting a task. Deleting a non-deleted task shall move it to a 'Deleted' status. The Task Manager UI shall display a dedicated 'Deleted' tab next to the other status tabs. Deleting a task that is already in the 'Deleted' status (from within the Deleted tab) shall permanently remove it from the task list. A deleted task cannot be acted upon (e.g. starting a Copilot worker) or modified (e.g. editing fields or adding comments) except for changing its status.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.8",
+                    "description": "Startup sync requirement: When the Task Manager UI is activated (started), the system shall automatically synchronize only the currently selected app's task file with its own linked git repository before serving the UI, and shall block until that sync completes so the displayed task list reflects the synced state. The sync shall be skipped when no git repo is linked, and any failure shall be reported but shall not block UI startup. The automatic startup sync shall be skippable via the --no-startup-sync CLI flag.",
+                    "priority": "High",
+                    "comments": []
                 }
             ],
             "solution": [
@@ -1199,6 +1211,20 @@
                 {
                     "feature": "3.6.6",
                     "role": "_build_review_prompt / _start_copilot_for_task(mode='review') start a dedicated review session using build/instructions/task-review.md when the worker window is not traceable.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.6.7",
+                    "role": "_delete_task and the DELETE /api/tasks/<id> endpoint soft-delete a task to the 'Deleted' status or permanently remove it when already deleted; _update_task and the start-agent/comments endpoints restrict deleted tasks to status-only changes. The UI adds a 'Deleted' tab and a Delete button.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.6.8",
+                    "role": "_sync_selected_app_on_startup syncs only the currently selected task store with its own linked git repo when run() starts the UI, reusing _sync_task_store_to_git; it is skipped when no repo is linked and failures are reported but never block startup. The --no-startup-sync flag disables it.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0

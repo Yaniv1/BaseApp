@@ -331,12 +331,24 @@
                             "description": "Build a review-focused Copilot prompt for a Ready task from build/instructions/task-review.md, used to start a dedicated review session when the worker window is not traceable.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_build_review_prompt"
+                        },
+                        "3.6.7": {
+                            "name": "scripts.task_manager._delete_task",
+                            "description": "Soft-delete a task by moving it to the 'Deleted' status, or permanently remove it from the task list when it is already deleted; exposed via the DELETE /api/tasks/<id> endpoint with a dedicated Deleted tab in the UI, while deleted tasks are restricted to status-only modifications.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_delete_task"
+                        },
+                        "3.6.8": {
+                            "name": "scripts.task_manager._sync_selected_app_on_startup",
+                            "description": "On task manager UI startup, automatically sync only the currently selected app's task file with its own linked git repo before the task list is served, reusing the git sync helper with wait=True: on Windows it opens a visible console window for the sync and blocks until it completes; the sync is skipped when no git repo is linked and any failure is reported but never blocks startup. Skippable via the --no-startup-sync CLI flag.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_sync_selected_app_on_startup"
                         }
                     }
                 },
                 "3.7": {
                     "name": "scripts.sync_task_repo",
-                    "description": "PowerShell helper that stages the task file, commits with a provided message, and pushes to the linked git remote. Invoked by the task manager UI Sync Git button.",
+                    "description": "PowerShell helper that stages the task file, commits with a provided message, then rebases onto the remote with --autostash (so unrelated unstaged changes don't block the pull) and pushes to the linked git remote, aborting the push if the rebase fails. Invoked by the task manager UI Sync Git button and the automatic startup sync.",
                     "type": "Folder.Ps1File",
                     "path": "scripts/sync_task_repo.ps1"
                 }
