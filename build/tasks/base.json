@@ -1397,7 +1397,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Ready",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1483,6 +1483,16 @@
                     "author": "Copilot",
                     "content": "Status set to Ready: the aggregate live MCP servers health check (single test reporting up/down counts and active rate; GOOD/WARN/FAIL per the 0/1/>1-down thresholds) and the GOOD testing-only light-green log type (#5, no renumbering) are implemented and verified -- pytest 49 passed (2 pre-existing baseline failures), build.py PASS (25/25), and an end-to-end app run logs the aggregate result to the console in light green. Awaiting engineer review; no version bump per the completion protocol; branch-per-task still not in effect for this task, so changes stay on main.",
                     "timestamp": "2026-06-25T06:39:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Approved finalization and deployment (Ready -> Deployed). Branch-per-task is still not in effect for this task, so finalize and commit directly to main.",
+                    "timestamp": "2026-06-25T06:43:00Z"
+                },
+                {
+                    "author": "Copilot",
+                    "content": "Finalized and deployed at version 26.06.24.06. Bumped resources/version/base.txt (26.06.24.06), resources/version/app.txt (A26.06.24.06), and config/base.json COMMON.VERSION. Documented the change in build/updates/base.json (new top entry for BASE-TASK-260624-0001, features 3.6.10/3.6.13/6.3.6), docs/readme/base.md (title V-26.06.24.06 + Release Highlights 26.06.24.06), and README.md (version lines + Highlights 26.06.24.06). The deployed scope: the durable file-store task status channel, the per-agent stdio enqueue MCP server wired into the launcher, the config-driven status_queue/prompt_store/result_store directories, and the live aggregate MCP servers health check (single test reporting up/down + active rate; GOOD/WARN/FAIL on the 0/1/>1-down thresholds) with the GOOD testing-only light-green log type (#5). Per the engineer's instruction the branch-per-task approach is not yet in effect for this task, so all changes are committed directly to main rather than a task/<id> branch. Status set to Deployed. Verify: `.venv\\Scripts\\python -m pytest test/tests/base/task_manager.py -q` -> 49 passed, 2 pre-existing baseline failures (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port_when_requested_port_is_busy); `python test/tests/build.py` -> PASS (25/25).",
+                    "timestamp": "2026-06-25T06:44:00Z"
                 }
             ],
             "worker_session": {

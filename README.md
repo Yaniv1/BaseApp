@@ -4,8 +4,14 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.24.05
-- App template version: A26.06.24.05
+- Base version: 26.06.24.06
+- App template version: A26.06.24.06
+
+## Highlights (26.06.24.06)
+
+- **Agents request task-status changes through a durable store instead of editing the ledger.** With each task on its own branch, workers no longer edit or commit the task ledger. They request every status change and progress comment by writing a small, durable request file into a configurable "task status store", and the Task Manager is the only writer that applies those requests to the ledger on `main`. Because the store is file-based and durable, restarting or unexpectedly stopping the server never blocks an agent from recording progress — pending requests simply wait and are applied once the server is back, and each request is applied exactly once.
+- **A built-in MCP tool to submit status updates.** Each worker is given a per-agent MCP server exposing an `enqueue_status_update` tool, so updating a task's status or adding a comment is a single tool call rather than hand-written files. Writing the request file directly remains a supported fallback, so the tool is never on the critical path.
+- **Live health check of the MCP servers.** A live test runs every 60 seconds and reports, on the console, how many MCP servers are up versus down and the overall active rate. It flags **GOOD** when all are up, **WARN** when exactly one is down, and **FAIL** when more than one is down.
 
 ## Highlights (26.06.24.05)
 

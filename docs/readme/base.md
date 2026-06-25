@@ -1,4 +1,4 @@
-# BaseApp V-26.06.24.05
+# BaseApp V-26.06.24.06
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,11 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.24.06)
+
+- **Durable file-store task status channel with a per-agent MCP enqueue server** (Feature 3.6.10/3.6.13; Requirement BASE-REQ-014.10): Because each task may be worked on its own branch while the Task Manager tracks only `main`'s ledger, worker agents no longer edit/commit the task ledger directly. Instead an agent requests every ledger change (status transitions and progress comments) by writing an atomically-written (write-then-rename) JSON request — following `build/tasks/update.template.json` (`{"TASKS":[{id,status,comments}]}`) — into a durable, configurable "task status store" (`APP.TASK_MANAGER.status_queue`/`request_polling_frequency`/`enable`). The Task Manager (`scripts/task_manager.py`) is the sole writer: `_status_inbox_watcher` (a daemon started by `run()`) continuously samples the store at the configured interval, and `_process_status_inbox` applies each request to a freshly loaded ledger by id via `_apply_task_update` (lists combine, dicts update recursively, scalars overwrite — no generic deep-merge), persists it, then stages/commits/pushes to `main` headlessly, moving each request to `processed/` or `failed/` exactly once (restart-safe; a server restart never blocks an agent). To remove hand-writing request files, each worker is given a per-agent stdio MCP server (`scripts/status_queue_mcp.py`, a thin enqueue writer over the same store) wired in by `scripts/launch_task_agent.ps1` via the Copilot CLI `--additional-mcp-config` hook (`_write_agent_mcp_config`), exposing an `enqueue_status_update(status?, comment?)` tool; the direct file write remains the documented fallback, and the dequeue side stays a direct filesystem read by the Task Manager (the enqueue server is never on the critical path). Task-manager directories are config-driven: `prompt_store` (worker `{task.id}.md` prompts and per-agent `.mcp.json`), `result_store` (agent HTML work summaries), and `status_queue`. `build/instructions/base.md`/`task.md` document the request-via-store workflow.
+- **Live aggregate MCP server health check** (Feature 6.3.6): A live test (`utils/testutils.py::mcp_server_status`, registered as `live_mcp_server_status`, sampled every 60 seconds) discovers every configured MCP server from the per-agent `.mcp.json` files in the prompt store (falling back to the canonical server when idle), spawns each and verifies an MCP `initialize` handshake, and reports — to the console — how many servers are up/down and the active rate (up/total) plus the pending queue depth. The single aggregate result is logged as **GOOD** when no server is down, **WARN** when exactly one is down/unresponsive, and **FAIL** when more than one is down. A distinct `GOOD` log type renders in light green for test output. New tests in `test/tests/base/task_manager.py`. Build tests verified: 1 run, 0 failures.
 
 ## Release Highlights (26.06.24.05)
 
