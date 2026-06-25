@@ -1397,7 +1397,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Deployed",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1493,6 +1493,16 @@
                     "author": "Copilot",
                     "content": "Finalized and deployed at version 26.06.24.06. Bumped resources/version/base.txt (26.06.24.06), resources/version/app.txt (A26.06.24.06), and config/base.json COMMON.VERSION. Documented the change in build/updates/base.json (new top entry for BASE-TASK-260624-0001, features 3.6.10/3.6.13/6.3.6), docs/readme/base.md (title V-26.06.24.06 + Release Highlights 26.06.24.06), and README.md (version lines + Highlights 26.06.24.06). The deployed scope: the durable file-store task status channel, the per-agent stdio enqueue MCP server wired into the launcher, the config-driven status_queue/prompt_store/result_store directories, and the live aggregate MCP servers health check (single test reporting up/down + active rate; GOOD/WARN/FAIL on the 0/1/>1-down thresholds) with the GOOD testing-only light-green log type (#5). Per the engineer's instruction the branch-per-task approach is not yet in effect for this task, so all changes are committed directly to main rather than a task/<id> branch. Status set to Deployed. Verify: `.venv\\Scripts\\python -m pytest test/tests/base/task_manager.py -q` -> 49 passed, 2 pre-existing baseline failures (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port_when_requested_port_is_busy); `python test/tests/build.py` -> PASS (25/25).",
                     "timestamp": "2026-06-25T06:44:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Integration approved (Deployed -> Done). Branch-per-task is not in effect for this task, so the work is already on main with no separate task branch to merge.",
+                    "timestamp": "2026-06-25T06:53:00Z"
+                },
+                {
+                    "author": "Copilot",
+                    "content": "Status set to Done (fully integrated into main). Because the branch-per-task approach is not yet in effect for this task, all work was committed directly to main (no task/<id> branch existed), so there was no branch to merge or dissolve -- the deployed v26.06.24.06 changes are already integrated on main. Final scope of BASE-TASK-260624-0001: branch-per-task workflow + Deployed status + Task Manager status tabs (v26.06.24.05), then the durable file-store task status channel, the per-agent stdio enqueue MCP server wired into the launcher, the config-driven status_queue/prompt_store/result_store directories, and the live aggregate MCP servers health check with the GOOD testing-only light-green log type (v26.06.24.06). Verified before integration: pytest 49 passed (2 pre-existing baseline failures); build.py PASS (25/25).",
+                    "timestamp": "2026-06-25T06:54:00Z"
                 }
             ],
             "worker_session": {
