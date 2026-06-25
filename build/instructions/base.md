@@ -97,7 +97,10 @@ perform the Change Finalizing and Deployment steps below:
         d. update the BaseApp's readme file to include the latest changes: `docs/readme/base.md`
                 Update the updates/base.json file updates array to include a name and description of the change. The name structure has to be "[{APP_NAME}] [{Task_ID}] [{Feature_ID}] [{Feature}] {change desctiption}. New updates should be prepended to tthe top of the list.
         e. update the Main `README.md` file to provide a high-level functionality/capability overview of any added or modified features, functionalities, behaviors, etc. without going into implementation details.
-                `README.md` will not detail implementation like you do in the `readme/base.md` or `readme/app.md` files. **Focus on functionality and capbility as it is now and not on the evolution of the software through the various changes and updates.**                        
+                `README.md` will not detail implementation like you do in the `readme/base.md` or `readme/app.md` files. **Focus on functionality and capbility as it is now and not on the evolution of the software through the various changes and updates.**       
+        f. Ask the engineer for a final approval to stage/commit/push the changes to the repository. 
+        **When the engineer approves the push:**
+        g. Append a comment on the task to indicate user approval.
         h. Change the status of the task to `Deployed`.
         i. Save the transcript of your work to `f'{OUTPUT_PREFIX}/task_reports/{task_id}/{task_id}.html'`.
         j. Stage and Commit the tasks file together with all the changes with a concise but informative commit message that includes the task id and essence of change.
