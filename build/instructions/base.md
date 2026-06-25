@@ -12,31 +12,42 @@ Keep working until there are no open tasks.
 
 ## For every task you're working on:
 
-Change the task's status from `ToDo` to `InProgress` when you start working on it. Then commit and push the tasks file so that the task's status will be reflected in the repository.
+Change the task's status from `ToDo` to `InProgress` when you start working on it. Do this by submitting a status-update **request** to the task status store (see "Task Status Updates" below) — do **not** edit or commit the task ledger yourself; the Task Manager server applies your request to the authoritative ledger on `main`.
 
 Update the task list when significant progress is made on a task.
 Use the task comments to update progress details.
+
+## Task Status Updates: request via the `enqueue_status_update` tool
+
+The task ledger (`build/tasks/<app>.json`) is owned and written **only** by the Task Manager server, on the `main` branch. Because a task may be worked on in its own branch, any status change you commit on a branch would be invisible to the Task Manager (which tracks `main`). Therefore:
+
+- **Do not** edit or commit the task ledger to change a task's status or to add task comments. Leave the ledger to the server.
+- Instead, **request** every task-ledger change (status transitions and progress comments) with the **`enqueue_status_update`** tool from the `task-status-queue` MCP server. The task id is taken from your environment, so you only pass the fields you are changing — `status` (the new status, which replaces the current value) and/or `comment` (a single progress comment, appended). Provide at least one. Example: `enqueue_status_update(status="InProgress", comment="Started implementation.")`.
+- The tool is a thin writer over a **durable** task status store: each call enqueues a request file, and the Task Manager server **continuously samples** the store and applies pending requests to the ledger on `main` (matching the task by `id`, then committing and pushing). If the server is momentarily down or restarts, the request simply waits in the store and is applied once the server is back — so a server restart never blocks your progress. Each request is processed exactly once.
+- **Fallback (only if the `enqueue_status_update` tool is not available):** write the request yourself as a single JSON file, written atomically (temporary name, then rename), into the store's pending area (the `{status_store}` value in your `task.md` prompt). Its content follows the task update template (`build/tasks/update.template.json`): a `{"TASKS":[ ... ]}` document where each item is identified by its `id` and carries only the fields you are changing — `status` and/or `comments` (a single comment item). Give each file a unique name, e.g. `<task-id>-<utc-timestamp>.json`.
+
+You still commit your **code, requirement, architecture, design, and test changes** on the task branch as usual — only the **task ledger** (status + task comments) is updated through the status store rather than by you.
 
 ## Branch Strategy: one short-lived branch per task
 
 Do not do task work directly on the long-lived `main` branch. Each task is worked on in its own short-lived, ad-hoc branch so that concurrent tasks never mix their changes together.
 
 1. When a task is started (moving it from `ToDo` to `InProgress`), it is worked on in its own dedicated short-lived branch named after the task id, e.g. `task/BASE-TASK-260624-0001`, branched off the latest `main`. You (the agent) do **not** create this branch yourself: the launcher `scripts/launch_task_agent.ps1` creates and checks it out (via its `-TaskBranch` parameter) before your session starts, after first verifying whether such a branch already exists and whether starting a worker is necessary. If a branch already exists, the task may already be (or have been) worked on, so the Task Manager does not silently start another worker: it asks the engineer to confirm, and the launcher proceeds only when the engineer opts in. By the time you begin you are already on the task branch — just confirm you are not on `main`.
-2. Do all of the task's work — requirements, architecture, implementation, tests, comments, and the task-file status updates — on that branch, and push the branch (not `main`) when you commit and push.
+2. Do the task's work — requirements, architecture, implementation, tests — on that branch, and push the branch (not `main`) when you commit and push. Task-ledger status changes and task comments are **not** committed on the branch: request them through the task status store and the Task Manager server applies them to the ledger on `main` (see "Task Status Updates").
 3. The branch is short-lived: it exists only for the duration of the task and is dissolved (deleted) once the task is merged into `main` and reaches the `Done` status.
 4. The merge of the task branch into `main` is supervised by the integration engineer, who makes sure there are no conflicts that must be resolved before the merge can complete successfully. Do not merge into `main` and dissolve the branch yourself; that happens at the `Done` step, under the integration engineer's supervision.
 
-## Task Lifecycle: ToDo -> InProgress -> Ready -> Deployed -> Done
+## Task Lifecycle: ToDo -> InProgress -> Specified -> Ready -> Deployed -> Approved -> Done
 
-Tasks move through five steps. 
+Tasks move through the following steps.
 
 1. *Task Creation* Creates the task and specifies the title, description, type, priority, and additional attributes. This is done by the engineer who can use the UI, a powershell call, or manually edit the tasks file. At the end of this process, the status of the task is `ToDo`.
 
 2. *Task Specifying*: This step is triggered by the engineer, and accomplished by you. If you are asked to work on a task:
-        a. Change the status of the task to `InProgress`.
+        a. Request a status change to `InProgress` via the task status store (do not edit/commit the ledger yourself).
         b. Make sure that you are working on the dedicated branch for the task and not on the `main` branch. You do **not** create this branch — the launcher `scripts/launch_task_agent.ps1` already created and checked out `task/<task-id>` (via its `-TaskBranch` parameter) before your session began, after verifying whether the branch already existed and whether starting a worker was necessary (asking the engineer to confirm when a branch already existed). Just verify you are on the task branch.
-        c. Add a comment to the task's comments list that you started working on the task.        
-        d. Commit and push the tasks file (on the task branch) to the repository in order to reflect the status of the task globally. 
+        c. Request a comment to be appended to the task (via the task status store) noting that you started working on the task.
+        d. Do not commit or push the task ledger; the server applies your status/comment requests to the ledger on `main`. (Commit your code/spec/test changes on the task branch as you progress.)
         e. Task Breakdown: break down each task into simple sub-tasks, including requirements specification tasks, architcture adjustment tasks, solution design tasks, implementation tasks, testing tasks, and deployment verification tasks. Execute the sub-tasks one by one. There is no need to document the simpler tasks in the tasks file. This is mainly for better agentic flow. But you can update in the comments about each task what you achieved and that would reflect the task breakdown.
         **Begin working on systems engineering:**
         f. Complete requirements specification. Requirements Engineering Guidance: For every task that includes a system enhancement or modification:
@@ -69,8 +80,8 @@ Tasks move through five steps.
                 d1. Modifications to the Requirements spec (`build/requirements/{base_or_app}.json`)
                 d2. Modifications to the Architecture spec (`build/architecture/{base_or_app}.json`)
                 d3. Intended Modifications to the Code (design) - what and how each aspect of the task will be implemented.
-        j. Change the status of the task to `Specified`.
-        k. Save the session summary to `f'{OUTPUT_PREFIX}/task/summaries/{task_id}/{task_id}.html'`. This summary has to include the task's instruction file (instance of `task.md`), and hyperlinks to the files that were modified in diff view, along with a textual explanation of what was changed and why (if it's not trivial).
+        j. Request a status change to `Specified` via the task status store.
+        k. Save the session summary to the task result store (the `{result_store}` location given in your `task.md` prompt), e.g. `<result_store>/{task_id}/{task_id}.html`. This summary has to include the task's instruction file (instance of `task.md`), and hyperlinks to the files that were modified in diff view, along with a textual explanation of what was changed and why (if it's not trivial).
         l. Wait for the engineer to authorize your solution specification (requirements, architecture, design).
         m. The engineer may ask you to change the specification or make manual changes that you need to track and respect.
 
@@ -79,9 +90,9 @@ Tasks move through five steps.
         n. Complete building the solution according to the approved design.
         o. Design, build, and run tests for the required feature. This includes running the `test/tests/build.py` script to execute the build tests, which include the build phase and app running in order to execute the prep/live/post tests once for the app. Maintain three tests for each feature if necessary and applicable: pre-test, live test, and post-test. Tests can be combined with other tests to simplify the test system. For example, if a single variable or object is sufficient for two separate tests, we can do away with a single test and two success criteria to match the two tests. Each test has to report which feature(s) it covers.
         p. Update the relevant `build/updates/{base_or_app}.json` file with the prgoress that you made.
-        q. Add a progress report to the task's comments list.        
+        q. Request a progress-report comment to be appended to the task (via the task status store).
         r. Create a list of modified files and present them to the user. The files must be clickable and diff-reviewable. You can use a call to Visual Studio CODE to load the files in diff view to visualize the changes you made in each file, or you can create your own diff view in HTML and use the built-in HTML generator to create and store the file that shows the diff. Use a diff tool/package to visualize the changes clearly.
-        s. Change the status of the task to `Ready`.
+        s. Request a status change to `Ready` via the task status store.
 
 **Await the engineer's review and approval of the implementation.**
 
@@ -89,8 +100,8 @@ Tasks move through five steps.
 When asked to finalize and deploy the code change (i.e. to move the status of the task from `Ready` to `Deployed`):
 
 perform the Change Finalizing and Deployment steps below:
-        a. set the status to `Approved`.
-        b. append a builder approval comment to the task's comments list.
+        a. request a status change to `Approved` via the task status store.
+        b. request a builder-approval comment to be appended to the task (via the task status store).
         c. bump the versions of the BaseApp (`resources/version/base.txt`) and placeholder for the variant app (`resources/version/app.txt`) as well as the config files that contain the version. 
                 Update `resources/version/app.txt` to have the same value as the latest `resources/version/base.txt` but with the prefix letter `A`, so that future instantiations of new apps will start from the latest base version and then increment separately. For example if the base version is `26.05.27.03` then the app version will be `A26.05.27.03`
                 Update the `config/base.json` file `COMMON` dict to include the latest version id.
@@ -101,9 +112,10 @@ perform the Change Finalizing and Deployment steps below:
         f. Ask the engineer for a final approval to stage/commit/push the changes to the repository. 
         **When the engineer approves the push:**
         g. Append a comment on the task to indicate user approval.
-        h. Change the status of the task to `Deployed`.
-        i. Save the transcript of your work to `f'{OUTPUT_PREFIX}/task_reports/{task_id}/{task_id}.html'`.
-        j. Stage and Commit the tasks file together with all the changes with a concise but informative commit message that includes the task id and essence of change.
+        g. Request a comment to be appended to the task (via the task status store) indicating user approval.
+        h. Request a status change to `Deployed` via the task status store.
+        i. Save the transcript of your work to the task result store (the `{result_store}` location given in your `task.md` prompt), e.g. `<result_store>/{task_id}/{task_id}.html`.
+        j. Stage and Commit your code/spec/test changes (not the task ledger, which the server owns) with a concise but informative commit message that includes the task id and essence of change.
         k. Push the changes to the git repository **on the task's short-lived branch** (not directly to `main`).
 
 5. *Task Outcome Integration*: This step includes merging the task's ad-hoc branch into the `main` branch.
@@ -111,9 +123,9 @@ perform the Change Finalizing and Deployment steps below:
         a. Ask the user (integration engineer) to review the documentation about the change as well as the code, run the app on the task branch and does whatever is necessary to make sure the functionality is implemented correctly, and supervise the merge of the task's branch into `main`, making sure there are no conflicts to solve in order to complete the merge successfully. Resolve or suggest resolutions to any conflicts surfaced during the merge before proceeding.
         When final merge approval is granted:
         b. Merge the task's branch into `main`.
-        c. set the status of the task to `Done`.
-        d. append a deployment comment to the task's comments list noting that the task branch was merged into `main` and dissolved.        
-        e. Commit the tasks file on `main` and push.
+        c. request a status change to `Done` via the task status store.
+        d. request a deployment comment to be appended to the task (via the task status store) noting that the task branch was merged into `main` and dissolved.
+        e. The Task Manager server applies the `Done` status and comment to the ledger on `main` (you do not commit the ledger yourself).
         f. Delete (dissolve) the short-lived task branch, since it is no longer needed.
-        g. Update the task report at `f'{OUTPUT_PREFIX}/task_reports/{task_id}/{task_id}.html'`.
+        g. Update the task report in the task result store (the `{result_store}` location given in your `task.md` prompt), e.g. `<result_store>/{task_id}/{task_id}.html`.
         

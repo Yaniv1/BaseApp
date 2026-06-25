@@ -12,6 +12,8 @@ import shutil
 import socket
 import subprocess
 import sys
+import threading
+import time
 import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -29,6 +31,7 @@ COPILOT_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "build" / "instructions" / "task.m
 COPILOT_REVIEW_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "build" / "instructions" / "task-review.md"
 COPILOT_WORKER_LAUNCH_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "launch_task_agent.ps1"
 GIT_SYNC_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "sync_task_repo.ps1"
+STATUS_QUEUE_MCP_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "status_queue_mcp.py"
 
 
 def _now_iso():
@@ -274,6 +277,67 @@ def _append_comment(tasks, task_id, payload):
     return task
 
 
+# Fields an agent status-update request is allowed to change on a task. The
+# ``id`` is the match key (never written); the rest are applied by value type.
+STATUS_UPDATE_ALLOWED_FIELDS = {"id", "status", "comments", "worker_session"}
+
+
+def _apply_task_fields(existing, incoming):
+    """Apply incoming fields onto an existing task dict in place, by value type.
+
+    - list value  -> COMBINE (existing items first, incoming appended);
+    - dict value  -> UPDATE recursively (apply only the incoming keys);
+    - scalar value -> OVERWRITE.
+
+    The ``id`` key is the match key and is never written.
+    """
+    for field, value in incoming.items():
+        if field == "id":
+            continue
+        current = existing.get(field)
+        if isinstance(value, list):
+            existing[field] = list(current or []) + list(value)
+        elif isinstance(value, dict) and isinstance(current, dict):
+            _apply_task_fields(current, value)
+        else:
+            existing[field] = value
+    return existing
+
+
+def _apply_task_update(tasks, update_task, allowed_fields=None):
+    """Apply one update task (matched by ``id``) onto the in-memory task list.
+
+    Only the fields present in ``update_task`` (optionally restricted to
+    ``allowed_fields``) are touched. ``comments`` are normalised before being
+    combined with the task's existing comments. Returns the updated task dict,
+    or ``None`` when no task matches the id.
+    """
+    if not isinstance(update_task, dict):
+        return None
+    task_id = str(update_task.get("id", "")).strip()
+    if not task_id:
+        return None
+    _, existing = _find_task(tasks, task_id)
+    if existing is None:
+        return None
+
+    if allowed_fields is not None:
+        incoming = {key: value for key, value in update_task.items() if key in allowed_fields}
+    else:
+        incoming = dict(update_task)
+
+    if isinstance(incoming.get("comments"), list):
+        normalised = []
+        for comment in incoming["comments"]:
+            content = comment.get("content", "") if isinstance(comment, dict) else comment
+            if str(content or "").strip():
+                normalised.append(_normalise_comment(comment))
+        incoming["comments"] = normalised
+
+    _apply_task_fields(existing, incoming)
+    return existing
+
+
 def _tasks_summary(tasks):
     summary = {}
     for task in tasks:
@@ -382,12 +446,22 @@ def _populate_placeholders(text, params):
     return re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", replace, text)
 
 
-def _build_copilot_prompt(task, tasks_path, template_path=COPILOT_PROMPT_TEMPLATE_PATH):
+def _build_copilot_prompt(task, tasks_path, template_path=COPILOT_PROMPT_TEMPLATE_PATH, store=None):
     tasks_file = Path(tasks_path).resolve()
     build_dir = tasks_file.parent.parent
     workspace_root = build_dir.parent
     with Path(template_path).open("r", encoding="utf-8") as handle:
         template_text = handle.read()
+
+    status_store_pending = ""
+    result_store = ""
+    if store is not None:
+        paths = _resolve_status_store_paths(store)
+        if paths["pending"] is not None:
+            status_store_pending = Path(paths["pending"]).as_posix()
+        result_dir = _resolve_task_manager_path(store, "result_store")
+        if result_dir is not None:
+            result_store = result_dir.as_posix()
 
     prompt_params = {
         key: _stringify_placeholder_value(value)
@@ -404,13 +478,15 @@ def _build_copilot_prompt(task, tasks_path, template_path=COPILOT_PROMPT_TEMPLAT
         "workspace_root": workspace_root.as_posix(),
         "instruction_files": _format_context_file_list(build_dir / "instructions", "*.md"),
         "requirement_files": _format_context_file_list(build_dir / "requirements", "*.json"),
+        "status_store": status_store_pending,
+        "result_store": result_store,
     })
     return _populate_placeholders(template_text, prompt_params)
 
 
-def _build_review_prompt(task, tasks_path):
+def _build_review_prompt(task, tasks_path, store=None):
     """Build a review-focused Copilot prompt for a task that is in the Ready state."""
-    return _build_copilot_prompt(task, tasks_path, template_path=COPILOT_REVIEW_PROMPT_TEMPLATE_PATH)
+    return _build_copilot_prompt(task, tasks_path, template_path=COPILOT_REVIEW_PROMPT_TEMPLATE_PATH, store=store)
 
 
 def _get_store_base_dir(store):
@@ -498,7 +574,7 @@ def _task_branch_exists(base_dir, task_id):
     return False
 
 
-def _sync_task_store_to_git(store, message=None, wait=False):
+def _sync_task_store_to_git(store, message=None, wait=False, headless=False):
     base_dir = _get_store_base_dir(store)
     repo_info = _detect_git_repo(base_dir)
     if not repo_info["repo_available"]:
@@ -527,7 +603,25 @@ def _sync_task_store_to_git(store, message=None, wait=False):
         commit_message,
     ]
 
-    if wait:
+    if headless:
+        # Silent sync used by the status-inbox watcher: no console window, output
+        # captured so failures can be surfaced in the server log without blocking.
+        creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if sys.platform == "win32" else 0
+        try:
+            completed = subprocess.run(
+                ["pwsh", "-NoProfile", "-File", *script_args],
+                capture_output=True,
+                text=True,
+                check=False,
+                creationflags=creationflags,
+            )
+        except OSError as exc:
+            raise RuntimeError(f"Unable to run the git sync: {exc}") from exc
+        if completed.returncode != 0:
+            detail = (completed.stderr or completed.stdout or "").strip()
+            raise RuntimeError(detail or f"git sync failed (exit code {completed.returncode}).")
+        sync_message = "Git sync completed (headless)."
+    elif wait:
         # Blocking sync that is still visible: open a new console window so the
         # user can watch the git output, but wait for it to finish before the
         # caller (UI startup) continues, so the task list reflects the sync.
@@ -612,6 +706,188 @@ def _sync_selected_app_on_startup(store, message=None):
     return {"task_file": task_path.as_posix(), "synced": True, "repo_root": result["repo_root"]}
 
 
+def _resolve_task_manager_path(store, key):
+    """Resolve an ``APP.TASK_MANAGER.<key>`` directory to an absolute path.
+
+    Relative paths are resolved against the store base dir. Returns ``None``
+    when the key is unset (so callers can fall back to a default location).
+    """
+    app_cfg = getattr(getattr(store, "config", None), "APP", None)
+    task_manager_cfg = getattr(app_cfg, "TASK_MANAGER", None) if app_cfg else None
+    raw = getattr(task_manager_cfg, key, None) if task_manager_cfg else None
+    if not raw:
+        return None
+    path = Path(str(raw).strip())
+    if not path.is_absolute():
+        path = _get_store_base_dir(store) / path
+    return path.resolve()
+
+
+def _resolve_status_store_paths(store):
+    """Resolve the task status queue layout (pending/processed/failed) from config.
+
+    The queue root comes from ``APP.TASK_MANAGER.status_queue`` (relative paths
+    are resolved against the store base dir), the poll interval from
+    ``APP.TASK_MANAGER.request_polling_frequency`` and the on/off switch from
+    ``APP.TASK_MANAGER.enable``. Returns a dict describing whether the channel is
+    enabled, the poll interval, and the three sub-directories.
+    """
+    app_cfg = getattr(getattr(store, "config", None), "APP", None)
+    task_manager_cfg = getattr(app_cfg, "TASK_MANAGER", None) if app_cfg else None
+    enabled = bool(getattr(task_manager_cfg, "enable", False)) if task_manager_cfg else False
+    poll = getattr(task_manager_cfg, "request_polling_frequency", 5) if task_manager_cfg else 5
+    try:
+        poll = max(1, int(poll))
+    except (TypeError, ValueError):
+        poll = 5
+
+    root = _resolve_task_manager_path(store, "status_queue")
+    if root is None:
+        return {"enabled": False, "poll_seconds": poll, "root": None,
+                "pending": None, "processed": None, "failed": None}
+
+    return {
+        "enabled": enabled,
+        "poll_seconds": poll,
+        "root": root,
+        "pending": root / "pending",
+        "processed": root / "processed",
+        "failed": root / "failed",
+    }
+
+
+# Feature 3.6.9
+def _status_inbox_dir(store):
+    """Feature ID: 3.6.9. Resolve and create the task status store directories.
+
+    Returns the resolved ``pending``/``processed``/``failed`` layout when the
+    channel is enabled and configured, otherwise ``None``.
+    """
+    paths = _resolve_status_store_paths(store)
+    if not paths["enabled"] or paths["root"] is None:
+        return None
+    for key in ("pending", "processed", "failed"):
+        paths[key].mkdir(parents=True, exist_ok=True)
+    return paths
+
+
+def _move_inbox_file(src, dest_dir):
+    """Move a processed/failed request file into dest_dir, avoiding name clashes."""
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    dest = dest_dir / src.name
+    if dest.exists():
+        stamp = dt.datetime.utcnow().strftime("%Y%m%d%H%M%S%f")
+        dest = dest_dir / f"{src.stem}.{stamp}{src.suffix}"
+    shutil.move(str(src), str(dest))
+    return dest
+
+
+def _apply_status_request_file(store, request_file):
+    """Apply one status-update request file to the ledger and sync it to main.
+
+    The request must be ``{"TASKS": [ ... ]}`` where each item is matched by
+    ``id`` and restricted to the updatable fields. The ledger is loaded fresh,
+    each update applied via :func:`_apply_task_update`, saved, then committed and
+    pushed to ``main`` headlessly. Returns the list of applied task ids.
+    """
+    with request_file.open("r", encoding="utf-8") as handle:
+        document = json.load(handle)
+
+    if not isinstance(document, dict) or not isinstance(document.get("TASKS"), list):
+        raise ValueError("update request must be an object with a TASKS list")
+    update_tasks = document["TASKS"]
+    if not update_tasks:
+        raise ValueError("update request contains no tasks")
+
+    tasks_path = store.tasks_path
+    data = _load_tasks_store(tasks_path)
+    tasks = data["TASKS"]
+
+    applied_ids = []
+    unmatched = []
+    for update_task in update_tasks:
+        result = _apply_task_update(tasks, update_task, allowed_fields=STATUS_UPDATE_ALLOWED_FIELDS)
+        if result is None:
+            unmatched.append(str((update_task or {}).get("id", "")).strip() or "(missing id)")
+        else:
+            applied_ids.append(str(result.get("id", "")))
+
+    if not applied_ids:
+        raise ValueError(f"no matching task for ids: {', '.join(unmatched)}")
+
+    _save_tasks_store(tasks_path, data)
+
+    # The ledger is already persisted locally; a git sync failure must NOT
+    # re-fail the request (that would reprocess it and duplicate comments). The
+    # local change is picked up by the next startup sync, so we only log it.
+    try:
+        _sync_task_store_to_git(
+            store,
+            message=f"Apply task status update ({', '.join(applied_ids)})",
+            headless=True,
+        )
+    except RuntimeError as exc:
+        print(f"[task-manager] git sync after status update failed: {exc}")
+
+    return applied_ids
+
+
+# Feature 3.6.10
+def _process_status_inbox(store):
+    """Feature ID: 3.6.10. Apply pending status-update requests to the ledger on main.
+
+    Each ``pending/*.json`` request is applied in name order, then moved to
+    ``processed/`` on success or ``failed/`` on error. Processing each file
+    exactly once keeps the channel idempotent and restart-safe.
+    """
+    paths = _status_inbox_dir(store)
+    if paths is None:
+        return {"processed": 0, "failed": 0}
+
+    request_files = sorted(p for p in paths["pending"].glob("*.json") if p.is_file())
+    processed_count = 0
+    failed_count = 0
+    for request_file in request_files:
+        try:
+            applied_ids = _apply_status_request_file(store, request_file)
+        except Exception as exc:  # noqa: BLE001 - any failure routes to failed/
+            failed_count += 1
+            _move_inbox_file(request_file, paths["failed"])
+            print(f"[task-manager] status request {request_file.name} failed: {exc}")
+            continue
+        processed_count += 1
+        _move_inbox_file(request_file, paths["processed"])
+        print(f"[task-manager] applied status request {request_file.name} -> {', '.join(applied_ids)}")
+
+    return {"processed": processed_count, "failed": failed_count}
+
+
+# Feature 3.6.11
+def _status_inbox_watcher(store_provider, stop_event=None):
+    """Feature ID: 3.6.11. Continuously sample the status store and apply requests.
+
+    Runs as a daemon loop: each cycle resolves the live store, processes its
+    pending requests when the channel is enabled, then sleeps the configured
+    poll interval. Server restarts are safe because pending files persist.
+    """
+    while not (stop_event is not None and stop_event.is_set()):
+        poll_seconds = 5
+        try:
+            store = store_provider() if callable(store_provider) else store_provider
+            if store is not None:
+                paths = _resolve_status_store_paths(store)
+                poll_seconds = paths["poll_seconds"]
+                if paths["enabled"]:
+                    _process_status_inbox(store)
+        except Exception as exc:  # noqa: BLE001 - keep the watcher alive
+            print(f"[task-manager] status inbox watcher error: {exc}")
+        if stop_event is not None:
+            if stop_event.wait(poll_seconds):
+                break
+        else:
+            time.sleep(poll_seconds)
+
+
 def _load_app_config(base_dir):
     """Load the full app config using the app's own Config framework."""
     base_config_path = Path(base_dir).resolve() / "config" / "base.json"
@@ -687,20 +963,66 @@ def _activate_copilot_window(session):
     return result.returncode == 0
 
 
+def _write_agent_mcp_config(store, safe_task_id, config_dir):
+    """Write a per-agent MCP config wiring the stdio status-queue server.
+
+    When the durable task status store is enabled, this returns the path to a
+    JSON file that registers ``scripts/status_queue_mcp.py`` as a local (stdio)
+    MCP server for the worker agent, exposing the ``enqueue_status_update``
+    tool. The server writes durable request files into the store's ``pending``
+    directory; its lifecycle is bound to this one agent. Returns ``None`` when
+    the status store is not enabled/configured (the agent then has no enqueue
+    tool and falls back to writing request files directly).
+    """
+    paths = _resolve_status_store_paths(store)
+    if not paths["enabled"] or paths["pending"] is None:
+        return None
+
+    pending_dir = Path(paths["pending"])
+    pending_dir.mkdir(parents=True, exist_ok=True)
+
+    config = {
+        "mcpServers": {
+            "task-status-queue": {
+                "type": "local",
+                "command": sys.executable,
+                "args": [str(STATUS_QUEUE_MCP_SCRIPT_PATH)],
+                "env": {
+                    "TASK_STATUS_PENDING_DIR": str(pending_dir),
+                    "TASK_STATUS_TASK_ID": safe_task_id,
+                    "TASK_STATUS_AUTHOR": f"{safe_task_id} worker",
+                },
+                "tools": ["*"],
+            }
+        }
+    }
+
+    config_dir = Path(config_dir)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    config_path = config_dir / f"{safe_task_id}.mcp.json"
+    config_path.write_text(json.dumps(config, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return config_path
+
+
 def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, enable_full_edit=False, enable_full_execution=False, mode="work"):
     copilot_cli = shutil.which("copilot") or shutil.which("github-copilot-cli")
     if not copilot_cli:
         raise RuntimeError("Copilot CLI is not available in PATH (expected 'copilot')")
 
     caller_root = store.base_dir
-    output_prefix = getattr(getattr(store.config, "COMMON", None), "OUTPUT_PREFIX", None) if store.config else None
-    output_path = getattr(getattr(store.config, "COMMON", None), "OUTPUT_PATH", None) if store.config else None
-    if output_path:
-        prompts_dir = Path(str(output_path).strip()) / "agent_prompts"
-    elif output_prefix:
-        prompts_dir = Path(str(output_prefix).strip()) / "agent_prompts"
-    else:
-        prompts_dir = caller_root / "build" / "tasks" / "agent_prompts"
+    # Worker prompt files ({task.id}.md) live in the configured prompt store
+    # (APP.TASK_MANAGER.prompt_store); fall back to OUTPUT_PATH/OUTPUT_PREFIX or
+    # the in-repo build/tasks location when no config is available.
+    prompts_dir = _resolve_task_manager_path(store, "prompt_store")
+    if prompts_dir is None:
+        output_prefix = getattr(getattr(store.config, "COMMON", None), "OUTPUT_PREFIX", None) if store.config else None
+        output_path = getattr(getattr(store.config, "COMMON", None), "OUTPUT_PATH", None) if store.config else None
+        if output_path:
+            prompts_dir = Path(str(output_path).strip()) / "agent_prompts"
+        elif output_prefix:
+            prompts_dir = Path(str(output_prefix).strip()) / "agent_prompts"
+        else:
+            prompts_dir = caller_root / "build" / "tasks" / "agent_prompts"
     prompts_dir.mkdir(parents=True, exist_ok=True)
 
     safe_task_id = str(task.get("id", "task")).replace("/", "_").replace("\\", "_")
@@ -713,7 +1035,7 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     window_title = f"{session_name} ({safe_task_id})"
     prompt_suffix = "-review" if is_review else ""
     prompt_path = prompts_dir / f"{safe_task_id}{prompt_suffix}.md"
-    prompt_text = _build_review_prompt(task, tasks_path) if is_review else _build_copilot_prompt(task, tasks_path)
+    prompt_text = _build_review_prompt(task, tasks_path, store=store) if is_review else _build_copilot_prompt(task, tasks_path, store=store)
     prompt_path.write_text(prompt_text, encoding="utf-8")
 
     # Work each task on its own short-lived, ad-hoc branch so concurrent tasks
@@ -721,6 +1043,11 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     # branch (via -TaskBranch) before the worker session begins. Reviews run
     # against the existing branch, so no new branch is requested for them.
     task_branch = None if is_review else _branch_name_for_task(safe_task_id)
+
+    # Give the worker a per-agent stdio MCP server (the status queue) so it can
+    # request ledger status/comment updates via a validated 'enqueue' tool
+    # instead of hand-writing request files. The config is bound to this agent.
+    mcp_config_path = _write_agent_mcp_config(store, safe_task_id, prompts_dir)
 
     launch_args = [
         "pwsh", "-NoExit", "-File", str(COPILOT_WORKER_LAUNCH_SCRIPT_PATH),
@@ -734,6 +1061,8 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     ]
     if task_branch:
         launch_args.extend(["-TaskBranch", task_branch])
+    if mcp_config_path is not None:
+        launch_args.extend(["-McpConfig", str(mcp_config_path)])
     if enable_full_read:
         launch_args.extend(["-EnableFullRead"])
     if enable_full_edit:
@@ -1146,6 +1475,7 @@ def parse_args(argv=None):
     parser.add_argument("--port", default=DEFAULT_PORT, type=int, help="Port to bind")
     parser.add_argument("--browser-off", action="store_true", help="Do not open the UI in a browser after startup")
     parser.add_argument("--no-startup-sync", action="store_true", help="Do not auto-sync each app's task file with its git repo on startup")
+    parser.add_argument("--no-status-inbox", action="store_true", help="Do not run the task status inbox watcher that applies agent status-update requests")
     return parser.parse_args(argv)
 
 
@@ -1189,6 +1519,18 @@ def run(argv=None):
 
     server = _create_server(args.host, args.port, initial_store)
     url = _build_query_url(server.server_address[0], server.server_address[1], initial_store)
+
+    status_stop = None
+    if not args.no_status_inbox:
+        status_stop = threading.Event()
+        status_thread = threading.Thread(
+            target=_status_inbox_watcher,
+            args=(lambda: _TaskManagerHandler.store,),
+            kwargs={"stop_event": status_stop},
+            daemon=True,
+        )
+        status_thread.start()
+
     if not args.browser_off:
         if sys.platform == "win32":
             browser_candidates = [
@@ -1213,6 +1555,8 @@ def run(argv=None):
     except KeyboardInterrupt:
         pass
     finally:
+        if status_stop is not None:
+            status_stop.set()
         server.server_close()
     return 0
 

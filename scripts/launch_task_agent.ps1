@@ -7,6 +7,7 @@ param(
     [string]$SessionName,
     [string]$WindowTitle,
     [string]$TaskBranch,
+    [string]$McpConfig,
     [switch]$EnableFullRead,
     [switch]$EnableFullEdit,
     [switch]$EnableFullExecution
@@ -119,6 +120,9 @@ Write-Host "=== Task Prompt ===" -ForegroundColor Cyan
 Get-Content -LiteralPath $PromptFile | Out-Host
 Write-Host ""
 Write-Host "=== Launching Copilot CLI ===" -ForegroundColor Green
+if (-not [string]::IsNullOrWhiteSpace($McpConfig) -and (Test-Path -LiteralPath $McpConfig)) {
+    Write-Host "Status-queue MCP server enabled (config: $McpConfig)." -ForegroundColor Green
+}
 if ($EnableFullRead) {
     Write-Host "Full read permissions enabled for this session." -ForegroundColor Green
 }
@@ -131,6 +135,13 @@ if ($EnableFullExecution) {
 Write-Host ""
 
 $copilotArgs = @("-i", $PromptFile)
+# Register the per-agent status-queue MCP server (stdio) so the worker can
+# request task ledger status/comment updates via the 'enqueue_status_update'
+# tool. The config augments the user's ~/.copilot/mcp-config.json for this
+# session only and is bound to this agent's lifecycle.
+if (-not [string]::IsNullOrWhiteSpace($McpConfig) -and (Test-Path -LiteralPath $McpConfig)) {
+    $copilotArgs += @("--additional-mcp-config", "@$McpConfig")
+}
 if ($EnableFullRead) {
     $copilotArgs += @("--allow-all-tools", "--allow-all-paths", "--allow-all-urls")
 }

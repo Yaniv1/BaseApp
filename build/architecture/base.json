@@ -343,6 +343,62 @@
                             "description": "On task manager UI startup, automatically sync only the currently selected app's task file with its own linked git repo before the task list is served, reusing the git sync helper with wait=True: on Windows it opens a visible console window for the sync and blocks until it completes; the sync is skipped when no git repo is linked and any failure is reported but never blocks startup. Skippable via the --no-startup-sync CLI flag.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_sync_selected_app_on_startup"
+                        },
+                        "3.6.9": {
+                            "name": "scripts.task_manager._status_inbox_dir",
+                            "description": "Resolve and create the durable 'task status store' directory layout (pending/processed/failed) used by the file-store status channel. The root and poll interval are configurable via APP.TASK_MANAGER.status_queue / request_polling_frequency / enable (status_queue defaults under OUTPUT_PATH); the pending area is the same location surfaced to agents via the {status_store} placeholder in the task.md prompt. Returns None when the channel is disabled or unconfigured. Helper _resolve_status_store_paths reads the config and computes the layout.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_status_inbox_dir"
+                        },
+                        "3.6.10": {
+                            "name": "scripts.task_manager._process_status_inbox",
+                            "description": "Scan the pending area of the task status store for agent-written request files (each a {\"TASKS\":[...]} document restricted to id/status/comments/worker_session), apply each to a freshly loaded ledger via _apply_task_update (matched by task id), persist the ledger, then stage/commit/push it to main headlessly via _sync_task_store_to_git(headless=True); move each request file to processed/ on success or failed/ on error. Helper _apply_status_request_file performs the per-file apply+sync. Each file is processed exactly once (idempotent, restart-safe); a git-sync failure is logged but does not re-fail the request (avoiding duplicate comment appends).",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_process_status_inbox"
+                        },
+                        "3.6.11": {
+                            "name": "scripts.task_manager._status_inbox_watcher",
+                            "description": "Background daemon thread, started by run() (skippable via --no-status-inbox), that continuously samples the live store at the configured APP.TASK_MANAGER.request_polling_frequency interval by calling _process_status_inbox, so status/comment requests written by agents (including while the server was previously down) are applied to the ledger on main without blocking the agent.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_status_inbox_watcher"
+                        },
+                        "3.6.12": {
+                            "name": "scripts.task_manager._apply_task_update",
+                            "description": "Apply one update task (matched by id within the in-memory TASKS list, restricted to status/comments/worker_session) onto the ledger by value type via the recursive helper _apply_task_fields: list fields (comments) combine existing+incoming, dict fields (worker_session) update recursively, scalar fields (status) overwrite; comments are normalised before being appended. Returns None when no task matches the id. Replaces a generic deep-merge because TASKS is a list keyed by id.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_apply_task_update"
+                        },
+                        "3.6.13": {
+                            "name": "scripts.status_queue_mcp",
+                            "description": "Per-agent stdio MCP server (a thin 'enqueue' writer over the durable task status store) launched by launch_task_agent.ps1 via the Copilot CLI --additional-mcp-config hook, so its lifecycle is bound to one worker agent. It exposes a single tool, enqueue_status_update(status?, comment?), that builds a restricted {\"TASKS\":[{id,status,comments}]} request (the task id and default comment author come from env vars TASK_STATUS_TASK_ID/TASK_STATUS_AUTHOR) and writes it atomically (temp-then-rename) into the store's pending directory (TASK_STATUS_PENDING_DIR) -- the same files _process_status_inbox consumes. The server is stateless and holds no in-memory queue (restart-safe) and is never on the critical path: if it is unavailable the agent falls back to writing the request file directly. Dequeue is deliberately not implemented here because the Task Manager consumes the shared store directly from the filesystem. Transport is newline-delimited JSON-RPC 2.0 over stdio (initialize/tools/list/tools/call/ping); diagnostics go to stderr. Pure functions build_status_update_request/write_request_atomically and the _dispatch handler are unit-tested.",
+                            "type": "Folder.PyFile",
+                            "path": "scripts/status_queue_mcp.py",
+                            "features": {
+                                "3.6.13.1": {
+                                    "name": "scripts.status_queue_mcp.build_status_update_request",
+                                    "description": "Build a restricted {\"TASKS\":[{id,status?,comments?}]} update request for one task id, including only the supplied fields (status overwrites; a single comment is appended). Raises ValueError when neither status nor comment is provided.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/status_queue_mcp.py::build_status_update_request"
+                                },
+                                "3.6.13.2": {
+                                    "name": "scripts.status_queue_mcp.write_request_atomically",
+                                    "description": "Write a request dict as a uniquely named JSON file into the store's pending directory using a temp-then-rename so the Task Manager never reads a half-written request. Returns the final file path.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/status_queue_mcp.py::write_request_atomically"
+                                },
+                                "3.6.13.3": {
+                                    "name": "scripts.status_queue_mcp.main",
+                                    "description": "Entry point: run the newline-delimited JSON-RPC 2.0 stdio loop, decoding each line and dispatching initialize/tools/list/tools/call/ping until stdin closes.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/status_queue_mcp.py::main"
+                                }
+                            }
+                        },
+                        "3.6.14": {
+                            "name": "scripts.task_manager._write_agent_mcp_config",
+                            "description": "When the durable status store is enabled, write a per-agent MCP config file ({\"mcpServers\":{\"task-status-queue\":{type:local,command:python,args:[status_queue_mcp.py],env:{TASK_STATUS_PENDING_DIR,TASK_STATUS_TASK_ID,TASK_STATUS_AUTHOR},tools:[*]}}}) next to the agent prompt and return its path; _start_copilot_for_task passes it to launch_task_agent.ps1 via -McpConfig, which appends --additional-mcp-config @<path> to the Copilot CLI invocation. Returns None when the status store is disabled/unconfigured (the agent then uses the documented direct-file-write fallback).",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_write_agent_mcp_config"
                         }
                     }
                 },
@@ -1035,6 +1091,12 @@
                             "description": "Run a PowerShell deployment test script non-interactively, parse each [PASS]/[FAIL]/[WARN] output line as a criterion, and return a structured result dict compatible with TestManager.",
                             "type": "Folder.PyFile.Function",
                             "path": "utils/testutils.py::test_deployment"
+                        },
+                        "6.3.6": {
+                            "name": "utils.testutils.mcp_server_status",
+                            "description": "Live test that health-checks ALL per-agent status-queue MCP servers as one aggregate test and reports their active rate. It discovers every configured server from the per-agent <task-id>.mcp.json files in APP.TASK_MANAGER.prompt_store (via _discover_mcp_servers; falling back to the canonical scripts/status_queue_mcp.py when idle), spawns each as a fresh subprocess and verifies an MCP initialize handshake (a server is 'up' when it returns a well-formed serverInfo result) via the helper _probe_mcp_command, and counts the pending status-queue depth via _resolve_status_queue_pending. It reports servers up/down and the active rate (up/total), logging the single aggregate result to the console as GOOD when none are down, WARN when exactly one is down/unresponsive, and FAIL when more than one is down. Registered as the live_mcp_server_status live test sampled every 60 seconds. _probe_mcp_server remains a thin script-path wrapper over _probe_mcp_command.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "utils/testutils.py::mcp_server_status"
                         }
                     }
                 }

@@ -14,15 +14,20 @@ import scripts.task_manager as task_manager
 from scripts.task_manager import (
     _TaskManagerHandler,
     _append_comment,
+    _apply_task_fields,
+    _apply_task_update,
     _create_server,
     _create_task,
     _delete_task,
     _load_tasks_store,
     _next_task_id,
+    _process_status_inbox,
     _save_tasks_store,
+    _status_inbox_dir,
     _task_id_prefix_token,
     _update_task,
 )
+from types import SimpleNamespace
 
 
 class _DummyStore:
@@ -127,8 +132,8 @@ def test_start_copilot_for_task_requests_dedicated_branch_via_launcher(monkeypat
 
     monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
     monkeypatch.setattr(task_manager.subprocess, "Popen", fake_popen)
-    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path: "prompt")
-    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path: "review")
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
+    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path, store=None: "review")
 
     tasks_path = tmp_path / "tasks.json"
     tasks_path.write_text("{}", encoding="utf-8")
@@ -220,7 +225,7 @@ def test_start_copilot_for_task_records_worker_session(monkeypatch, tmp_path):
 
     monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
     monkeypatch.setattr(task_manager.subprocess, "Popen", lambda *args, **kwargs: DummyProc())
-    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path: "review prompt")
+    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path, store=None: "review prompt")
 
     task_manager._start_copilot_for_task(task, tasks_path, DummyStore(), mode="review")
     session = task.get("worker_session")
@@ -331,7 +336,7 @@ def test_start_copilot_for_task_passes_permission_flags(monkeypatch, tmp_path):
 
     monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
     monkeypatch.setattr(task_manager.subprocess, "Popen", lambda *args, **kwargs: launched.append((args, kwargs)) or object())
-    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path: "prompt")
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
 
     prompt_path = task_manager._start_copilot_for_task(
         task,
@@ -792,3 +797,451 @@ def test_task_manager_interface(manager=None, message=None, **kwargs):
             server.server_close()
         if thread is not None:
             thread.join(timeout=5)
+
+def _make_status_store(tmp_dir):
+    store_root = Path(tmp_dir) / "status_queue"
+    config = SimpleNamespace(APP=SimpleNamespace(TASK_MANAGER=SimpleNamespace(
+        status_queue=str(store_root),
+        prompt_store=str(Path(tmp_dir) / "task_prompts"),
+        result_store=str(Path(tmp_dir) / "task_results"),
+        request_polling_frequency=1,
+        enable=True,
+    )))
+    tasks_path = Path(tmp_dir) / "tasks.json"
+    store = SimpleNamespace(config=config, tasks_path=str(tasks_path), base_dir=Path(tmp_dir))
+    return store, store_root, tasks_path
+
+
+def test_apply_task_update_overwrites_status_and_appends_comment():
+    tasks = [{
+        "id": "BASE-TASK-0001",
+        "status": "ToDo",
+        "comments": [{"author": "a", "content": "first", "timestamp": "t0"}],
+    }]
+    result = _apply_task_update(tasks, {
+        "id": "BASE-TASK-0001",
+        "status": "InProgress",
+        "comments": [{"author": "worker", "content": "started", "timestamp": "t1"}],
+    }, allowed_fields=task_manager.STATUS_UPDATE_ALLOWED_FIELDS)
+    assert result["status"] == "InProgress"
+    assert len(result["comments"]) == 2
+    assert result["comments"][0]["content"] == "first"
+    assert result["comments"][1]["content"] == "started"
+
+
+def test_apply_task_update_updates_dict_field_recursively():
+    tasks = [{
+        "id": "T1",
+        "status": "InProgress",
+        "worker_session": {"pid": 1, "mode": "work", "window_title": "old"},
+    }]
+    result = _apply_task_update(tasks, {
+        "id": "T1",
+        "worker_session": {"pid": 99, "started_at": "t2"},
+    }, allowed_fields=task_manager.STATUS_UPDATE_ALLOWED_FIELDS)
+    session = result["worker_session"]
+    assert session["pid"] == 99
+    assert session["mode"] == "work"
+    assert session["started_at"] == "t2"
+
+
+def test_apply_task_update_unknown_id_returns_none():
+    tasks = [{"id": "T1", "status": "ToDo"}]
+    assert _apply_task_update(tasks, {"id": "T9", "status": "Done"}) is None
+
+
+def test_apply_task_update_ignores_unlisted_fields():
+    tasks = [{"id": "T1", "status": "ToDo", "title": "keep"}]
+    result = _apply_task_update(tasks, {
+        "id": "T1", "status": "Done", "title": "hacked", "priority": "Low",
+    }, allowed_fields=task_manager.STATUS_UPDATE_ALLOWED_FIELDS)
+    assert result["status"] == "Done"
+    assert result["title"] == "keep"
+    assert "priority" not in result
+
+
+def test_apply_task_fields_combines_lists_and_overwrites_scalars():
+    existing = {"status": "ToDo", "tags": ["a"]}
+    _apply_task_fields(existing, {"status": "Done", "tags": ["b", "c"]})
+    assert existing["status"] == "Done"
+    assert existing["tags"] == ["a", "b", "c"]
+
+
+def test_process_status_inbox_applies_request_and_moves_to_processed(monkeypatch, tmp_path):
+    store, _store_root, tasks_path = _make_status_store(tmp_path)
+    _save_tasks_store(tasks_path, {"TASKS": [
+        {"id": "BASE-TASK-0001", "status": "ToDo", "comments": []}
+    ]})
+    monkeypatch.setattr(task_manager, "_sync_task_store_to_git", lambda *a, **k: {"message": "ok"})
+
+    paths = _status_inbox_dir(store)
+    request = {"TASKS": [{
+        "id": "BASE-TASK-0001",
+        "status": "InProgress",
+        "comments": [{"author": "worker", "content": "started", "timestamp": "t1"}],
+    }]}
+    (paths["pending"] / "req1.json").write_text(json.dumps(request), encoding="utf-8")
+
+    summary = _process_status_inbox(store)
+    assert summary == {"processed": 1, "failed": 0}
+
+    data = _load_tasks_store(tasks_path)
+    task = data["TASKS"][0]
+    assert task["status"] == "InProgress"
+    assert task["comments"][-1]["content"] == "started"
+    assert not list(paths["pending"].glob("*.json"))
+    assert (paths["processed"] / "req1.json").exists()
+
+
+def test_process_status_inbox_routes_unmatched_to_failed(monkeypatch, tmp_path):
+    store, _store_root, tasks_path = _make_status_store(tmp_path)
+    _save_tasks_store(tasks_path, {"TASKS": [{"id": "BASE-TASK-0001", "status": "ToDo"}]})
+    monkeypatch.setattr(task_manager, "_sync_task_store_to_git", lambda *a, **k: {"message": "ok"})
+
+    paths = _status_inbox_dir(store)
+    (paths["pending"] / "bad.json").write_text(
+        json.dumps({"TASKS": [{"id": "NOPE", "status": "Done"}]}), encoding="utf-8")
+
+    summary = _process_status_inbox(store)
+    assert summary == {"processed": 0, "failed": 1}
+    assert (paths["failed"] / "bad.json").exists()
+    # The unmatched request must not mutate the ledger.
+    assert _load_tasks_store(tasks_path)["TASKS"][0]["status"] == "ToDo"
+
+
+def test_process_status_inbox_processes_each_file_once(monkeypatch, tmp_path):
+    store, _store_root, tasks_path = _make_status_store(tmp_path)
+    _save_tasks_store(tasks_path, {"TASKS": [{"id": "T1", "status": "ToDo", "comments": []}]})
+    monkeypatch.setattr(task_manager, "_sync_task_store_to_git", lambda *a, **k: {"message": "ok"})
+
+    paths = _status_inbox_dir(store)
+    (paths["pending"] / "r.json").write_text(
+        json.dumps({"TASKS": [{"id": "T1", "comments": [
+            {"author": "w", "content": "c", "timestamp": "t"}]}]}), encoding="utf-8")
+
+    _process_status_inbox(store)
+    _process_status_inbox(store)
+
+    data = _load_tasks_store(tasks_path)
+    assert len(data["TASKS"][0]["comments"]) == 1
+
+
+def test_status_inbox_dir_disabled_returns_none(tmp_path):
+    store, _store_root, _tasks_path = _make_status_store(tmp_path)
+    store.config.APP.TASK_MANAGER.enable = False
+    assert _status_inbox_dir(store) is None
+
+
+# ---------------------------------------------------------------------------
+# Per-agent stdio enqueue MCP server (scripts/status_queue_mcp.py)
+# ---------------------------------------------------------------------------
+
+import scripts.status_queue_mcp as status_queue_mcp
+
+
+def test_mcp_build_request_includes_only_supplied_fields():
+    req = status_queue_mcp.build_status_update_request("T1", status="InProgress")
+    assert req == {"TASKS": [{"id": "T1", "status": "InProgress"}]}
+
+    req = status_queue_mcp.build_status_update_request(
+        "T1", comment="hello", author="me", timestamp="t0")
+    assert req["TASKS"][0] == {
+        "id": "T1",
+        "comments": [{"author": "me", "content": "hello", "timestamp": "t0"}],
+    }
+
+
+def test_mcp_build_request_defaults_author_to_worker():
+    req = status_queue_mcp.build_status_update_request("T1", comment="hi", timestamp="t0")
+    assert req["TASKS"][0]["comments"][0]["author"] == "T1 worker"
+
+
+def test_mcp_build_request_requires_status_or_comment():
+    import pytest
+
+    with pytest.raises(ValueError):
+        status_queue_mcp.build_status_update_request("T1")
+    with pytest.raises(ValueError):
+        status_queue_mcp.build_status_update_request("", status="Done")
+
+
+def test_mcp_write_request_atomically_is_valid_and_unique(tmp_path):
+    pending = tmp_path / "pending"
+    req = {"TASKS": [{"id": "T1", "status": "Ready"}]}
+    p1 = status_queue_mcp.write_request_atomically(pending, req, "T1")
+    p2 = status_queue_mcp.write_request_atomically(pending, req, "T1")
+
+    assert p1.exists() and p2.exists() and p1 != p2
+    # No half-written temp files are left behind.
+    assert not list(pending.glob("*.tmp"))
+    assert json.loads(p1.read_text(encoding="utf-8")) == req
+
+
+def test_mcp_enqueue_output_is_consumed_by_inbox_processor(monkeypatch, tmp_path):
+    """The file the MCP enqueue writes must be applied by the Task Manager."""
+    store, _store_root, tasks_path = _make_status_store(tmp_path)
+    _save_tasks_store(tasks_path, {"TASKS": [
+        {"id": "BASE-TASK-0001", "status": "ToDo", "comments": []}
+    ]})
+    monkeypatch.setattr(task_manager, "_sync_task_store_to_git", lambda *a, **k: {"message": "ok"})
+
+    paths = _status_inbox_dir(store)
+    monkeypatch.setenv("TASK_STATUS_PENDING_DIR", str(paths["pending"]))
+    monkeypatch.setenv("TASK_STATUS_TASK_ID", "BASE-TASK-0001")
+    monkeypatch.setenv("TASK_STATUS_AUTHOR", "BASE-TASK-0001 worker")
+
+    result = status_queue_mcp._handle_enqueue({"status": "InProgress", "comment": "started"})
+    assert result["isError"] is False
+    assert list(paths["pending"].glob("*.json"))
+
+    summary = _process_status_inbox(store)
+    assert summary == {"processed": 1, "failed": 0}
+
+    task = _load_tasks_store(tasks_path)["TASKS"][0]
+    assert task["status"] == "InProgress"
+    assert task["comments"][-1]["content"] == "started"
+    assert task["comments"][-1]["author"] == "BASE-TASK-0001 worker"
+
+
+def test_mcp_enqueue_errors_without_configuration(monkeypatch):
+    monkeypatch.delenv("TASK_STATUS_PENDING_DIR", raising=False)
+    monkeypatch.setenv("TASK_STATUS_TASK_ID", "T1")
+    result = status_queue_mcp._handle_enqueue({"status": "Done"})
+    assert result["isError"] is True
+
+
+def test_mcp_dispatch_initialize_and_tools_list():
+    init = status_queue_mcp._dispatch("initialize", {"protocolVersion": "2025-06-18"})
+    assert init["protocolVersion"] == "2025-06-18"
+    assert init["serverInfo"]["name"] == status_queue_mcp.SERVER_NAME
+
+    listing = status_queue_mcp._dispatch("tools/list", {})
+    names = [tool["name"] for tool in listing["tools"]]
+    assert "enqueue_status_update" in names
+
+
+def test_mcp_dispatch_unknown_method_and_tool_raise():
+    import pytest
+
+    with pytest.raises(status_queue_mcp._RpcError):
+        status_queue_mcp._dispatch("does/not/exist", {})
+    with pytest.raises(status_queue_mcp._RpcError):
+        status_queue_mcp._dispatch("tools/call", {"name": "nope", "arguments": {}})
+
+
+def test_start_copilot_for_task_wires_status_queue_mcp(monkeypatch, tmp_path):
+    """When the status store is enabled, the launcher gets a per-agent MCP config."""
+    store, _store_root, tasks_path = _make_status_store(tmp_path)
+    tasks_path.write_text("{}", encoding="utf-8")
+    store.config.COMMON = SimpleNamespace(OUTPUT_PATH=str(tmp_path / "out"))
+
+    launched = {}
+
+    class DummyProc:
+        pid = 24680
+
+    def fake_popen(*args, **kwargs):
+        launched["argv"] = args[0] if args else kwargs.get("args")
+        return DummyProc()
+
+    monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
+    monkeypatch.setattr(task_manager.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
+
+    task = {"id": "BASE-TASK-MCP-0001", "title": "MCP wiring test"}
+    task_manager._start_copilot_for_task(task, tasks_path, store, mode="work")
+
+    argv = launched["argv"]
+    assert "-McpConfig" in argv
+    config_path = Path(argv[argv.index("-McpConfig") + 1])
+    assert config_path.exists()
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    server = config["mcpServers"]["task-status-queue"]
+    assert server["type"] == "local"
+    assert server["args"][0].endswith("status_queue_mcp.py")
+    assert server["env"]["TASK_STATUS_TASK_ID"] == "BASE-TASK-MCP-0001"
+    assert Path(server["env"]["TASK_STATUS_PENDING_DIR"]).name == "pending"
+
+
+def test_start_copilot_for_task_omits_mcp_when_store_disabled(monkeypatch, tmp_path):
+    store, _store_root, tasks_path = _make_status_store(tmp_path)
+    store.config.APP.TASK_MANAGER.enable = False
+    tasks_path.write_text("{}", encoding="utf-8")
+    store.config.COMMON = SimpleNamespace(OUTPUT_PATH=str(tmp_path / "out"))
+
+    launched = {}
+
+    class DummyProc:
+        pid = 24681
+
+    monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
+    monkeypatch.setattr(task_manager.subprocess, "Popen",
+                        lambda *a, **k: launched.update(argv=a[0] if a else k.get("args")) or DummyProc())
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
+
+    task = {"id": "BASE-TASK-MCP-0002", "title": "MCP disabled test"}
+    task_manager._start_copilot_for_task(task, tasks_path, store, mode="work")
+    assert "-McpConfig" not in launched["argv"]
+
+
+def test_build_copilot_prompt_renders_result_store(tmp_path):
+    store, _store_root, _tasks_path = _make_status_store(tmp_path)
+    tasks_path = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    task = {"id": "BASE-TASK-RS-0001", "title": "t", "status": "ToDo", "description": "d"}
+    prompt = task_manager._build_copilot_prompt(task, tasks_path, store=store)
+    assert (Path(tmp_path) / "task_results").as_posix() in prompt
+    assert (Path(tmp_path) / "status_queue" / "pending").as_posix() in prompt
+
+
+def test_start_copilot_for_task_writes_prompt_into_prompt_store(monkeypatch, tmp_path):
+    store, _store_root, tasks_path = _make_status_store(tmp_path)
+    tasks_path.write_text("{}", encoding="utf-8")
+
+    class DummyProc:
+        pid = 31415
+
+    monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
+    monkeypatch.setattr(task_manager.subprocess, "Popen", lambda *a, **k: DummyProc())
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
+
+    task = {"id": "BASE-TASK-PS-0001", "title": "prompt store test"}
+    prompt_path = task_manager._start_copilot_for_task(task, tasks_path, store, mode="work")
+    assert prompt_path.parent == (Path(tmp_path) / "task_prompts").resolve()
+    assert prompt_path.exists()
+
+
+# ---------------------------------------------------------------------------
+# Live MCP server health check (utils.testutils.mcp_server_status)
+# ---------------------------------------------------------------------------
+
+import sys
+
+import utils.testutils as testutils
+
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+
+
+def _make_tm_config(status_queue_root, prompt_store=None):
+    task_manager_ns = SimpleNamespace(status_queue=str(status_queue_root))
+    if prompt_store is not None:
+        task_manager_ns.prompt_store = str(prompt_store)
+    return SimpleNamespace(APP=SimpleNamespace(TASK_MANAGER=task_manager_ns))
+
+
+def _write_agent_mcp_config(prompt_store, stem, script_path, pending_dir=None):
+    """Write a per-agent <stem>.mcp.json wiring one stdio status-queue server."""
+    prompt_store.mkdir(parents=True, exist_ok=True)
+    env = {"TASK_STATUS_TASK_ID": stem}
+    if pending_dir is not None:
+        env["TASK_STATUS_PENDING_DIR"] = str(pending_dir)
+    config = {
+        "mcpServers": {
+            "task-status-queue": {
+                "type": "local",
+                "command": sys.executable,
+                "args": [str(script_path)],
+                "env": env,
+                "tools": ["*"],
+            }
+        }
+    }
+    (prompt_store / f"{stem}.mcp.json").write_text(
+        json.dumps(config, indent=2), encoding="utf-8")
+
+
+def test_mcp_server_status_reports_good_and_active_rate(tmp_path):
+    queue_root = tmp_path / "status_queue"
+    pending = queue_root / "pending"
+    pending.mkdir(parents=True)
+    (pending / "a.json").write_text("{}", encoding="utf-8")
+    (pending / "b.json").write_text("{}", encoding="utf-8")
+    (pending / "ignore.txt").write_text("x", encoding="utf-8")
+
+    manager = SimpleNamespace(base_dir=str(PROJECT_ROOT))
+    result = testutils.mcp_server_status(
+        config=_make_tm_config(queue_root), manager=manager, timeout=20)
+
+    assert result["status"] == "GOOD"
+    assert result["data"]["servers_total"] == 1
+    assert result["data"]["servers_up"] == 1
+    assert result["data"]["servers_down"] == 0
+    assert result["data"]["active_rate"] == 1.0
+    assert result["data"]["queue_item_count"] == 2
+    rate_criterion = next(c for c in result["criteria"] if c["name"] == "mcp_servers_active_rate")
+    assert rate_criterion["status"] == "GOOD"
+
+
+def test_mcp_server_status_discovers_all_agent_servers(tmp_path):
+    queue_root = tmp_path / "status_queue"
+    (queue_root / "pending").mkdir(parents=True)
+    prompt_store = tmp_path / "prompts"
+    real_script = PROJECT_ROOT / "scripts" / "status_queue_mcp.py"
+    _write_agent_mcp_config(prompt_store, "TASK-1", real_script)
+    _write_agent_mcp_config(prompt_store, "TASK-2", real_script)
+
+    manager = SimpleNamespace(base_dir=str(PROJECT_ROOT))
+    result = testutils.mcp_server_status(
+        config=_make_tm_config(queue_root, prompt_store=prompt_store),
+        manager=manager, timeout=20)
+
+    assert result["status"] == "GOOD"
+    assert result["data"]["servers_total"] == 2
+    assert result["data"]["servers_up"] == 2
+    assert result["data"]["active_rate"] == 1.0
+
+
+def test_mcp_server_status_warns_when_one_server_down(tmp_path):
+    queue_root = tmp_path / "status_queue"
+    (queue_root / "pending").mkdir(parents=True)
+    prompt_store = tmp_path / "prompts"
+    real_script = PROJECT_ROOT / "scripts" / "status_queue_mcp.py"
+    missing_script = tmp_path / "nope" / "missing_mcp.py"
+    _write_agent_mcp_config(prompt_store, "UP-1", real_script)
+    _write_agent_mcp_config(prompt_store, "DOWN-1", missing_script)
+
+    manager = SimpleNamespace(base_dir=str(PROJECT_ROOT))
+    result = testutils.mcp_server_status(
+        config=_make_tm_config(queue_root, prompt_store=prompt_store),
+        manager=manager, timeout=20)
+
+    assert result["status"] == "WARN"
+    assert result["data"]["servers_total"] == 2
+    assert result["data"]["servers_up"] == 1
+    assert result["data"]["servers_down"] == 1
+    assert result["data"]["active_rate"] == 0.5
+
+
+def test_mcp_server_status_fails_when_multiple_servers_down(tmp_path):
+    queue_root = tmp_path / "status_queue"
+    (queue_root / "pending").mkdir(parents=True)
+    prompt_store = tmp_path / "prompts"
+    missing_script = tmp_path / "nope" / "missing_mcp.py"
+    _write_agent_mcp_config(prompt_store, "DOWN-1", missing_script)
+    _write_agent_mcp_config(prompt_store, "DOWN-2", missing_script)
+
+    manager = SimpleNamespace(base_dir=str(PROJECT_ROOT))
+    result = testutils.mcp_server_status(
+        config=_make_tm_config(queue_root, prompt_store=prompt_store),
+        manager=manager, timeout=20)
+
+    assert result["status"] == "FAIL"
+    assert result["data"]["servers_total"] == 2
+    assert result["data"]["servers_down"] == 2
+    assert result["data"]["active_rate"] == 0.0
+
+
+def test_mcp_server_status_warns_when_base_server_missing(tmp_path):
+    manager = SimpleNamespace(base_dir=str(tmp_path))  # no scripts/ here
+    result = testutils.mcp_server_status(
+        config=_make_tm_config(tmp_path / "status_queue"), manager=manager, timeout=10)
+    assert result["status"] == "WARN"
+    assert result["data"]["servers_total"] == 1
+    assert result["data"]["servers_down"] == 1
+    assert result["data"]["queue_item_count"] == 0
+
+
+def test_probe_mcp_server_handshake_against_real_server():
+    script = str(PROJECT_ROOT / "scripts" / "status_queue_mcp.py")
+    alive, detail = testutils._probe_mcp_server(script, None, task_id="hc", timeout=20)
+    assert alive is True, detail
+

@@ -21,10 +21,12 @@
                 "1": "INFO",
                 "2": "PASS",
                 "3": "WARN",
-                "4": "FAIL"
+                "4": "FAIL",
+                "5": "GOOD"
             },
             "colors": {
                 "PASS": "green",
+                "GOOD": "lightgreen",
                 "WARN": "yellow",
                 "FAIL": "red"
             },
@@ -194,6 +196,16 @@
                     "message": "Observed monitor publications while the app was running",
                     "min_history": 1
                 }
+            },
+            {
+                "id": "live_mcp_server_status",
+                "name": "Live MCP servers health",
+                "callable": "utils.testutils.mcp_server_status",
+                "frequency_seconds": 60,
+                "inputs": {
+                    "message": null,
+                    "timeout": 10
+                }
             }
         ],
         "post": [
@@ -326,7 +338,7 @@
                 },
                 {
                     "scope": "df",
-                    "op": "{t: df.get(t, [{k: None for k in pd.DataFrame(logs).columns}]) for t in ['INFO', 'PASS', 'WARN', 'FAIL']}"
+                    "op": "{t: df.get(t, [{k: None for k in pd.DataFrame(logs).columns}]) for t in ['INFO', 'PASS', 'GOOD', 'WARN', 'FAIL']}"
                 }
             ],
             "path": "{$OUTPUT_PATH$}/tests/logs/by_type",

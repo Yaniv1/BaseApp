@@ -1,0 +1,15 @@
+{
+    "TASKS": [
+        {
+            "id": "{task.id}",
+            "status": "{status}",
+            "comments": [
+                {
+                    "author": "{author}",
+                    "content": "{content}",
+                    "timestamp": "{timestamp}"
+                }
+            ]
+        }
+    ]
+}

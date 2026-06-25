@@ -7,3 +7,4 @@ TST005,FAIL,Test failed,4
 TST006,INFO,Live test scheduler message,
 TST007,INFO,Live test scheduler message,
 TST008,INFO,Build phase test runner message,
+TST009,GOOD,Test healthy,

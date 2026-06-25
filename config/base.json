@@ -30,7 +30,14 @@
             "utils": "utils",
             "templates": "resources/templates"
         },
-        "verbose": true
+        "verbose": true,
+        "TASK_MANAGER": {
+            "prompt_store": "{$OUTPUT_PATH$}/task_prompts",
+            "result_store": "{$OUTPUT_PATH$}/task_results",
+            "status_queue": "{$OUTPUT_PATH$}/status_queue",
+            "request_polling_frequency": 5,
+            "enable": true
+        }
     },
     "LOG": {
         "start_time": "{$START_TIME$}",

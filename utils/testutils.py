@@ -599,7 +599,7 @@ class TestManager(AppManager):
         status = str(item.get("status", "WARN")).strip().upper()
         message_code = item.get("message_code")
         if not message_code:
-            message_code = {"INFO": "TST001", "PASS": "TST003", "WARN": "TST004", "FAIL": "TST005"}.get(status, "TST004")
+            message_code = {"INFO": "TST001", "PASS": "TST003", "GOOD": "TST009", "WARN": "TST004", "FAIL": "TST005"}.get(status, "TST004")
 
         return self._build_result_line(
             phase=phase,
@@ -896,6 +896,263 @@ def test_deployment(script_path="scripts/test_deployment.ps1", message=None, con
             "fail_count": fail_count,
             "stdout": stdout[:4000],
             "stderr": stderr[:1000] if stderr else "",
+        },
+    }
+
+
+def _resolve_status_queue_pending(config, base_dir):
+    """Resolve the task status queue's pending directory from config.
+
+    Reads ``APP.TASK_MANAGER.status_queue`` (resolving a relative path against
+    ``base_dir``) and returns its ``pending`` sub-directory, or ``None`` when
+    unset.
+    """
+    app_cfg = getattr(config, "APP", None)
+    task_manager_cfg = getattr(app_cfg, "TASK_MANAGER", None) if app_cfg is not None else None
+    raw = getattr(task_manager_cfg, "status_queue", None) if task_manager_cfg is not None else None
+    if not raw:
+        return None
+    root = raw if os.path.isabs(str(raw)) else os.path.abspath(path_join(base_dir, str(raw)))
+    return os.path.join(root, "pending")
+
+
+def _resolve_prompt_store(config, base_dir):
+    """Resolve the task-manager prompt store directory from config.
+
+    Reads ``APP.TASK_MANAGER.prompt_store`` (resolving a relative path against
+    ``base_dir``) and returns its absolute path, or ``None`` when unset. This is
+    where the launcher writes each agent's ``<task-id>.mcp.json`` MCP config.
+    """
+    app_cfg = getattr(config, "APP", None)
+    task_manager_cfg = getattr(app_cfg, "TASK_MANAGER", None) if app_cfg is not None else None
+    raw = getattr(task_manager_cfg, "prompt_store", None) if task_manager_cfg is not None else None
+    if not raw:
+        return None
+    return raw if os.path.isabs(str(raw)) else os.path.abspath(path_join(base_dir, str(raw)))
+
+
+def _probe_mcp_command(command, args, env_overrides=None, timeout=10.0):
+    """Spawn one stdio MCP server command and verify it answers an MCP handshake.
+
+    Returns ``(alive, detail)``. The server is launched as a fresh subprocess,
+    sent an ``initialize`` (and ``ping``) JSON-RPC request over stdin, and is
+    considered alive when it returns a well-formed ``initialize`` result with
+    ``serverInfo``. This is a binary health check independent of any running
+    worker agent.
+    """
+    args = list(args or [])
+    script = args[0] if args else None
+    if not command:
+        return False, "MCP server command is not configured"
+    if script and not os.path.isfile(script):
+        return False, f"MCP server script not found: {script}"
+
+    env = os.environ.copy()
+    for key, value in (env_overrides or {}).items():
+        if value is not None:
+            env[str(key)] = str(value)
+
+    messages = "\n".join([
+        json.dumps({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                    "params": {"protocolVersion": "2024-11-05", "capabilities": {}}}),
+        json.dumps({"jsonrpc": "2.0", "id": 2, "method": "ping", "params": {}}),
+    ]) + "\n"
+
+    try:
+        proc = subprocess.run(
+            [command, *args],
+            input=messages,
+            capture_output=True,
+            text=True,
+            timeout=float(timeout),
+            env=env,
+        )
+    except Exception as exc:  # noqa: BLE001 - report any spawn/timeout failure
+        return False, f"MCP server did not respond: {exc}"
+
+    for line in (proc.stdout or "").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            msg = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if msg.get("id") == 1 and isinstance(msg.get("result"), dict) and msg["result"].get("serverInfo"):
+            return True, "MCP server responded to initialize"
+
+    return False, (proc.stderr or "no initialize response from MCP server").strip()[:500]
+
+
+def _probe_mcp_server(script_path, pending_dir, task_id="healthcheck", timeout=10.0):
+    """Spawn the stdio status-queue MCP server (by script path) and verify the handshake.
+
+    Thin wrapper over :func:`_probe_mcp_command` for the canonical
+    ``scripts/status_queue_mcp.py`` server; kept for the direct script-path
+    health check.
+    """
+    if not script_path or not os.path.isfile(script_path):
+        return False, f"MCP server script not found: {script_path}"
+    env = {"TASK_STATUS_TASK_ID": str(task_id)}
+    if pending_dir:
+        env["TASK_STATUS_PENDING_DIR"] = str(pending_dir)
+    return _probe_mcp_command(sys.executable, [script_path], env_overrides=env, timeout=timeout)
+
+
+def _discover_mcp_servers(config, base_dir, default_pending_dir=None):
+    """Discover every configured MCP server to health-check.
+
+    Each worker agent is wired with a per-agent ``<task-id>.mcp.json`` config
+    (written by the launcher into ``APP.TASK_MANAGER.prompt_store``) whose
+    ``mcpServers`` map declares one or more stdio servers (command/args/env).
+    This returns one spec ``{name, command, args, env}`` per declared server
+    across all such files. When no agent configs are found, it falls back to a
+    single canonical spec for ``scripts/status_queue_mcp.py`` so the health
+    check still reports on the core server when the system is idle.
+    """
+    servers = []
+    prompt_store = _resolve_prompt_store(config, base_dir)
+    if prompt_store and os.path.isdir(prompt_store):
+        for name in sorted(os.listdir(prompt_store)):
+            if not name.endswith(".mcp.json"):
+                continue
+            config_path = os.path.join(prompt_store, name)
+            if not os.path.isfile(config_path):
+                continue
+            try:
+                with open(config_path, "r", encoding="utf-8") as handle:
+                    doc = json.load(handle)
+            except Exception:  # noqa: BLE001 - a malformed config counts as a down server
+                servers.append({
+                    "name": name,
+                    "command": None,
+                    "args": [],
+                    "env": {},
+                    "error": "unreadable MCP config",
+                })
+                continue
+            stem = name[: -len(".mcp.json")]
+            for server_key, spec in (doc.get("mcpServers", {}) or {}).items():
+                spec = spec or {}
+                servers.append({
+                    "name": f"{stem}/{server_key}",
+                    "command": spec.get("command"),
+                    "args": list(spec.get("args", []) or []),
+                    "env": dict(spec.get("env", {}) or {}),
+                })
+
+    if not servers:
+        script_path = os.path.abspath(path_join(base_dir, "scripts", "status_queue_mcp.py"))
+        env = {"TASK_STATUS_TASK_ID": "healthcheck"}
+        if default_pending_dir:
+            env["TASK_STATUS_PENDING_DIR"] = str(default_pending_dir)
+        servers.append({
+            "name": "task-status-queue (base)",
+            "command": sys.executable,
+            "args": [script_path],
+            "env": env,
+        })
+
+    return servers
+
+
+# Feature 6.3.6
+def mcp_server_status(config=None, manager=None, message=None, timeout=10.0, **kwargs):
+    """Feature ID: 6.3.6. Live aggregate health check of all per-agent status-queue MCP servers.
+
+    Discovers every configured MCP server (one per agent ``<task-id>.mcp.json``
+    in ``APP.TASK_MANAGER.prompt_store``, falling back to the canonical
+    ``scripts/status_queue_mcp.py`` when idle), spawns each as a fresh
+    subprocess, and verifies an MCP ``initialize`` handshake (a server is 'up'
+    when it returns a valid ``serverInfo`` result). It reports how many servers
+    are up/down and the active rate (up / total), plus the pending task status
+    queue depth. The single aggregate result is logged to the console as
+    **GOOD** when no server is down, **WARN** when exactly one is down or
+    unresponsive, and **FAIL** when more than one is down. Intended as a live
+    test sampled on a cadence (e.g. every 60 seconds).
+    """
+    features = ["3.6.13"]
+    base_dir = getattr(manager, "base_dir", None) or getattr(config, "base_dir", None) or os.getcwd()
+
+    pending_dir = _resolve_status_queue_pending(config, base_dir)
+    queue_count = 0
+    if pending_dir and os.path.isdir(pending_dir):
+        queue_count = len([
+            name for name in os.listdir(pending_dir)
+            if name.endswith(".json") and os.path.isfile(os.path.join(pending_dir, name))
+        ])
+
+    servers = _discover_mcp_servers(config, base_dir, default_pending_dir=pending_dir)
+
+    results = []
+    for server in servers:
+        if server.get("error"):
+            alive, detail = False, server["error"]
+        else:
+            alive, detail = _probe_mcp_command(
+                server.get("command"),
+                server.get("args"),
+                env_overrides=server.get("env"),
+                timeout=timeout,
+            )
+        results.append({"name": server.get("name"), "alive": alive, "detail": detail})
+
+    total = len(results)
+    up = len([item for item in results if item["alive"]])
+    down = total - up
+    active_rate = round(up / total, 4) if total else 1.0
+
+    if down == 0:
+        status = "GOOD"
+    elif down == 1:
+        status = "WARN"
+    else:
+        status = "FAIL"
+
+    default_message = (
+        f"MCP servers health: {up}/{total} up, {down} down, "
+        f"active rate {active_rate * 100:.0f}%"
+    )
+
+    criteria = [
+        {
+            "name": "mcp_servers_active_rate",
+            "success": down == 0,
+            "status": status,
+            "actual": f"{up}/{total} up ({active_rate * 100:.0f}%)",
+            "expected": "all servers up",
+        },
+        {
+            "name": "queue_item_count",
+            "success": True,
+            "status": "PASS",
+            "actual": queue_count,
+            "expected": ">=0",
+        },
+    ]
+    for item in results:
+        criteria.append({
+            "name": f"mcp_server_alive:{item['name']}",
+            "success": item["alive"],
+            "status": "PASS" if item["alive"] else "FAIL",
+            "actual": item["alive"],
+            "expected": True,
+            "detail": item["detail"],
+        })
+
+    return {
+        "status": status,
+        "message": message or default_message,
+        "criteria": criteria,
+        "features": features,
+        "data": {
+            "servers_total": total,
+            "servers_up": up,
+            "servers_down": down,
+            "active_rate": active_rate,
+            "queue_item_count": queue_count,
+            "pending_dir": pending_dir,
+            "servers": results,
         },
     }
 
