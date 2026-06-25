@@ -1,4 +1,4 @@
-# BaseApp V-26.06.24.04
+# BaseApp V-26.06.24.05
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.24.05)
+
+- **Branch-per-task workflow, `Deployed` status, and richer status tabs** (Feature 3.6.9; Requirement BASE-REQ-014.9): Each task is now worked on its own short-lived, ad-hoc `task/<id>` branch off `main` (never directly on `main`). The branch is created by the launcher (`scripts/launch_task_agent.ps1`, new `-TaskBranch` parameter) — not by the agent — after the system verifies whether the branch already exists and whether starting a worker is necessary. `scripts/task_manager.py` adds `_branch_name_for_task` and `_task_branch_exists`; `_start_copilot_for_task` passes `-TaskBranch` for work-mode workers and records the branch on the worker session; the `POST /api/tasks/<id>/start-agent` endpoint returns HTTP 409 (`requires_confirmation`) when a branch already exists unless the request opts in via `confirm_existing_branch`, and the UI prompts the engineer and retries on confirmation. The lifecycle adds a `Deployed` status between `Ready` and the terminal `Done` (`ToDo -> InProgress -> Ready -> Deployed -> Done`): `Deployed` means finalized and pushed to the task's own branch (not yet merged), while `Done` means fully integrated into `main` (branch merged and dissolved under the integration engineer's supervision), keeping `Done` terminal for backward compatibility. The Task Manager UI (`resources/templates/task_manager.html`) presents status tabs in the order `ToDo, InProgress, Specified, Ready, Deployed, Approved, Done`, the existing `Deleted` tab, and a new pathological `Other` catch-all tab that holds any task whose status is not one of the recognized statuses (unrecognized statuses normalize to `Other` instead of collapsing into `ToDo`). Agent instructions (`build/instructions/base.md`, `app.md`, `task.md`, `task-review.md`) updated to match. New tests in `test/tests/base/task_manager.py`. Build tests verified: 1 run, 0 failures.
 
 ## Release Highlights (26.06.24.04)
 

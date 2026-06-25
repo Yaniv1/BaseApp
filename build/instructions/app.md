@@ -27,8 +27,9 @@ For maintenance requirements, there is typically no need to change the requireme
 
 Follow all the instructions in `build/instructions/base.md` but notice that wherever the instructions refer to a base resource (e.g. `app/base.py`, `config/base.json`, etc.) - switch here to the corresponding app resource ( `app/app.py`, `config/app.json`, etc. )
 
-Follow the same task lifecycle as the base app: `ToDo` -> `InProgress` -> `Ready` -> `Done`. When you finish the work, set the task to `Ready`, commit the changes to the architecture, requirements, tests, implementation but do not update the versioning and documentation yet.
-After engineer approval only move it to `Done`, finalize, commit, and push after the engineer reviews and approves.
+Follow the same task lifecycle as the base app: `ToDo` -> `InProgress` -> `Ready` -> `Deployed` -> `Done`. When you finish the work, set the task to `Ready`, commit the changes to the architecture, requirements, tests, implementation but do not update the versioning and documentation yet.
+After engineer approval move it to `Deployed`: finalize, commit, and push to the task's own short-lived branch (not merged into `main` yet).
+Work each task on its own short-lived, ad-hoc branch (e.g. `task/{task_id}`) created off the latest `main`, never directly on `main`. A task reaches `Done` only after its branch is merged into `main` and dissolved, with the integration engineer supervising the merge to make sure there are no unresolved conflicts; `Done` therefore means fully integrated into `main`.
 
 Avoid modifications to base app artifacts, these should not be modified by the app. If behavior changes are needed, inherit and override in app artifacts (`app.py`,`apputils.py`, `app.json`, etc.)
 

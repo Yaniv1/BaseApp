@@ -1397,14 +1397,46 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Create a separate branch for each task you're working on",
                     "timestamp": "2026-06-24T19:32:17Z"
+                },
+                {
+                    "author": "Copilot",
+                    "content": "Implemented branch-per-task workflow and a new 'Deployed' status inserted between 'Ready' and the terminal 'Done', giving the order ToDo->InProgress->Ready->Deployed->Done. 'Deployed' = fully finalized and pushed to the task's own short-lived branch (not yet merged); 'Done' = fully integrated into main (branch merged and dissolved, supervised by the integration engineer). Keeping 'Done' terminal preserves backward compatibility. Instructions: build/instructions/base.md documents the short-lived ad-hoc branch per task (task/<id>) created off main, the five-state lifecycle, and the supervised merge; app.md, task.md, task-review.md updated to match. UI: resources/templates/task_manager.html adds a 'Deployed' status (create/edit selects, a Deployed tab + count badge between Ready and Done, .s-deployed styling, STATUS_TABS, normalizeStatus and statusCls). Requirements: BASE-REQ-014.9. Tests: updated test/tests/base/task_manager.py tab-order assertions, added test_task_manager_template_has_deployed_tab, and added launcher branch tests (test_start_copilot_for_task_requests_dedicated_branch_via_launcher asserts work-mode passes -TaskBranch task/<id> and review mode does not; test_launch_task_agent_script_creates_dedicated_branch runs launch_task_agent.ps1 end-to-end in a temp git repo and asserts the working tree switches to task/<id>). Automation: launch_task_agent.ps1 gains a -TaskBranch parameter and creates/checks out the task's own short-lived 'task/<id>' branch off the current HEAD before the work-mode worker session begins; scripts/task_manager.py computes the branch name (_branch_name_for_task), passes it to the launcher for work mode only, and records it on worker_session. Verify: run `.venv\\Scripts\\python -m pytest test/tests/base/task_manager.py -k 'deployed or deleted or ready'` (all pass); open the Task Manager UI and confirm the Deployed tab sits between Ready and Done and is selectable in create/edit forms. Two unrelated tests (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port_when_requested_port_is_busy) fail on the unmodified baseline as well. Left at 'Ready'; no version bump, doc finalize, or push per the completion protocol.",
+                    "timestamp": "2026-06-25T00:30:00Z"
+                },
+                {
+                    "author": "Copilot",
+                    "content": "Added a branch-existence guard before starting a worker. scripts/task_manager.py gains _task_branch_exists(base_dir, task_id) which detects a pre-existing local (refs/heads/task/<id>) or remote-tracking (refs/remotes/origin/task/<id>) branch. The /api/tasks/<id>/start-agent endpoint now checks this first: if a branch already exists and the request did not set confirm_existing_branch, it returns HTTP 409 with {requires_confirmation: true, branch_exists: true, branch: 'task/<id>'} instead of silently launching, so an in-progress task is not unknowingly duplicated. resources/templates/task_manager.html prompts the engineer on this 409 and retries the request with confirm_existing_branch: true when they choose to proceed (otherwise it stops). Docs: BASE-REQ-014.9 and solution feature 3.6.9 in build/requirements/base.json now describe the confirmation flow; build/instructions/base.md notes the guard in the Branch Strategy section and the InProgress step. Also corrected leftover lifecycle inconsistencies in base.md (header now ToDo->InProgress->Ready->Deployed->Done; the integration step now sets the task to 'Done' (not 'Deployed') after the supervised merge into main; the second '4.' section renumbered to '5.'). Tests: added test_task_branch_exists_detects_existing_branch (real temp git repo: False before, True after `git branch task/<id>`, False for a non-repo path) and test_start_agent_requires_confirmation_when_branch_exists (409 + requires_confirmation + no launch without confirmation; 200 + launch with confirm_existing_branch). _request_json test helper now returns (status, body) on non-2xx instead of raising. Verify: `.venv\\Scripts\\python -m pytest test/tests/base/task_manager.py -q` -> 20 passed, 2 pre-existing baseline failures unrelated to this change. Left at 'Ready' per the completion protocol.",
+                    "timestamp": "2026-06-25T01:15:00Z"
+                },
+                {
+                    "author": "Copilot",
+                    "content": "Added two more Task Manager status tabs and a pathological catch-all. resources/templates/task_manager.html now renders the status tabs in the order ToDo, InProgress, Specified, Ready, Deployed, Approved, Done (each with a count badge, badge styling .s-specified/.s-approved, normalizeStatus synonyms, and create/edit dropdown options), followed by the existing Deleted tab and a new 'Other' tab. 'Other' is a pathological catch-all: any task whose status is not one of the recognized statuses now normalizes to 'Other' (instead of silently collapsing into 'ToDo'), with .s-other styling and a count badge. Tests in test/tests/base/task_manager.py updated for the new tab order and added test_task_manager_template_has_specified_and_approved_tabs and test_task_manager_template_has_other_catch_all_tab.",
+                    "timestamp": "2026-06-25T03:15:00Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Approved the implementation for finalization. Note: the separate-branch approach is not yet in effect for this task itself, so finalize and commit directly to main.",
+                    "timestamp": "2026-06-25T03:16:00Z"
+                },
+                {
+                    "author": "Copilot",
+                    "content": "Finalized and deployed at version 26.06.24.05. Bumped resources/version/base.txt (26.06.24.05), resources/version/app.txt (A26.06.24.05), and config/base.json COMMON.VERSION. Documented the change in build/updates/base.json, docs/readme/base.md (Release Highlights 26.06.24.05), and README.md (Highlights 26.06.24.05). Per the engineer's instruction, the branch-per-task approach is not yet in effect for this task, so all changes were committed directly to main rather than a task/<id> branch. Status set to Done (fully integrated into main). Test suite: 22 passed in test/tests/base/task_manager.py; the only 2 failures (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port_when_requested_port_is_busy) are pre-existing baseline failures unrelated to this task.",
+                    "timestamp": "2026-06-25T03:17:00Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 27596,
+                "window_title": "Create a separate branch for each task you're working on (BASE-TASK-260624-0001)",
+                "mode": "work",
+                "prompt_file": "C:/data/MyApp/20260625/agent_prompts/BASE-TASK-260624-0001.md",
+                "started_at": "2026-06-25T00:15:51Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",

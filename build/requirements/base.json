@@ -1177,6 +1177,12 @@
                     "description": "Startup sync requirement: When the Task Manager UI is activated (started), the system shall automatically synchronize only the currently selected app's task file with its own linked git repository before serving the UI, and shall block until that sync completes so the displayed task list reflects the synced state. The sync shall be skipped when no git repo is linked, and any failure shall be reported but shall not block UI startup. The automatic startup sync shall be skippable via the --no-startup-sync CLI flag.",
                     "priority": "High",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.9",
+                    "description": "Branch-and-deploy lifecycle requirement: Each task shall be worked on in its own short-lived, ad-hoc branch (e.g. 'task/<task-id>') created off main, never directly on the long-lived main branch, so that concurrent tasks do not mix their changes. When a worker is started from the Task Manager UI, the system shall automatically create and check out this task branch (via the dedicated launch_task_agent.ps1 launcher's -TaskBranch parameter) before launching the worker session. Before starting a worker, the system shall first check whether a branch already exists for the task; if one does, it shall not silently start another worker but instead require the engineer to explicitly confirm (the start-agent endpoint returns HTTP 409 with requires_confirmation, and only proceeds when the request opts in via confirm_existing_branch), so that work is not unknowingly duplicated on a task already in progress. The lifecycle shall add a 'Deployed' status between 'Ready' and the terminal 'Done' status, giving the order ToDo -> InProgress -> Ready -> Deployed -> Done. 'Deployed' means the task is fully finalized and pushed to its own short-lived branch but not yet merged into main; 'Done' means the task is fully integrated into main, reached only after its branch is merged into main and dissolved with the integration engineer supervising the merge to ensure there are no unresolved conflicts (keeping 'Done' as the terminal status preserves backward compatibility). The Task Manager UI shall display a dedicated 'Deployed' status tab (with count badge and status styling) positioned between 'Ready' and 'Done', and shall offer 'Deployed' as a selectable status in the create and edit forms.",
+                    "priority": "High",
+                    "comments": []
                 }
             ],
             "solution": [
@@ -1232,6 +1238,13 @@
                 {
                     "feature": "5.3.1.7.1",
                     "role": "test_task_manager_interface prep test validates load/create/update/comment and HTTP round-trips. 6 criteria.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 1.0
+                },
+                {
+                    "feature": "3.6.9",
+                    "role": "launch_task_agent.ps1 creates and checks out the task's own short-lived 'task/<id>' branch (via its -TaskBranch parameter) off the current HEAD before starting a work-mode worker session; _branch_name_for_task computes the branch name and _start_copilot_for_task passes it to the launcher (skipped for reviews) and records it on the task's worker_session. _task_branch_exists detects a pre-existing local or remote-tracking 'task/<id>' branch, and the start-agent endpoint returns HTTP 409 (requires_confirmation) when one exists unless the request sets confirm_existing_branch, so the engineer must opt in before a second worker is started on an in-progress task; the UI prompts on this 409 and retries with confirm_existing_branch. The UI renders status tabs in the order ToDo, InProgress, Specified, Ready, Deployed, Approved, Done (each with count badge, badge styling, normalizeStatus synonyms, statusCls, and create/edit dropdown options for the lifecycle statuses), followed by the Deleted tab and a pathological 'Other' catch-all tab; unrecognized statuses normalize to 'Other' instead of collapsing into 'ToDo'.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0

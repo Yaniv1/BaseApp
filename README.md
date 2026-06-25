@@ -4,8 +4,14 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.24.04
-- App template version: A26.06.24.04
+- Base version: 26.06.24.05
+- App template version: A26.06.24.05
+
+## Highlights (26.06.24.05)
+
+- **Each task runs on its own branch.** Work on a task now happens on a dedicated short-lived `task/<id>` branch instead of directly on `main`, so concurrent tasks never mix their changes. The branch is created automatically by the task launcher when a worker starts. If a branch already exists for the task, the Task Manager asks you to confirm before starting another worker on it, so in-progress work isn't unknowingly duplicated.
+- **`Deployed` status distinguishes "pushed" from "merged".** The task lifecycle is now `ToDo -> InProgress -> Ready -> Deployed -> Done`. **Deployed** means the task is finalized and pushed to its own branch but not yet merged; **Done** means it is fully integrated into `main` (its branch merged and dissolved, supervised by the integration engineer).
+- **More status tabs in the Task Manager.** The web UI now shows tabs for `ToDo, InProgress, Specified, Ready, Deployed, Approved, Done`, plus `Deleted`, and a new pathological **Other** tab that collects any task in an unrecognized status so nothing is silently hidden.
 
 ## Highlights (26.06.24.04)
 

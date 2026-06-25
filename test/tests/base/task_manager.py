@@ -6,6 +6,7 @@ import tempfile
 import threading
 import time
 import urllib.request
+import urllib.error
 from http.server import ThreadingHTTPServer
 from pathlib import Path
 
@@ -44,9 +45,13 @@ def _request_json(url, method="GET", payload=None):
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(url, data=data, method=method)
     request.add_header("Content-Type", "application/json; charset=utf-8")
-    with urllib.request.urlopen(request, timeout=10) as response:
-        body = response.read().decode("utf-8")
-        return response.status, json.loads(body) if body else {}
+    try:
+        with urllib.request.urlopen(request, timeout=10) as response:
+            body = response.read().decode("utf-8")
+            return response.status, json.loads(body) if body else {}
+    except urllib.error.HTTPError as error:
+        body = error.read().decode("utf-8")
+        return error.code, json.loads(body) if body else {}
 
 
 def _request_text(url):
@@ -105,6 +110,102 @@ def test_activate_copilot_window_focuses_live_window(monkeypatch):
     assert calls, "expected an activation command to be issued"
 
 
+def test_start_copilot_for_task_requests_dedicated_branch_via_launcher(monkeypatch, tmp_path):
+    """Work mode must ask launch_task_agent.ps1 to set up the task's own branch."""
+    launched = {}
+
+    class DummyProc:
+        pid = 13579
+
+    class DummyStore:
+        base_dir = tmp_path
+        config = None
+
+    def fake_popen(*args, **kwargs):
+        launched["argv"] = args[0] if args else kwargs.get("args")
+        return DummyProc()
+
+    monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
+    monkeypatch.setattr(task_manager.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path: "prompt")
+    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path: "review")
+
+    tasks_path = tmp_path / "tasks.json"
+    tasks_path.write_text("{}", encoding="utf-8")
+
+    # Work mode: the launcher is invoked with the task's own branch and it is
+    # recorded on the worker session.
+    work_task = {"id": "BASE-TASK-BRANCH-0001", "title": "Branch worker test"}
+    task_manager._start_copilot_for_task(work_task, tasks_path, DummyStore(), mode="work")
+    argv = launched["argv"]
+    assert "-TaskBranch" in argv
+    assert argv[argv.index("-TaskBranch") + 1] == "task/BASE-TASK-BRANCH-0001"
+    assert work_task["worker_session"]["branch"] == "task/BASE-TASK-BRANCH-0001"
+    assert str(argv[3]).endswith("launch_task_agent.ps1")
+
+    # Review mode runs against the existing branch, so no branch is requested.
+    review_task = {"id": "BASE-TASK-BRANCH-0002", "title": "Review", "status": "Ready"}
+    task_manager._start_copilot_for_task(review_task, tasks_path, DummyStore(), mode="review")
+    assert "-TaskBranch" not in launched["argv"]
+    assert review_task["worker_session"]["branch"] is None
+
+
+def test_launch_task_agent_script_creates_dedicated_branch(tmp_path):
+    """End-to-end: launch_task_agent.ps1 checks out the task's own branch."""
+    import subprocess as sp
+    import shutil as _shutil
+
+    pwsh = _shutil.which("pwsh")
+    if not pwsh:
+        import pytest
+        pytest.skip("pwsh is not available")
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args):
+        return sp.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True)
+
+    git("init")
+    git("config", "user.email", "tester@example.com")
+    git("config", "user.name", "Tester")
+    git("checkout", "-B", "main")
+    (repo / "seed.txt").write_text("seed", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-m", "init")
+
+    prompt = tmp_path / "prompt.md"
+    prompt.write_text("do the task", encoding="utf-8")
+
+    # A no-op stand-in for the Copilot CLI so the launcher runs to completion.
+    stub = tmp_path / "copilot_stub.cmd"
+    stub.write_text("@echo off\r\nexit /b 0\r\n", encoding="ascii")
+
+    script = Path(task_manager.__file__).resolve().parent / "launch_task_agent.ps1"
+
+    result = sp.run(
+        [
+            pwsh, "-NoProfile", "-File", str(script),
+            "-WorkspaceRoot", str(repo),
+            "-TaskId", "BASE-TASK-BRANCH-0001",
+            "-PromptFile", str(prompt),
+            "-TaskFile", str(repo / "tasks.json"),
+            "-CopilotCli", str(stub),
+            "-SessionName", "Branch worker test",
+            "-WindowTitle", "",
+            "-TaskBranch", "task/BASE-TASK-BRANCH-0001",
+        ],
+        capture_output=True, text=True, check=False,
+    )
+
+    current_branch = sp.run(
+        ["git", "-C", str(repo), "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    # The launcher must have switched the working tree onto the task branch.
+    assert current_branch == "task/BASE-TASK-BRANCH-0001", (result.stdout + result.stderr)
+
+
 def test_start_copilot_for_task_records_worker_session(monkeypatch, tmp_path):
     class DummyProc:
         pid = 24680
@@ -133,7 +234,7 @@ def test_task_manager_template_has_ready_tab():
     template = template_path.read_text(encoding="utf-8")
     assert 'data-status="Ready"' in template
     assert 'id="cnt-Ready"' in template
-    assert "'ToDo', 'InProgress', 'Ready', 'Done'" in template
+    assert "'ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done'" in template
 
 
 def test_task_manager_template_has_deleted_tab():
@@ -141,8 +242,43 @@ def test_task_manager_template_has_deleted_tab():
     template = template_path.read_text(encoding="utf-8")
     assert 'data-status="Deleted"' in template
     assert 'id="cnt-Deleted"' in template
-    assert "'ToDo', 'InProgress', 'Ready', 'Done', 'Deleted'" in template
+    assert "'ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted'" in template
     assert 'id="delete-task-btn"' in template
+
+
+def test_task_manager_template_has_deployed_tab():
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    assert 'data-status="Deployed"' in template
+    assert 'id="cnt-Deployed"' in template
+    assert ".s-deployed{" in template
+    # Deployed (pushed to its own branch) precedes Done (merged into main) in the lifecycle order.
+    assert "'ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted'" in template
+
+
+def test_task_manager_template_has_specified_and_approved_tabs():
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    assert 'data-status="Specified"' in template
+    assert 'id="cnt-Specified"' in template
+    assert ".s-specified{" in template
+    assert 'data-status="Approved"' in template
+    assert 'id="cnt-Approved"' in template
+    assert ".s-approved{" in template
+    # Tab order: ToDo, InProgress, Specified, Ready, Deployed, Approved, Done.
+    assert "'ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted'" in template
+
+
+def test_task_manager_template_has_other_catch_all_tab():
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    assert 'data-status="Other"' in template
+    assert 'id="cnt-Other"' in template
+    assert ".s-other{" in template
+    # 'Other' is the final, pathological catch-all tab in STATUS_TABS.
+    assert "'Done', 'Deleted', 'Other'" in template
+    # Unrecognized statuses normalize to 'Other' rather than collapsing into 'ToDo'.
+    assert "return 'Other';" in template
 
 
 def test_delete_task_soft_deletes_then_removes():
@@ -353,6 +489,76 @@ def test_activate_endpoint_focuses_or_starts_review(monkeypatch, tmp_path):
         status, payload = _request_json(base, method="POST", payload={})
         assert status == 200 and payload.get("mode") == "review"
         assert started.get("mode") == "review"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_task_branch_exists_detects_existing_branch(tmp_path):
+    """_task_branch_exists is True only once a task/<id> branch has been created."""
+    import subprocess as sp
+
+    repo = tmp_path
+
+    def git(*args):
+        return sp.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True)
+
+    git("init")
+    git("config", "user.email", "tester@example.com")
+    git("config", "user.name", "Tester")
+    git("checkout", "-B", "main")
+    (repo / "seed.txt").write_text("seed", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-m", "init")
+
+    assert task_manager._task_branch_exists(repo, "BASE-TASK-EXISTS-0001") is False
+    git("branch", "task/BASE-TASK-EXISTS-0001")
+    assert task_manager._task_branch_exists(repo, "BASE-TASK-EXISTS-0001") is True
+    # A non-repository path is reported as having no branch.
+    assert task_manager._task_branch_exists(repo / "missing", "BASE-TASK-EXISTS-0001") is False
+
+
+def test_start_agent_requires_confirmation_when_branch_exists(monkeypatch, tmp_path):
+    """Starting a worker on a task that already has a branch must be confirmed."""
+    source_tasks = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    temp_tasks = tmp_path / "base.json"
+    shutil.copyfile(source_tasks, temp_tasks)
+
+    data = _load_tasks_store(temp_tasks)
+    todo = _create_task(data["TASKS"], {
+        "title": "Branch guard task",
+        "description": "Already has a branch",
+        "status": "ToDo",
+    }, temp_tasks)
+    _save_tasks_store(temp_tasks, data)
+
+    started = []
+    monkeypatch.setattr(task_manager, "_task_branch_exists", lambda base_dir, task_id: True)
+    monkeypatch.setattr(
+        task_manager,
+        "_start_copilot_for_task",
+        lambda task, tasks_path, store, **kwargs: started.append(kwargs) or Path(tasks_path),
+    )
+
+    server = _create_server("127.0.0.1", 0, temp_tasks)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    time.sleep(0.2)
+    port = server.server_address[1]
+    base = f"http://127.0.0.1:{port}/api/tasks/{todo['id']}/start-agent"
+    try:
+        # Without confirmation: the worker must NOT launch; the engineer is asked.
+        status, payload = _request_json(base, method="POST", payload={})
+        assert status == 409
+        assert payload.get("requires_confirmation") is True
+        assert payload.get("branch") == "task/" + todo["id"]
+        assert started == []
+
+        # With confirmation: the worker is launched.
+        status, payload = _request_json(base, method="POST", payload={"confirm_existing_branch": True})
+        assert status == 200
+        assert len(started) == 1
     finally:
         server.shutdown()
         server.server_close()

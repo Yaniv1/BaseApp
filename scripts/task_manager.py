@@ -461,6 +461,43 @@ def _detect_git_repo(base_dir):
     }
 
 
+def _branch_name_for_task(task_id):
+    """Return the short-lived branch name used to work a task in isolation.
+
+    Each task is worked on in its own short-lived, ad-hoc branch (e.g.
+    ``task/<task-id>``) rather than directly on the long-lived ``main`` branch,
+    so that concurrent tasks never mix their changes. The branch is actually
+    created and checked out by ``launch_task_agent.ps1`` (via its ``-TaskBranch``
+    parameter) when the worker session starts; this helper only computes the
+    deterministic branch name so the task manager can pass it to the launcher
+    and record it on the worker session.
+    """
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "-", str(task_id).strip()).strip("-") or "task"
+    return f"task/{safe}"
+
+
+def _task_branch_exists(base_dir, task_id):
+    """Return ``True`` when a branch for the task already exists.
+
+    A pre-existing ``task/<id>`` branch means the task may already be (or have
+    been) worked on, so the caller must not silently start a new worker on it.
+    Both the local branch and an already-fetched remote-tracking branch
+    (``origin/task/<id>``) are considered. Returns ``False`` when the working
+    directory is not a git repository.
+    """
+    repo_info = _detect_git_repo(base_dir)
+    if not repo_info["repo_available"]:
+        return False
+
+    repo_root = repo_info["repo_root"]
+    branch = _branch_name_for_task(task_id)
+    for ref in (f"refs/heads/{branch}", f"refs/remotes/origin/{branch}"):
+        result = _run_git_command(repo_root, "show-ref", "--verify", "--quiet", ref)
+        if result.returncode == 0:
+            return True
+    return False
+
+
 def _sync_task_store_to_git(store, message=None, wait=False):
     base_dir = _get_store_base_dir(store)
     repo_info = _detect_git_repo(base_dir)
@@ -679,6 +716,12 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     prompt_text = _build_review_prompt(task, tasks_path) if is_review else _build_copilot_prompt(task, tasks_path)
     prompt_path.write_text(prompt_text, encoding="utf-8")
 
+    # Work each task on its own short-lived, ad-hoc branch so concurrent tasks
+    # do not mix their changes. The launch script creates and checks out this
+    # branch (via -TaskBranch) before the worker session begins. Reviews run
+    # against the existing branch, so no new branch is requested for them.
+    task_branch = None if is_review else _branch_name_for_task(safe_task_id)
+
     launch_args = [
         "pwsh", "-NoExit", "-File", str(COPILOT_WORKER_LAUNCH_SCRIPT_PATH),
         "-WorkspaceRoot", str(caller_root),
@@ -689,6 +732,8 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
         "-SessionName", session_name,
         "-WindowTitle", window_title,
     ]
+    if task_branch:
+        launch_args.extend(["-TaskBranch", task_branch])
     if enable_full_read:
         launch_args.extend(["-EnableFullRead"])
     if enable_full_edit:
@@ -709,6 +754,7 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
         "pid": getattr(process, "pid", None),
         "window_title": window_title,
         "mode": "review" if is_review else "work",
+        "branch": task_branch,
         "prompt_file": prompt_path.as_posix(),
         "started_at": _now_iso(),
     }
@@ -907,6 +953,25 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
                 self._send_json(409, {"error": "deleted tasks cannot be acted upon", "task_id": task_id})
                 return
             payload = self._read_body()
+            # If a branch already exists for this task, it may already be (or
+            # have been) worked on. Do not silently start another worker: ask
+            # the engineer to confirm first, and only proceed when they opt in
+            # via 'confirm_existing_branch'.
+            if not bool(payload.get("confirm_existing_branch", False)):
+                if _task_branch_exists(self.__class__.store.base_dir, task_id):
+                    branch = _branch_name_for_task(task_id)
+                    self._send_json(409, {
+                        "task_id": task_id,
+                        "branch": branch,
+                        "branch_exists": True,
+                        "requires_confirmation": True,
+                        "message": (
+                            f"A branch '{branch}' already exists for this task, "
+                            "so it may already be being worked on. Confirm to start "
+                            "another worker on it, or cancel."
+                        ),
+                    })
+                    return
             try:
                 prompt_path = _start_copilot_for_task(
                     task,

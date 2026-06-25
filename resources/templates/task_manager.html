@@ -108,7 +108,11 @@ details.cli-sect{margin-top:2px}
 .s-inprogress{background:rgba(234,179,8,.17);color:#fde047}
 .s-ready{background:rgba(56,189,248,.17);color:#7dd3fc}
 .s-done{background:rgba(34,197,94,.17);color:#86efac}
+.s-deployed{background:rgba(16,185,129,.22);color:#34d399}
+.s-specified{background:rgba(168,85,247,.17);color:#d8b4fe}
+.s-approved{background:rgba(132,204,22,.17);color:#bef264}
 .s-deleted{background:rgba(239,68,68,.17);color:#fca5a5}
+.s-other{background:rgba(100,116,139,.22);color:#cbd5e1}
 .det-title{font-size:1.08rem}
 .det-desc{color:var(--mu);white-space:pre-wrap;line-height:1.65;font-size:.88rem}
 .det-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
@@ -181,7 +185,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       </label>
       <label>Status
         <select name="status">
-          <option>ToDo</option><option>InProgress</option><option>Ready</option><option>Done</option>
+          <option>ToDo</option><option>InProgress</option><option>Specified</option><option>Ready</option><option>Deployed</option><option>Approved</option><option>Done</option>
         </select>
       </label>
       <label>Author
@@ -209,9 +213,13 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
     <div class="tab-bar">
       <button class="tab active" data-status="ToDo">ToDo <span id="cnt-ToDo" class="badge">0</span></button>
       <button class="tab" data-status="InProgress">InProgress <span id="cnt-InProgress" class="badge">0</span></button>
+      <button class="tab" data-status="Specified">Specified <span id="cnt-Specified" class="badge">0</span></button>
       <button class="tab" data-status="Ready">Ready <span id="cnt-Ready" class="badge">0</span></button>
+      <button class="tab" data-status="Deployed">Deployed <span id="cnt-Deployed" class="badge">0</span></button>
+      <button class="tab" data-status="Approved">Approved <span id="cnt-Approved" class="badge">0</span></button>
       <button class="tab" data-status="Done">Done <span id="cnt-Done" class="badge">0</span></button>
       <button class="tab" data-status="Deleted">Deleted <span id="cnt-Deleted" class="badge">0</span></button>
+      <button class="tab" data-status="Other">Other <span id="cnt-Other" class="badge">0</span></button>
     </div>
     <div class="table-wrap">
       <table class="task-table">
@@ -258,7 +266,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
             </label>
             <label>Status
               <select id="e-status" name="status">
-                <option>ToDo</option><option>InProgress</option><option>Ready</option><option>Done</option><option>Deleted</option>
+                <option>ToDo</option><option>InProgress</option><option>Specified</option><option>Ready</option><option>Deployed</option><option>Approved</option><option>Done</option><option>Deleted</option>
               </select>
             </label>
           </div>
@@ -285,7 +293,7 @@ const defaultPath = SM ? SM.getAttribute('data-tasks-path') : '';
 const defaultTasksDir = SM ? SM.getAttribute('data-tasks-dir') : '';
 const defaultAppName = SM ? SM.getAttribute('data-app-name') : 'App';
 let allTasks = [], currentStatus = 'ToDo', selectedId = null;
-const STATUS_TABS = ['ToDo', 'InProgress', 'Ready', 'Done', 'Deleted'];
+const STATUS_TABS = ['ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted', 'Other'];
 
 function normalizeStatus(value) {
   const raw = String(value ?? '').trim();
@@ -293,10 +301,14 @@ function normalizeStatus(value) {
   const key = raw.toLowerCase().replace(/[\s_-]+/g, '');
   if (key === 'todo' || key === 'pending' || key === 'open') return 'ToDo';
   if (key === 'inprogress' || key === 'doing' || key === 'active' || key === 'wip') return 'InProgress';
+  if (key === 'specified' || key === 'specced' || key === 'spec' || key === 'designed') return 'Specified';
   if (key === 'ready' || key === 'review' || key === 'forreview' || key === 'readyforreview') return 'Ready';
+  if (key === 'approved' || key === 'approve' || key === 'accepted') return 'Approved';
   if (key === 'done' || key === 'complete' || key === 'completed' || key === 'closed') return 'Done';
+  if (key === 'deployed' || key === 'deploy' || key === 'merged' || key === 'released' || key === 'shipped') return 'Deployed';
   if (key === 'deleted' || key === 'delete' || key === 'removed' || key === 'trash' || key === 'trashed') return 'Deleted';
-  return 'ToDo';
+  // Pathological catch-all: any status that is not one of the recognized ones lands in 'Other'.
+  return 'Other';
 }
 
 function ensureGitSidebar() {
@@ -536,7 +548,7 @@ function refreshRows() {
   document.querySelectorAll('.task-row').forEach(r => r.classList.toggle('selected', r.dataset.id === selectedId));
 }
 
-const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Ready: 's-ready', Done: 's-done', Deleted: 's-deleted' }[normalizeStatus(s)] || 's-todo');
+const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Specified: 's-specified', Ready: 's-ready', Approved: 's-approved', Done: 's-done', Deployed: 's-deployed', Deleted: 's-deleted', Other: 's-other' }[normalizeStatus(s)] || 's-other');
 
 function showDetail(task) {
   const panel = document.getElementById('detail-panel');
@@ -715,13 +727,30 @@ function initDetail() {
       const endpoint = isReview ? '/activate' : '/start-agent';
       const url = '/api/tasks/' + encodeURIComponent(id) + endpoint;
       console.log('Calling endpoint:', url);
-      const r = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ full_read: fullRead, full_edit: fullEdit, full_execution: fullExec }),
-      });
+      const basePayload = { full_read: fullRead, full_edit: fullEdit, full_execution: fullExec };
+      const send = async (extra) => {
+        const r = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...basePayload, ...extra }),
+        });
+        const payload = await r.json().catch(() => ({}));
+        return { r, payload };
+      };
+      let { r, payload } = await send();
       console.log('Response status:', r.status, r.statusText);
-      const payload = await r.json();
+      // A branch already exists for this task: let the engineer decide whether
+      // to start another worker on it, or stop.
+      if (!isReview && r.status === 409 && payload.requires_confirmation) {
+        const proceed = confirm((payload.message || ('A branch "' + (payload.branch || ('task/' + id)) + '" already exists for this task.')) +
+          '\n\nStart another Copilot worker on it anyway?');
+        if (!proceed) {
+          setMsg('detail-msg', 'Cancelled — a branch already exists for this task, so no new worker was started.');
+          return;
+        }
+        ({ r, payload } = await send({ confirm_existing_branch: true }));
+        console.log('Retry response status:', r.status, r.statusText);
+      }
       console.log('Response payload:', payload);
       if (!r.ok) throw new Error(payload.error || (isReview ? 'Failed to open review' : 'Failed to start worker'));
       const text = (payload.message || (isReview ? 'Review opened' : 'Worker started')) + (payload.prompt_file ? '\nPrompt: ' + payload.prompt_file : '');
