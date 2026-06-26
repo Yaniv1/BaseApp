@@ -1526,7 +1526,7 @@
             ],
             "type": "Feature",
             "priority": "Low",
-            "status": "Deployed",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1557,6 +1557,11 @@
                     "author": "BASE-TASK-260624-0002 worker",
                     "content": "User granted explicit approval to stage/commit/push. Finalized and pushed to branch task/BASE-TASK-260624-0002 (commit 7bb12db): version bumped to 26.06.25.01 (app A26.06.25.01) across resources/version/base.txt, resources/version/app.txt, and config/base.json COMMON.VERSION; added updates/base.json entry; updated docs/readme/base.md and README.md; re-added test_task_manager_template_has_resizable_split_panes. Note: the implementation files (resources/templates/task_manager.html and build/requirements/base.json with BASE-REQ-014.11) had already been committed/pushed by the Task Manager status-sync (git add -A) in earlier 'Apply task status update' commits. Moving to Deployed (pushed to the task branch, not yet merged into main).",
                     "timestamp": "2026-06-26T00:58:12Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0002 worker",
+                    "content": "Integration complete: task branch task/BASE-TASK-260624-0002 merged into main (fast-forward, no conflicts) at commit c6d38f3 and pushed to origin/main. The short-lived task branch is being dissolved (deleted locally and on origin). Marking Done (fully integrated into main).",
+                    "timestamp": "2026-06-26T01:00:53Z"
                 }
             ],
             "worker_session": {
