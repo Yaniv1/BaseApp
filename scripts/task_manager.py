@@ -574,7 +574,24 @@ def _task_branch_exists(base_dir, task_id):
     return False
 
 
-def _sync_task_store_to_git(store, message=None, wait=False, headless=False):
+def _resolve_ledger_branch(store):
+    """Return the git branch the task ledger is synced on.
+
+    The Task Manager is the sole writer of the authoritative ledger and tracks
+    the long-lived ledger branch (``main``), while each task is worked on in its
+    own short-lived ``task/<id>`` branch. The headless status-sync must therefore
+    commit the ledger to this configured branch (``APP.TASK_MANAGER.ledger_branch``,
+    default ``main``) -- never onto the worker's task branch. Returns the
+    configured value when set, otherwise ``"main"``.
+    """
+    app_cfg = getattr(getattr(store, "config", None), "APP", None)
+    task_manager_cfg = getattr(app_cfg, "TASK_MANAGER", None) if app_cfg else None
+    raw = getattr(task_manager_cfg, "ledger_branch", None) if task_manager_cfg else None
+    branch = str(raw).strip() if raw else ""
+    return branch or "main"
+
+
+def _sync_task_store_to_git(store, message=None, wait=False, headless=False, branch=None):
     base_dir = _get_store_base_dir(store)
     repo_info = _detect_git_repo(base_dir)
     if not repo_info["repo_available"]:
@@ -602,6 +619,12 @@ def _sync_task_store_to_git(store, message=None, wait=False, headless=False):
         "-CommitMessage",
         commit_message,
     ]
+    # When a target ledger branch is supplied (e.g. the headless status-inbox
+    # sync passes the configured ledger branch), the ledger commit is pushed to
+    # that branch in isolation rather than onto whatever branch the worker's
+    # working tree happens to be on.
+    if branch:
+        script_args += ["-Branch", str(branch)]
 
     if headless:
         # Silent sync used by the status-inbox watcher: no console window, output
@@ -825,6 +848,7 @@ def _apply_status_request_file(store, request_file):
             store,
             message=f"Apply task status update ({', '.join(applied_ids)})",
             headless=True,
+            branch=_resolve_ledger_branch(store),
         )
     except RuntimeError as exc:
         print(f"[task-manager] git sync after status update failed: {exc}")

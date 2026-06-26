@@ -1265,3 +1265,104 @@ def test_probe_mcp_server_handshake_against_real_server():
     alive, detail = testutils._probe_mcp_server(script, None, task_id="hc", timeout=20)
     assert alive is True, detail
 
+
+def test_sync_task_repo_isolates_ledger_commit_from_worker_tree(tmp_path):
+    """Feature 3.7 / BASE-REQ-014.12 regression test.
+
+    The headless status-sync must commit ONLY the task ledger to the ledger
+    branch (``main``) without touching the worker's primary working tree. This
+    reproduces the bug scenario: the primary tree is on a ``task/<id>`` branch
+    with uncommitted edits to both the ledger and an unrelated worker file, and
+    asserts the sync (1) pushes exactly one ledger-only commit to ``origin/main``,
+    (2) leaves the worker's uncommitted file edit intact byte-for-byte, (3) keeps
+    the primary HEAD on the task branch with no new commit, so the ledger commit
+    never lands on the task branch.
+    """
+    import subprocess as sp
+    import shutil as _shutil
+
+    pwsh = _shutil.which("pwsh")
+    if not pwsh:
+        import pytest
+        pytest.skip("pwsh is not available")
+    if not _shutil.which("git"):
+        import pytest
+        pytest.skip("git is not available")
+
+    origin = tmp_path / "origin.git"
+    work = tmp_path / "work"
+    origin.mkdir()
+    work.mkdir()
+
+    def git(*args, cwd=work, check=True):
+        # safe.bareRepository=all lets the test query the bare origin via -C even
+        # when the user's global config sets safe.bareRepository=explicit.
+        return sp.run(
+            ["git", "-c", "safe.bareRepository=all", "-C", str(cwd), *args],
+            capture_output=True, text=True, check=check,
+        )
+
+    sp.run(["git", "init", "--bare", str(origin)], capture_output=True, text=True, check=True)
+    git("init")
+    git("config", "user.email", "tester@example.com")
+    git("config", "user.name", "Tester")
+    git("config", "core.autocrlf", "false")
+    git("config", "commit.gpgsign", "false")
+    git("checkout", "-B", "main")
+
+    ledger_rel = "build/tasks/base.json"
+    ledger_path = work / ledger_rel
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    ledger_path.write_text('{"TASKS": [{"id": "X", "status": "ToDo"}]}\n', encoding="utf-8")
+    worker_file = work / "worker_code.py"
+    worker_file.write_text("print('original')\n", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-m", "init")
+    git("remote", "add", "origin", str(origin))
+    git("push", "-u", "origin", "main")
+
+    # Worker starts: primary tree is checked out on the task branch.
+    git("checkout", "-b", "task/BASE-TASK-260626-0001")
+    task_head_before = git("rev-parse", "HEAD").stdout.strip()
+
+    # Server applies a ledger status update into the primary working tree
+    # (uncommitted), and the worker has its own uncommitted code edit.
+    new_ledger = '{"TASKS": [{"id": "X", "status": "InProgress"}]}\n'
+    ledger_path.write_text(new_ledger, encoding="utf-8")
+    worker_edit = "print('WORKER UNCOMMITTED EDIT')\n"
+    worker_file.write_text(worker_edit, encoding="utf-8")
+
+    count_before = int(git("rev-list", "--count", "main", cwd=origin).stdout.strip())
+
+    script = PROJECT_ROOT / "scripts" / "sync_task_repo.ps1"
+    result = sp.run(
+        [
+            pwsh, "-NoProfile", "-File", str(script),
+            "-RepoRoot", str(work),
+            "-TaskFile", ledger_rel,
+            "-CommitMessage", "Apply task status update (X)",
+            "-Branch", "main",
+        ],
+        capture_output=True, text=True, check=False,
+    )
+    assert result.returncode == 0, (result.stdout + result.stderr)
+
+    # (2) The worker's uncommitted edit must be preserved byte-for-byte.
+    assert worker_file.read_text(encoding="utf-8") == worker_edit, (result.stdout + result.stderr)
+
+    # (3) The primary tree stays on the task branch with no new commit, so the
+    # ledger commit never landed on the task branch.
+    current_branch = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    assert current_branch == "task/BASE-TASK-260626-0001"
+    assert git("rev-parse", "HEAD").stdout.strip() == task_head_before
+
+    # (1) Exactly one new commit on origin/main, changing ONLY the ledger.
+    count_after = int(git("rev-list", "--count", "main", cwd=origin).stdout.strip())
+    assert count_after == count_before + 1, (result.stdout + result.stderr)
+    new_sha = git("rev-parse", "main", cwd=origin).stdout.strip()
+    changed = git("diff-tree", "--no-commit-id", "--name-only", "-r", new_sha, cwd=origin).stdout.strip()
+    assert changed.splitlines() == [ledger_rel], changed
+    pushed_ledger = git("show", f"{new_sha}:{ledger_rel}", cwd=origin).stdout
+    assert pushed_ledger == new_ledger
+
+

@@ -1195,7 +1195,13 @@
                                                                               "description": "Task Manager UI split-pane layout requirement: The Task Manager UI shall present the task list and the selected task's details as two fixed, vertically-stacked blocks (task list above, task details below) rather than rendering the details below the list within a single page-level scroll. Each block shall scroll independently within its own region so that scrolling the task list does not move the task details and vice versa, and the page as a whole shall not scroll. A draggable horizontal divider (gutter) between the two blocks shall let the user reallocate vertical space between them; the division shall default to 60% for the task list and 40% for the task details, and the chosen ratio shall be remembered across reloads. When no task is selected the details block shall show a placeholder prompting the user to select a task.",
                                                                               "priority": "Low",
                                                                               "comments": []
-                                                                          }
+                                                                          },
+                {
+                    "id": "BASE-REQ-014.12",
+                    "description": "Status-sync ledger-isolation requirement: When the Task Manager server applies a queued status-update request and syncs the task ledger to git, that sync shall affect ONLY the task ledger (build/tasks/<app>.json) and shall never stage, commit, push, stash, rebase, or otherwise modify any other file in the worker's working tree. Because the shared working tree is, while a worker is active, checked out on the worker's short-lived task/<id> branch with uncommitted worker code/spec/test changes, the headless status-sync shall not commit the ledger onto the task branch and shall not run 'git add -A'/'commit -a' or a working-tree 'git pull --rebase --autostash' that could sweep the worker's uncommitted changes into the server's commits, push worker code ahead of the engineer's Ready/Deployed approval gate, or drop uncommitted worker changes via autostash. Instead, the server shall commit and push the ledger change in isolation from the worker's working tree -- via a dedicated detached git worktree built from the latest origin tip of the ledger branch -- so the ledger commit lands on the configured ledger branch (APP.TASK_MANAGER.ledger_branch, default main) with the ledger as its only changed path, and any rebase needed to integrate a moved remote occurs inside that isolated worktree (which only ever contains the ledger change) rather than in the worker's working tree. The ledger branch shall be configurable and the manual 'Sync Git' button / startup sync may continue to sync the currently checked-out branch, but always through the same working-tree-isolating mechanism.",
+                    "priority": "High",
+                    "comments": []
+                }
                                ],
                                "solution": [
                 {
@@ -1264,6 +1270,20 @@
                 {
                     "feature": "3.6.10",
                     "role": "Durable file-store task status channel: agents request task-ledger changes (status transitions and comments) by writing atomic JSON request files -- following the build/tasks/update.template.json shape ({\"TASKS\":[{id,status,comments,worker_session}]}) -- into the configurable 'task status store' instead of editing/committing the ledger on their branch, and the Task Manager server is the sole writer that applies them to main. _resolve_status_store_paths/_status_inbox_dir resolve and create the pending/processed/failed layout from APP.TASK_MANAGER.status_queue/request_polling_frequency/enable; _process_status_inbox scans the pending area and, per file (_apply_status_request_file), loads a fresh ledger and applies each update via _apply_task_update (matched by task id; lists combine, dicts update recursively, scalars overwrite -- no generic dict_merge), persists the ledger, then stages/commits/pushes to main headlessly via _sync_task_store_to_git(headless=True), moving each file to processed/ or failed/. Each file is processed exactly once (idempotent, restart-safe); a git-sync failure is logged without re-failing the request. _status_inbox_watcher runs as a background daemon thread started by run() (skippable via --no-status-inbox) that continuously samples the live store at APP.TASK_MANAGER.request_polling_frequency. The pending path is surfaced to each agent through a {status_store} placeholder rendered into the task.md prompt by _build_copilot_prompt (which also renders {result_store} from APP.TASK_MANAGER.result_store); worker prompt files are written to APP.TASK_MANAGER.prompt_store. Agents normally enqueue requests through a per-agent stdio MCP server (scripts/status_queue_mcp.py, tool enqueue_status_update(status?, comment?)) that _start_copilot_for_task wires in via _write_agent_mcp_config and the launcher's --additional-mcp-config hook; the direct atomic file write remains the documented fallback. The dequeue side is not served by MCP -- the Task Manager reads the shared store directly.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.7",
+                    "role": "scripts/sync_task_repo.ps1 commits and pushes ONLY the task ledger, isolated from the worker's primary working tree via a dedicated detached git worktree built from the latest origin/<branch> tip (-Branch defaults to current HEAD; headless status-inbox passes APP.TASK_MANAGER.ledger_branch, default main). It path-scopes 'git add -- <ledger>', commits, and pushes to refs/heads/<branch>, rebasing only the single ledger commit inside the isolated worktree on non-fast-forward; it never runs 'git add -A'/'commit -a' or a working-tree autostash/rebase, so it cannot sweep, early-push, or drop the worker's uncommitted changes. task_manager.py: _resolve_ledger_branch resolves the ledger branch from config; _sync_task_store_to_git(branch=...) forwards -Branch; _apply_status_request_file passes the ledger branch for the headless sync.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "5.3.1.7.2",
+                    "role": "test_sync_task_repo_isolates_ledger_commit_from_worker_tree runs sync_task_repo.ps1 -Branch main against a clone on a task branch with uncommitted ledger and worker-file edits, asserting the ledger commit is isolated to origin/main, the worker's edit is preserved, HEAD stays on the task branch, and the ledger commit never lands on the task branch.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 0.0

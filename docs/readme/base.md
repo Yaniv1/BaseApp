@@ -1,4 +1,4 @@
-# BaseApp V-26.06.25.01
+# BaseApp V-26.06.26.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.26.01)
+
+- **Status-sync commits only the task ledger, isolated from the worker's working tree** (Feature 3.7; Requirement BASE-REQ-014.12): When the Task Manager applies a queued status-update request, the git sync (`scripts/sync_task_repo.ps1`, invoked by `scripts/task_manager.py::_sync_task_store_to_git`) now commits and pushes **only** the task ledger (`build/tasks/<app>.json`) in complete isolation from the worker's primary working tree. Previously the headless status-sync ran in the shared working tree — which, while a worker is active, is checked out on the worker's `task/<id>` branch with uncommitted changes — committing the ledger there and running `git pull --rebase --autostash`, which could sweep/push worker code ahead of the approval gate, drop uncommitted worker changes via autostash, and mix ledger-only commits with worker changes. The script now reads the server-updated ledger and applies the commit inside a dedicated, reusable **detached git worktree** built from the latest `origin/<branch>` tip, pushing to the configured ledger branch (`APP.TASK_MANAGER.ledger_branch`, default `main`); any rebase needed to integrate a moved remote runs inside that isolated worktree (which only ever contains the ledger change). It never runs `git add -A`/`commit -a` or a working-tree autostash/rebase, so the worker's working tree is never staged, stashed, rebased, or pushed. A new `-Branch` parameter selects the ledger branch, and `scripts/task_manager.py` adds `_resolve_ledger_branch` and a `branch` argument on `_sync_task_store_to_git` (the headless status-inbox sync passes the ledger branch). New regression test `test_sync_task_repo_isolates_ledger_commit_from_worker_tree` in `test/tests/base/task_manager.py`. Build tests verified: 1 run, 0 failures.
 
 ## Release Highlights (26.06.25.01)
 

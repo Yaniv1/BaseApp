@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.25.01
-- App template version: A26.06.25.01
+- Base version: 26.06.26.01
+- App template version: A26.06.26.01
+
+## Highlights (26.06.26.01)
+
+- **Task-status sync no longer disturbs a worker's in-progress changes.** When the Task Manager records a task's status change, it now commits and pushes only the task list itself, fully separated from whatever a worker is editing. Previously this background sync could accidentally stage and push a worker's unfinished code ahead of review, or shuffle their uncommitted edits while updating the remote. The sync now happens in an isolated, dedicated workspace targeting the main task branch, so a worker's branch and uncommitted work are never touched, pushed early, or disturbed.
 
 ## Highlights (26.06.25.01)
 

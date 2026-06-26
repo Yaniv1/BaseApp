@@ -1652,8 +1652,37 @@
             ],
             "type": "Bug",
             "priority": "High",
-            "status": "ToDo",
-            "comments": []
+            "status": "Deployed",
+            "comments": [
+                {
+                    "author": "BASE-TASK-260626-0001 worker",
+                    "content": "Started work on BASE-TASK-260626-0001 (status-sync ledger isolation). Reviewed instructions, requirements, architecture, and the current sync path: scripts/task_manager.py::_sync_task_store_to_git delegates to scripts/sync_task_repo.ps1. Found that 'git add -A' was already replaced by path-scoped 'git add -- <ledger>' in BASE-TASK-260624-0002, but the remaining risks persist: the headless status-inbox sync runs in the shared working tree (currently the worker's task branch), commits the ledger onto that branch, and runs 'git pull --rebase --autostash', which can disturb/drop the worker's uncommitted files and push worker code before the approval gate. Designing an isolated-worktree fix so the ledger commit goes to the main branch without touching the worker's working tree, plus a regression test.",
+                    "timestamp": "2026-06-26T19:01:17Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0001 worker",
+                    "content": "Specification ready for review. Root cause: the headless status-inbox sync (scripts/task_manager.py::_sync_task_store_to_git(headless=True) -> scripts/sync_task_repo.ps1) runs in the shared working tree, which while a worker is active is on the worker's task/<id> branch; it commits the ledger there and runs 'git pull --rebase --autostash', which can sweep/early-push worker code and drop the worker's uncommitted changes. (Note: the 'git add -A' from the title was already replaced with path-scoped 'git add -- <ledger>' in BASE-TASK-260624-0002; the remaining defects are the task-branch commit target and the working-tree autostash.) Design: rewrite sync_task_repo.ps1 to commit/push ONLY the ledger inside a dedicated DETACHED git worktree built from the latest origin/<branch> tip (never touching the worker's working tree); add an optional -Branch param (default current HEAD; headless passes APP.TASK_MANAGER.ledger_branch, default 'main'); rebase only the single ledger commit inside the isolated worktree on non-fast-forward. task_manager.py gains _resolve_ledger_branch and a 'branch' param on _sync_task_store_to_git wired from _apply_status_request_file; config/base.json gains APP.TASK_MANAGER.ledger_branch. Spec artifacts updated: requirement BASE-REQ-014.12 + solution rows (build/requirements/base.json) and architecture feature 3.7 + test feature 5.3.1.7.2 (build/architecture/base.json). Planned regression test: test_sync_task_repo_isolates_ledger_commit_from_worker_tree. Work summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260626-0001/BASE-TASK-260626-0001.html. Awaiting engineer approval of the specification before implementing.",
+                    "timestamp": "2026-06-26T19:06:49Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0001 worker",
+                    "content": "Implementation complete; ready for review. Changes (uncommitted, pending approval): (1) scripts/sync_task_repo.ps1 rewritten to commit/push ONLY the ledger inside a dedicated, reusable DETACHED git worktree (<git-common-dir>/baseapp-ledger-sync) built from the latest origin/<branch> tip -- it reads the server-updated ledger from the primary tree and applies it in isolation (path-scoped 'git add -- <ledger>' + commit + 'push HEAD:refs/heads/<branch>', single-commit rebase-and-retry on non-fast-forward), and NEVER runs 'git add -A'/'commit -a' or a working-tree autostash/rebase, so the worker's primary working tree is never staged, stashed, rebased, or pushed early; added a -Branch param. (2) scripts/task_manager.py: added _resolve_ledger_branch (reads APP.TASK_MANAGER.ledger_branch, default main), added a branch param to _sync_task_store_to_git forwarding -Branch, and _apply_status_request_file now passes the ledger branch to the headless sync. (3) config/base.json: added APP.TASK_MANAGER.ledger_branch = main. (4) Spec: requirement BASE-REQ-014.12 + solution rows (build/requirements/base.json) and architecture feature 3.7 + test feature 5.3.1.7.2 (build/architecture/base.json). (5) Regression test test_sync_task_repo_isolates_ledger_commit_from_worker_tree (test/tests/base/task_manager.py) asserts the ledger commit is isolated to origin/main, the worker's uncommitted file is preserved byte-for-byte, HEAD stays on the task branch, and the ledger commit never lands on the task branch. Verification: regression test passes; test/tests/build.py exits 0 (deployment test 25/25, 0 failures); the only 2 failing unit tests (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port) are pre-existing and unrelated. NOTE: while this task ran, the live Task Manager (old script) processed my queued updates and its autostash DID stage my uncommitted files in the primary tree -- a real demonstration of the bug -- though path-scoping kept my code out of its 'Apply task status update' commits and nothing was lost. Per the approval gate I have NOT committed/pushed; versioning and documentation are deferred to Deployed. Work summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260626-0001/BASE-TASK-260626-0001.html.",
+                    "timestamp": "2026-06-26T19:19:48Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0001 worker",
+                    "content": "Engineer granted explicit approval to stage/commit/push (\"approved. deploy.\"). Finalized and deployed to branch task/BASE-TASK-260626-0001 (commit 9a31c77, rebased over the server's ledger commits). Version bumped to 26.06.26.01 (app A26.06.26.01) across resources/version/base.txt, resources/version/app.txt, and config/base.json COMMON.VERSION; documentation updated in docs/readme/base.md, build/updates/base.json, and README.md. Committed only code/spec/test/doc changes (the task ledger build/tasks/base.json was NOT committed -- it remains server-owned). Verification before push: regression test test_sync_task_repo_isolates_ledger_commit_from_worker_tree passes and test/tests/build.py exits 0 (deployment test 25/25, 0 failures). Not yet merged into main; integration (Done) is a separate engineer-supervised step. Moving to Deployed (pushed to the task branch, not yet merged into main).",
+                    "timestamp": "2026-06-26T19:26:58Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 40432,
+                "window_title": "Task Manager status-sync must commit only the task ledger, not sweep worker changes via git add -A (BASE-TASK-260626-0001)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260626-0001",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0001.md",
+                "started_at": "2026-06-26T18:56:37Z"
+            }
         }
     ]
 }

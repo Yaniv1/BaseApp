@@ -404,7 +404,7 @@
                 },
                 "3.7": {
                     "name": "scripts.sync_task_repo",
-                    "description": "PowerShell helper that stages the task file, commits with a provided message, then rebases onto the remote with --autostash (so unrelated unstaged changes don't block the pull) and pushes to the linked git remote, aborting the push if the rebase fails. Invoked by the task manager UI Sync Git button and the automatic startup sync.",
+                    "description": "PowerShell helper that commits and pushes ONLY the task ledger (build/tasks/<app>.json) to the linked git remote, fully isolated from the worker's primary working tree. It takes an optional -Branch parameter (the ledger branch; defaults to the current HEAD branch, and the headless status-inbox sync passes the configured APP.TASK_MANAGER.ledger_branch, default main). It reads the server-updated ledger content from the primary working tree and applies it inside a dedicated, reusable DETACHED git worktree built from the latest origin/<branch> tip, where it path-scopes the change with 'git add -- <ledger>', commits with the provided message, and pushes to refs/heads/<branch>; on a non-fast-forward push it fetches and rebases the single ledger commit inside that isolated worktree (which only ever contains the ledger change) and retries. It never runs 'git add -A'/'commit -a' and never stages, commits, stashes, rebases (autostash), or otherwise touches the worker's primary working tree, so it cannot sweep the worker's uncommitted code into the server's commits, push worker code ahead of the approval gate, or drop uncommitted worker changes. Invoked by the task manager UI Sync Git button, the automatic startup sync, and the headless status-inbox sync.",
                     "type": "Folder.Ps1File",
                     "path": "scripts/sync_task_repo.ps1"
                 }
@@ -666,6 +666,12 @@
                                             "description": "Prep test validating the local task manager: store load, create/persist, update fields, append comment, HTTP UI round-trip, and HTTP endpoint persistence. 6 criteria.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/task_manager.py::test_task_manager_interface"
+                                        },
+                                        "5.3.1.7.2": {
+                                            "name": "test.tests.base.task_manager.test_sync_task_repo_isolates_ledger_commit_from_worker_tree",
+                                            "description": "Regression test for feature 3.7 (BASE-REQ-014.12): runs scripts/sync_task_repo.ps1 -Branch main against a clone whose primary working tree is on a task branch with uncommitted edits to both the ledger and an unrelated worker file, and asserts the sync commits ONLY the ledger to origin/main (exactly one new commit, changing only build/tasks/<app>.json), leaves the worker's uncommitted file edit intact byte-for-byte, keeps the primary HEAD on the task branch, and never pushes the ledger commit onto the task branch.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/task_manager.py::test_sync_task_repo_isolates_ledger_commit_from_worker_tree"
                                         }
                                     }
                                 }
