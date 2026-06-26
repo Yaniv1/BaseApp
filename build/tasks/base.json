@@ -1630,7 +1630,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1641,6 +1641,11 @@
                     "author": "BASE-TASK-260624-0003 worker",
                     "content": "Started work on rewriting README.md from a version-by-version changelog into a high-level app overview (purpose, structure, features, and setup/run/instantiate/pull/build-via-task-manager instructions).",
                     "timestamp": "2026-06-26T23:07:57Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0003 worker",
+                    "content": "Design + implementation ready for review. README.md rewritten from a per-release \"Highlights\" changelog into a high-level app overview: What it does, Project structure, Getting started (setup_env, run app, instantiate, pullbase, deploy), Building with the Task Manager, and Versioning. Documentation-only change (no requirements/architecture/code/test changes). Work summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260624-0003/BASE-TASK-260624-0003.html",
+                    "timestamp": "2026-06-26T23:10:23Z"
                 }
             ],
             "worker_session": {
@@ -1820,6 +1825,26 @@
                 "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0003.md",
                 "started_at": "2026-06-26T23:06:01Z"
             }
+        },
+        {
+            "author": "ymordecai",
+            "id": "BASE-TASK-260626-0004",
+            "uuid": "57ef79b5-7267-4edd-a949-7e60832aadc6",
+            "title": "Figure out a solution that minimizes the impact of BaseApp updates on instance apps",
+            "description": [
+                "Currently each BaseApp update followed by pullbase causes multiple changes that require staging and commiting to the isntance app's repo.",
+                "It might be easier to use import but we need to make sure the structure of the code remains the same as the BaseApp so that the burden of miantianing structure doesn't fall on the instance app designer all over again (which is what BaseApp was meant to solve to begin with)"
+            ],
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "ymordecai",
+                    "content": "Task created: Figure out a solution that minimizes the impact of BaseApp updates on instance apps",
+                    "timestamp": "2026-06-26T23:10:16Z"
+                }
+            ]
         }
     ]
 }
