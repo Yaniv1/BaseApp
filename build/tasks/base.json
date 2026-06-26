@@ -1652,8 +1652,22 @@
             ],
             "type": "Bug",
             "priority": "High",
-            "status": "ToDo",
-            "comments": []
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "BASE-TASK-260626-0001 worker",
+                    "content": "Started work on BASE-TASK-260626-0001 (status-sync ledger isolation). Reviewed instructions, requirements, architecture, and the current sync path: scripts/task_manager.py::_sync_task_store_to_git delegates to scripts/sync_task_repo.ps1. Found that 'git add -A' was already replaced by path-scoped 'git add -- <ledger>' in BASE-TASK-260624-0002, but the remaining risks persist: the headless status-inbox sync runs in the shared working tree (currently the worker's task branch), commits the ledger onto that branch, and runs 'git pull --rebase --autostash', which can disturb/drop the worker's uncommitted files and push worker code before the approval gate. Designing an isolated-worktree fix so the ledger commit goes to the main branch without touching the worker's working tree, plus a regression test.",
+                    "timestamp": "2026-06-26T19:01:17Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 40432,
+                "window_title": "Task Manager status-sync must commit only the task ledger, not sweep worker changes via git add -A (BASE-TASK-260626-0001)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260626-0001",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0001.md",
+                "started_at": "2026-06-26T18:56:37Z"
+            }
         }
     ]
 }
