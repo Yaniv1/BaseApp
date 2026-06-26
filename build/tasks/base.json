@@ -1397,7 +1397,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Approved",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1528,6 +1528,11 @@
                     "author": "BASE-TASK-260624-0001 worker",
                     "content": "Integration approved by the engineer. Merged task/BASE-TASK-260624-0001 into main via --no-ff merge commit e1fd1f1 and pushed to origin/main. No conflicts (disjoint paths from the server-owned ledger).",
                     "timestamp": "2026-06-26T23:00:58Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0001 worker",
+                    "content": "Integration complete. Merged task/BASE-TASK-260624-0001 into main (--no-ff merge commit e1fd1f1) and pushed to origin/main; status store applied Approved then Done to the ledger on main. Task branch dissolved (local + remote deleted) and its worktree removed; git worktree prune run. Local main auto-fast-forwarded to the remote tip via the new sync_task_repo.ps1 step and a final git pull confirms local main == origin/main. Result report updated to Done at C:/data/MyApp/20260626/task_results/BASE-TASK-260624-0001/BASE-TASK-260624-0001.html.",
+                    "timestamp": "2026-06-26T23:03:12Z"
                 }
             ],
             "worker_session": {
