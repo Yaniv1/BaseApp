@@ -1397,7 +1397,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Done",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1503,14 +1503,20 @@
                     "author": "Copilot",
                     "content": "Status set to Done (fully integrated into main). Because the branch-per-task approach is not yet in effect for this task, all work was committed directly to main (no task/<id> branch existed), so there was no branch to merge or dissolve -- the deployed v26.06.24.06 changes are already integrated on main. Final scope of BASE-TASK-260624-0001: branch-per-task workflow + Deployed status + Task Manager status tabs (v26.06.24.05), then the durable file-store task status channel, the per-agent stdio enqueue MCP server wired into the launcher, the config-driven status_queue/prompt_store/result_store directories, and the live aggregate MCP servers health check with the GOOD testing-only light-green log type (v26.06.24.06). Verified before integration: pytest 49 passed (2 pre-existing baseline failures); build.py PASS (25/25).",
                     "timestamp": "2026-06-25T06:54:00Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0001 worker",
+                    "content": "Resumed in worktree mode (bare-repo adoption complete): now working in the dedicated worktree C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260624-0001 on branch task/BASE-TASK-260624-0001, no longer in-place checkout. SPECIFICATION for the worktree-mode refinement is ready for review. Implementation (carried over, uncommitted, 7 files) converts the framework to a bare shared object store with every branch checked out as a peer git worktree under the {APP} container: config/base.json adds APP.TASK_MANAGER.worktree_store (default '..', resolved relative to the main working tree -> sibling {APP}/<task-id>); scripts/task_manager.py adds _worktree_root/_worktree_path_for_task and a workspace_override on the prompt builders, and _start_copilot_for_task passes -Worktree and records it on worker_session; scripts/launch_task_agent.ps1 gains a -Worktree param that materialises/reuses the task worktree and runs the session inside it (legacy in-place checkout fallback retained). This session also brought the spec in line: BASE-REQ-014.9 now states the worktree-isolation requirement, and build/instructions/base.md (Done-step worktree removal path) + task.md document the bare {APP}/<branch> model. Validation: pytest test/tests/base/task_manager.py = 56 passed / 2 pre-existing baseline failures (unrelated); test/tests/build.py run from the worktree = exit 0. No version bump, doc finalize, commit, or push performed. Summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260624-0001/BASE-TASK-260624-0001.html. Awaiting engineer review before implementation finalization.",
+                    "timestamp": "2026-06-26T21:42:37Z"
                 }
             ],
             "worker_session": {
-                "pid": 27596,
+                "pid": 13420,
                 "window_title": "Create a separate branch for each task you're working on (BASE-TASK-260624-0001)",
                 "mode": "work",
-                "prompt_file": "C:/data/MyApp/20260625/agent_prompts/BASE-TASK-260624-0001.md",
-                "started_at": "2026-06-25T00:15:51Z"
+                "branch": "task/BASE-TASK-260624-0001",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260624-0001.md",
+                "started_at": "2026-06-26T21:30:29Z"
             }
         },
         {
@@ -1688,6 +1694,28 @@
                 "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0001.md",
                 "started_at": "2026-06-26T18:56:37Z"
             }
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260626-0002",
+            "uuid": "d0c7b43a-d073-4105-a78e-6eba0e3886ad",
+            "title": "Task Manager UI Task Search",
+            "description": [
+                "Allow the user to search for a task by its task id",
+                "if found, switch to the relevant status tab.",
+                "also open the task's details in the details tab.",
+                "place the task search bar above the status tabs"
+            ],
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Manager UI Task Search",
+                    "timestamp": "2026-06-26T21:37:58Z"
+                }
+            ]
         }
     ]
 }
