@@ -1397,7 +1397,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Ready",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1518,6 +1518,11 @@
                     "author": "BASE-TASK-260624-0001 worker",
                     "content": "IMPLEMENTATION COMPLETE (status -> Ready; awaiting engineer review). The worktree-mode refinement is finalized in the task worktree on branch task/BASE-TASK-260624-0001. Final scope: the framework runs each task in its own dedicated git worktree under the bare-repo {APP} container, at a FIXED location {APP}/<task-id> (a sibling of main, the parent of the main working tree) -- not configurable. config/base.json: no worktree_store key. scripts/task_manager.py: _worktree_root() always returns the {APP} container (parent of the main working tree); _worktree_path_for_task() always yields {APP}/<task-id>; _build_copilot_prompt/_build_review_prompt take a workspace_override so the worker's {workspace_root} is its worktree; _start_copilot_for_task passes -Worktree and records worktree on worker_session. scripts/launch_task_agent.ps1: -Worktree param materialises/reuses the task worktree and runs the session inside it (legacy in-place checkout retained as a defensive fallback). Spec aligned: BASE-REQ-014.9 and build/instructions/base.md + task.md document the bare {APP}/<branch> model with the fixed worktree location. Tests: added worktree path/root/launcher/end-to-end/workspace-override tests; updated prompt-builder signatures. Validation from the worktree: pytest test/tests/base/task_manager.py = 56 passed / 2 pre-existing baseline failures (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port_when_requested_port_is_busy -- both unrelated); test/tests/build.py = exit 0. Per the completion protocol, no version bump / README finalize / commit / push performed -- those await the Ready->Deployed approval gate. Report: C:/data/MyApp/20260626/task_results/BASE-TASK-260624-0001/BASE-TASK-260624-0001.html.",
                     "timestamp": "2026-06-26T22:03:59Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0001 worker",
+                    "content": "Engineer approved finalization and the push to the task branch. FINALIZED AND DEPLOYED at version 26.06.26.02 (status -> Deployed). Bumped resources/version/base.txt (26.06.26.02), resources/version/app.txt (A26.06.26.02), and config/base.json COMMON.VERSION. Documented in build/updates/base.json (new top entry for BASE-TASK-260624-0001, Feature 3.6), docs/readme/base.md (title V-26.06.26.02 + Release Highlights 26.06.26.02), and README.md (version lines + Highlights 26.06.26.02). Deployed scope: each task now runs in its own dedicated git worktree under the bare-repo {APP} container at a FIXED location {APP}/<task-id> (sibling of main; not configurable) -- launcher -Worktree materialises/reuses the worktree and runs the session inside it; task_manager _worktree_root/_worktree_path_for_task + workspace_override on the prompt builders; removed the APP.TASK_MANAGER.worktree_store config key. Committed on the task's short-lived branch task/BASE-TASK-260624-0001 (commit d236e4e, 12 files) and pushed to origin/task/BASE-TASK-260624-0001; NOT yet merged into main (the worktree work is on its own branch; the task ledger was not committed -- it remains server-owned on main). Verify: pytest test/tests/base/task_manager.py = 56 passed / 2 pre-existing baseline failures (unrelated); test/tests/build.py = exit 0. Integration (Approved -> Done) and branch/worktree dissolution remain, under the integration engineer's supervision.",
+                    "timestamp": "2026-06-26T22:14:12Z"
                 }
             ],
             "worker_session": {
