@@ -1526,7 +1526,7 @@
             ],
             "type": "Feature",
             "priority": "Low",
-            "status": "Ready",
+            "status": "Approved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1547,6 +1547,11 @@
                     "author": "BASE-TASK-260624-0002 worker",
                     "content": "Implementation complete and validated. Built the split-pane Task Manager UI: content area now holds a vertical .split with .list-pane (task list) above a draggable .split-divider above .detail-pane (task details), each scrolling independently; default 60/40, ratio persisted in localStorage (double-click resets), placeholder shown when no task selected. Validation: targeted task_manager tests pass incl. new test_task_manager_template_has_resizable_split_panes; embedded JS passes node --check; live server fetch of / returns HTTP 200 with new markup; full build suite (test/tests/build.py) exit 0, deployment test 25/25 PASS, no FAIL entries. Version/docs/updates deferred to Deploy per instructions. Moving to Ready for engineer review.",
                     "timestamp": "2026-06-26T00:35:13Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0002 worker",
+                    "content": "Builder approval: engineer approved the implementation and authorized finalization/deployment. Proceeding with finalization — version bump to 26.06.25.01 (app A26.06.25.01), readme/updates/README documentation. Will request explicit push approval before staging/committing/pushing.",
+                    "timestamp": "2026-06-26T00:42:34Z"
                 }
             ],
             "worker_session": {

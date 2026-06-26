@@ -12,12 +12,12 @@
   font-family:"Segoe UI",system-ui,sans-serif;font-size:14px;color-scheme:dark;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--tx);min-height:100vh}
+body{background:var(--bg);color:var(--tx);height:100vh;display:flex;flex-direction:column;overflow:hidden}
 code{font-family:"Cascadia Code","Fira Code",monospace;font-size:.82em}
 
 /* ── Header ─────────────────────────────────────────────────── */
 header{background:rgba(15,23,42,.92);border-bottom:1px solid var(--ln);padding:11px 20px;
-  position:sticky;top:0;z-index:10;backdrop-filter:blur(8px)}
+  position:sticky;top:0;z-index:10;backdrop-filter:blur(8px);flex-shrink:0}
 .hd{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;row-gap:10px}
 header h1{font-size:1.1rem;letter-spacing:.02em;white-space:nowrap}
 .fbar{display:flex;align-items:center;gap:7px;flex-wrap:nowrap;justify-content:flex-end;max-width:100%}
@@ -33,10 +33,27 @@ header h1{font-size:1.1rem;letter-spacing:.02em;white-space:nowrap}
 .git-label{font-size:.75rem;color:var(--mu);white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0}
 
 /* ── Layout ──────────────────────────────────────────────────── */
-main{display:grid;grid-template-columns:296px 1fr;min-height:calc(100vh - 48px)}
+main{display:grid;grid-template-columns:296px 1fr;flex:1 1 auto;min-height:0;overflow:hidden}
 .sidebar{background:var(--sf);border-right:1px solid var(--ln);padding:16px;
-  display:flex;flex-direction:column;gap:12px;overflow-y:auto}
-.content{display:flex;flex-direction:column;overflow-y:auto}
+  display:flex;flex-direction:column;gap:12px;overflow-y:auto;min-height:0}
+.content{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden}
+
+/* ── Split panes (task list above, task details below) ───────────
+   The list and detail blocks are stacked vertically, each scrolls
+   on its own, and a draggable gutter between them adjusts the
+   relative height (default 60% list / 40% details). */
+.split{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.list-pane{flex:60 1 0;min-height:64px;overflow:auto}
+.detail-pane{flex:40 1 0;min-height:64px;overflow:auto;display:flex;flex-direction:column}
+.split-divider{flex:0 0 9px;cursor:row-resize;background:var(--sf);
+  border-top:1px solid var(--ln);border-bottom:1px solid var(--ln);
+  position:relative;user-select:none;touch-action:none}
+.split-divider::before{content:"";position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);width:42px;height:3px;border-radius:2px;
+  background:var(--mu);opacity:.5;transition:background .15s,opacity .15s}
+.split-divider:hover::before,.split-divider.dragging::before{background:var(--ac);opacity:1}
+body.split-dragging{cursor:row-resize;user-select:none}
+.detail-empty{color:var(--mu);text-align:center;padding:28px 20px;font-size:.9rem}
 .sidebar h2{font-size:.78rem;color:var(--mu);text-transform:uppercase;letter-spacing:.08em}
 
 /* ── Forms ───────────────────────────────────────────────────── */
@@ -221,16 +238,22 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       <button class="tab" data-status="Deleted">Deleted <span id="cnt-Deleted" class="badge">0</span></button>
       <button class="tab" data-status="Other">Other <span id="cnt-Other" class="badge">0</span></button>
     </div>
-    <div class="table-wrap">
-      <table class="task-table">
-        <thead>
-          <tr><th>ID</th><th>Title</th><th>Type</th><th>Priority</th></tr>
-        </thead>
-        <tbody id="task-tbody"></tbody>
-      </table>
-      <div id="no-tasks" class="empty hidden">No tasks in this status.</div>
-    </div>
-    <div id="detail-panel" class="detail hidden">
+    <div class="split" id="split">
+      <div class="list-pane" id="list-pane">
+        <div class="table-wrap">
+          <table class="task-table">
+            <thead>
+              <tr><th>ID</th><th>Title</th><th>Type</th><th>Priority</th></tr>
+            </thead>
+            <tbody id="task-tbody"></tbody>
+          </table>
+          <div id="no-tasks" class="empty hidden">No tasks in this status.</div>
+        </div>
+      </div>
+      <div class="split-divider" id="split-divider" role="separator" aria-orientation="horizontal" title="Drag to resize the task list and details blocks"></div>
+      <div class="detail-pane" id="detail-pane">
+        <div id="detail-empty" class="detail-empty">Select a task above to view its details.</div>
+        <div id="detail-panel" class="detail hidden">
       <div class="det-top">
         <div>
           <span id="det-id" class="tid"></span>
@@ -274,13 +297,15 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
           <button class="btn primary" type="submit">&#10004; Save Changes</button>
         </form>
       </details>
-      <div class="add-comment">
-        <label><strong>Add Comment</strong>
-          <textarea id="new-comment" placeholder="Comment text..."></textarea>
-        </label>
-        <div class="author-row">
-          <label>Author<input id="new-author" placeholder="Your name"></label>
-          <button id="post-comment-btn" class="btn secondary">Post Comment</button>
+        <div class="add-comment">
+          <label><strong>Add Comment</strong>
+            <textarea id="new-comment" placeholder="Comment text..."></textarea>
+          </label>
+          <div class="author-row">
+            <label>Author<input id="new-author" placeholder="Your name"></label>
+            <button id="post-comment-btn" class="btn secondary">Post Comment</button>
+          </div>
+        </div>
         </div>
       </div>
     </div>
@@ -351,7 +376,67 @@ function ensureGitSidebar() {
   initCreateForm();
   initTabs();
   initDetail();
+  initSplit();
 })().catch(e => setMsg('create-msg', e.message, true));
+
+// ── Split-pane divider ────────────────────────────────────────
+// The task list and task details are stacked vertical blocks, each
+// with its own scrollbar. The gutter between them is draggable so the
+// engineer can give more room to either block. The split ratio defaults
+// to 60% list / 40% details and is remembered across reloads.
+function initSplit() {
+  const split = document.getElementById('split');
+  const listPane = document.getElementById('list-pane');
+  const detailPane = document.getElementById('detail-pane');
+  const divider = document.getElementById('split-divider');
+  if (!split || !listPane || !detailPane || !divider) return;
+
+  const MIN_RATIO = 0.12, MAX_RATIO = 0.88, DEFAULT_RATIO = 0.6;
+
+  function applyRatio(ratio) {
+    const r = Math.max(MIN_RATIO, Math.min(MAX_RATIO, ratio));
+    listPane.style.flex = r + ' 1 0';
+    detailPane.style.flex = (1 - r) + ' 1 0';
+    return r;
+  }
+
+  let stored = parseFloat(localStorage.getItem('tm_split_ratio'));
+  applyRatio(Number.isFinite(stored) ? stored : DEFAULT_RATIO);
+
+  let dragging = false;
+
+  function onMove(clientY) {
+    const rect = split.getBoundingClientRect();
+    const usable = rect.height - divider.offsetHeight;
+    if (usable <= 0) return;
+    const ratio = applyRatio((clientY - rect.top) / usable);
+    localStorage.setItem('tm_split_ratio', String(ratio));
+  }
+
+  divider.addEventListener('pointerdown', e => {
+    dragging = true;
+    divider.classList.add('dragging');
+    document.body.classList.add('split-dragging');
+    divider.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  divider.addEventListener('pointermove', e => { if (dragging) onMove(e.clientY); });
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+    divider.classList.remove('dragging');
+    document.body.classList.remove('split-dragging');
+    try { divider.releasePointerCapture(e.pointerId); } catch {}
+  }
+  divider.addEventListener('pointerup', endDrag);
+  divider.addEventListener('pointercancel', endDrag);
+
+  // Double-click restores the default 60/40 division.
+  divider.addEventListener('dblclick', () => {
+    const r = applyRatio(DEFAULT_RATIO);
+    localStorage.setItem('tm_split_ratio', String(r));
+  });
+}
 
 // ── Config & file selector ────────────────────────────────────
 async function loadConfig() {
@@ -553,6 +638,8 @@ const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Specified:
 function showDetail(task) {
   const panel = document.getElementById('detail-panel');
   panel.classList.remove('hidden');
+  const empty = document.getElementById('detail-empty');
+  if (empty) empty.classList.add('hidden');
   panel.dataset.id = task.id;
   const canonicalStatus = normalizeStatus(task.status);
   const isDeleted = canonicalStatus === 'Deleted';
@@ -620,11 +707,16 @@ function showDetail(task) {
   const saveBtn = document.querySelector('#edit-form button[type="submit"]');
   if (saveBtn) saveBtn.disabled = false;
 
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  // Keep the details block scrolled to the top when a new task is opened;
+  // the block scrolls independently of the task list above it.
+  const pane = document.getElementById('detail-pane');
+  if (pane) pane.scrollTop = 0;
 }
 
 function hideDetail() {
   document.getElementById('detail-panel').classList.add('hidden');
+  const empty = document.getElementById('detail-empty');
+  if (empty) empty.classList.remove('hidden');
 }
 
 function initDetail() {
