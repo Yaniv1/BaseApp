@@ -1121,8 +1121,17 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
-            "comments": []
+            "status": "InProgress",
+            "comments": [],
+            "worker_session": {
+                "pid": 28560,
+                "window_title": "Task Manager UI allow sorting task list by priority, type, and ID (BASE-TASK-260622-0004)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260622-0004",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260622-0004",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260622-0004.md",
+                "started_at": "2026-06-26T23:06:57Z"
+            }
         },
         {
             "id": "BASE-TASK-260622-0005",
@@ -1615,14 +1624,23 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Rewrite the README.doc to provide an overview of the app in its final form and not a list of updates",
                     "timestamp": "2026-06-24T19:50:54Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 26716,
+                "window_title": "Rewrite the README.doc to provide an overview of the app in its final form and not a list of updates (BASE-TASK-260624-0003)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260624-0003",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260624-0003",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260624-0003.md",
+                "started_at": "2026-06-26T23:06:30Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1733,14 +1751,23 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager UI Task Search",
                     "timestamp": "2026-06-26T21:37:58Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 32932,
+                "window_title": "Task Manager UI Task Search (BASE-TASK-260626-0002)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260626-0002",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0002",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0002.md",
+                "started_at": "2026-06-26T23:06:14Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1755,14 +1782,28 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Add a deployment script that respects the multi-branch architecture",
                     "timestamp": "2026-06-26T21:59:28Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Started work on BASE-TASK-260626-0003: adding the bare/worktree multi-branch repository initialization script (init_bare_worktree_repo.ps1) to scripts/, working on the task branch task/BASE-TASK-260626-0003.",
+                    "timestamp": "2026-06-26T23:07:21Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 21316,
+                "window_title": "Add a deployment script that respects the multi-branch architecture (BASE-TASK-260626-0003)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260626-0003",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0003",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0003.md",
+                "started_at": "2026-06-26T23:06:01Z"
+            }
         }
     ]
 }
