@@ -1526,14 +1526,27 @@
             ],
             "type": "Feature",
             "priority": "Low",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager UI Apply Scrolling to task list block and task details block",
                     "timestamp": "2026-06-24T19:35:49Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0002 worker",
+                    "content": "Started work on BASE-TASK-260624-0002: split the Task Manager UI into two independently-scrolling, vertically-stacked blocks (task list and task details) with a draggable divider defaulting to a 60/40 split.",
+                    "timestamp": "2026-06-26T00:14:40Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 37384,
+                "window_title": "Task Manager UI Apply Scrolling to task list block and task details block (BASE-TASK-260624-0002)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260624-0002",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260624-0002.md",
+                "started_at": "2026-06-26T00:12:08Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
