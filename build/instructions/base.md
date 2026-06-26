@@ -122,11 +122,11 @@ perform the Change Finalizing and Deployment steps below:
         When asked to finalize the change (i.e. to move the status of the task from `Deployed` to `Done`):
         a. Ask the user (integration engineer) to review the documentation about the change as well as the code, run the app on the task branch and does whatever is necessary to make sure the functionality is implemented correctly, and supervise the merge of the task's branch into `main`, making sure there are no conflicts to solve in order to complete the merge successfully. Resolve or suggest resolutions to any conflicts surfaced during the merge before proceeding.
         When final merge approval is granted:
-        b. Merge the task's branch into `main`.
+        b. Merge the task's branch into `main`. Perform the merge from **within the `main` worktree** (`{APP}/main`), e.g. `git -C {APP}/main merge --no-ff task/<task-id>` followed by `git -C {APP}/main push origin main` (or merge via a GitHub pull request). Because all worktrees share the single bare object/ref store under `{APP}/.bare`, merging here updates `refs/heads/main` in the bare store directly — there is no separate bare copy of `main` to update.
         c. request a status change to `Done` via the task status store.
         d. request a deployment comment to be appended to the task (via the task status store) noting that the task branch was merged into `main`, and the branch and worktree dissolved.
         e. The Task Manager server applies the `Done` status and comment to the ledger on `main` (you do not commit the ledger yourself).
         f. Delete (dissolve) the short-lived task branch and remove its worktree (`git worktree remove {APP}/<task-id>` then `git branch -d task/<task-id>`), since they are no longer needed.
         g. Update the task report in the task result store (the `{result_store}` location given in your `task.md` prompt), e.g. `<result_store>/{task_id}/{task_id}.html`.
-        h. Perform `git pull` on the local `main` to have it in full sync with the remote `main` after integration.
+        h. Perform `git pull` from within the `main` worktree (`git -C {APP}/main pull`) to have the local `main` in full sync with the remote `main` after integration. Since the `main` worktree and the bare repository share one object/ref store under `{APP}/.bare`, this single pull keeps both the local `main` working tree and the bare store in sync — no separate update of the bare copy is required. (If the merge was done locally in step b, this pull is simply a confirming no-op.)
         
