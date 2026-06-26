@@ -1397,7 +1397,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Deployed",
+            "status": "Approved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1523,6 +1523,11 @@
                     "author": "BASE-TASK-260624-0001 worker",
                     "content": "Engineer approved finalization and the push to the task branch. FINALIZED AND DEPLOYED at version 26.06.26.02 (status -> Deployed). Bumped resources/version/base.txt (26.06.26.02), resources/version/app.txt (A26.06.26.02), and config/base.json COMMON.VERSION. Documented in build/updates/base.json (new top entry for BASE-TASK-260624-0001, Feature 3.6), docs/readme/base.md (title V-26.06.26.02 + Release Highlights 26.06.26.02), and README.md (version lines + Highlights 26.06.26.02). Deployed scope: each task now runs in its own dedicated git worktree under the bare-repo {APP} container at a FIXED location {APP}/<task-id> (sibling of main; not configurable) -- launcher -Worktree materialises/reuses the worktree and runs the session inside it; task_manager _worktree_root/_worktree_path_for_task + workspace_override on the prompt builders; removed the APP.TASK_MANAGER.worktree_store config key. Committed on the task's short-lived branch task/BASE-TASK-260624-0001 (commit d236e4e, 12 files) and pushed to origin/task/BASE-TASK-260624-0001; NOT yet merged into main (the worktree work is on its own branch; the task ledger was not committed -- it remains server-owned on main). Verify: pytest test/tests/base/task_manager.py = 56 passed / 2 pre-existing baseline failures (unrelated); test/tests/build.py = exit 0. Integration (Approved -> Done) and branch/worktree dissolution remain, under the integration engineer's supervision.",
                     "timestamp": "2026-06-26T22:14:12Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0001 worker",
+                    "content": "Integration approved by the engineer. Merged task/BASE-TASK-260624-0001 into main via --no-ff merge commit e1fd1f1 and pushed to origin/main. No conflicts (disjoint paths from the server-owned ledger).",
+                    "timestamp": "2026-06-26T23:00:58Z"
                 }
             ],
             "worker_session": {
