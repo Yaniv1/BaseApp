@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.26.01
-- App template version: A26.06.26.01
+- Base version: 26.06.26.02
+- App template version: A26.06.26.02
+
+## Highlights (26.06.26.02)
+
+- **Each task now runs in its own isolated folder.** The project uses a layout where every branch — including `main` and each task's short-lived branch — lives in its own working folder beside the others, all sharing a single underlying repository. A task's folder is created automatically when its worker starts, so several tasks can be worked on at the same time without their changes ever mixing or overwriting one another. When a task is fully integrated into `main`, its folder and branch are cleaned up.
 
 ## Highlights (26.06.26.01)
 

@@ -446,10 +446,10 @@ def _populate_placeholders(text, params):
     return re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", replace, text)
 
 
-def _build_copilot_prompt(task, tasks_path, template_path=COPILOT_PROMPT_TEMPLATE_PATH, store=None):
+def _build_copilot_prompt(task, tasks_path, template_path=COPILOT_PROMPT_TEMPLATE_PATH, store=None, workspace_override=None):
     tasks_file = Path(tasks_path).resolve()
     build_dir = tasks_file.parent.parent
-    workspace_root = build_dir.parent
+    workspace_root = Path(workspace_override).resolve() if workspace_override else build_dir.parent
     with Path(template_path).open("r", encoding="utf-8") as handle:
         template_text = handle.read()
 
@@ -484,9 +484,9 @@ def _build_copilot_prompt(task, tasks_path, template_path=COPILOT_PROMPT_TEMPLAT
     return _populate_placeholders(template_text, prompt_params)
 
 
-def _build_review_prompt(task, tasks_path, store=None):
+def _build_review_prompt(task, tasks_path, store=None, workspace_override=None):
     """Build a review-focused Copilot prompt for a task that is in the Ready state."""
-    return _build_copilot_prompt(task, tasks_path, template_path=COPILOT_REVIEW_PROMPT_TEMPLATE_PATH, store=store)
+    return _build_copilot_prompt(task, tasks_path, template_path=COPILOT_REVIEW_PROMPT_TEMPLATE_PATH, store=store, workspace_override=workspace_override)
 
 
 def _get_store_base_dir(store):
@@ -535,6 +535,36 @@ def _detect_git_repo(base_dir):
         "repo_available": True,
         "repo_display": remote_url or repo_root.as_posix(),
     }
+
+
+def _worktree_root(store):
+    """Resolve the container directory that holds per-branch git worktrees.
+
+    The repository uses a bare object store with **every branch -- including
+    ``main`` -- checked out as a peer git worktree** under a single ``{APP}``
+    container (e.g. ``C:/code/BaseApp/.bare`` shared store, ``C:/code/BaseApp/main``
+    for ``main``, ``C:/code/BaseApp/<task-id>`` for each task). The main working
+    tree (``base_dir``) is therefore itself one of these peers, and the container
+    that holds them all is simply its parent.
+
+    Every ad-hoc task worktree is always created as a sibling of ``main`` under
+    that container, so the location is fixed (the parent of the main working
+    tree) and is not configurable.
+    """
+    return _get_store_base_dir(store).parent
+
+
+def _worktree_path_for_task(store, task_id):
+    """Resolve the dedicated worktree directory for a task.
+
+    Each task is worked in its own git worktree at ``<container>/<task-id>``
+    (a sibling of the ``main`` worktree, sharing the bare object store) so that
+    concurrent task agents each get an isolated checkout of their own
+    ``task/<id>`` branch and never share (or stomp on) a single working tree.
+    """
+    root = _worktree_root(store)
+    safe = re.sub(r"[^A-Za-z0-9._-]+", "-", str(task_id).strip()).strip("-") or "task"
+    return root / safe
 
 
 def _branch_name_for_task(task_id):
@@ -1053,19 +1083,34 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     task_title = str(task.get("title", "")).strip()
     session_name = (task_title or f"Task {safe_task_id}")[:100]
     is_review = str(mode).strip().lower() == "review"
+    # Each task is worked in its own dedicated git worktree (a separate checkout
+    # directory at <container>/<task-id>, a sibling of the main worktree that
+    # shares the bare object store) so that concurrent task agents each operate
+    # on their own task/<id> branch without sharing - or stomping on - a single
+    # working tree. The launch script materialises the worktree (via -Worktree)
+    # and runs the session there. Reviews reuse the task's existing worktree.
+    worktree_path = _worktree_path_for_task(store, safe_task_id)
     # Name each Copilot window "<title> (<id>)" so it is identifiable by its
     # task (and unique via the task id) rather than the auto-generated session
     # name the Copilot CLI would otherwise apply.
     window_title = f"{session_name} ({safe_task_id})"
     prompt_suffix = "-review" if is_review else ""
     prompt_path = prompts_dir / f"{safe_task_id}{prompt_suffix}.md"
-    prompt_text = _build_review_prompt(task, tasks_path, store=store) if is_review else _build_copilot_prompt(task, tasks_path, store=store)
+    # Point the worker's prompt at its worktree so all the work it does lands in
+    # the isolated checkout rather than the main tree.
+    workspace_override = str(worktree_path)
+    prompt_text = (
+        _build_review_prompt(task, tasks_path, store=store, workspace_override=workspace_override)
+        if is_review
+        else _build_copilot_prompt(task, tasks_path, store=store, workspace_override=workspace_override)
+    )
     prompt_path.write_text(prompt_text, encoding="utf-8")
 
     # Work each task on its own short-lived, ad-hoc branch so concurrent tasks
     # do not mix their changes. The launch script creates and checks out this
-    # branch (via -TaskBranch) before the worker session begins. Reviews run
-    # against the existing branch, so no new branch is requested for them.
+    # branch (via -TaskBranch) inside the task's worktree before the worker
+    # session begins. Reviews run against the existing branch/worktree, so no
+    # new branch is requested for them.
     task_branch = None if is_review else _branch_name_for_task(safe_task_id)
 
     # Give the worker a per-agent stdio MCP server (the status queue) so it can
@@ -1083,6 +1128,8 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
         "-SessionName", session_name,
         "-WindowTitle", window_title,
     ]
+    if worktree_path is not None:
+        launch_args.extend(["-Worktree", str(worktree_path)])
     if task_branch:
         launch_args.extend(["-TaskBranch", task_branch])
     if mcp_config_path is not None:
@@ -1108,6 +1155,7 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
         "window_title": window_title,
         "mode": "review" if is_review else "work",
         "branch": task_branch,
+        "worktree": worktree_path.as_posix() if worktree_path is not None else None,
         "prompt_file": prompt_path.as_posix(),
         "started_at": _now_iso(),
     }
