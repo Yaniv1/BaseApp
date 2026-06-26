@@ -1,4 +1,4 @@
-# BaseApp V-26.06.26.01
+# BaseApp V-26.06.26.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.26.02)
+
+- **Each task runs in its own dedicated git worktree (bare-repo `{APP}/<branch>` layout)** (Feature 3.6; Requirement BASE-REQ-014.9): The repository now uses a **bare shared object store with every branch — including `main` — checked out as its own peer git worktree** under a single `{APP}` container (`{APP}/.bare` shared store, `{APP}/main` for `main`, `{APP}/<task-id>` for each task). This replaces the previous in-place `git checkout` model, where a single working tree could hold only one branch at a time and concurrent task agents would stomp on each other. The launcher `scripts/launch_task_agent.ps1` gains a `-Worktree` parameter that materialises (or reuses) the task's dedicated worktree and runs the worker session inside it; `scripts/task_manager.py` adds `_worktree_root`/`_worktree_path_for_task` (the worktree location is **fixed** at `{APP}/<task-id>`, a sibling of `main` — the parent of the main working tree — and is not configurable), and `_build_copilot_prompt`/`_build_review_prompt` take a `workspace_override` so the worker's `{workspace_root}` points at its worktree (also recorded on `worker_session`). The task's worktree is dissolved together with its branch when the task reaches `Done`. Agent instructions (`build/instructions/base.md`, `task.md`) document the bare `{APP}/<branch>` model. New worktree tests in `test/tests/base/task_manager.py`. Build tests verified: 1 run, 0 failures.
 
 ## Release Highlights (26.06.26.01)
 

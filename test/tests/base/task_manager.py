@@ -132,8 +132,8 @@ def test_start_copilot_for_task_requests_dedicated_branch_via_launcher(monkeypat
 
     monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
     monkeypatch.setattr(task_manager.subprocess, "Popen", fake_popen)
-    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
-    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path, store=None: "review")
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None, workspace_override=None: "prompt")
+    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path, store=None, workspace_override=None: "review")
 
     tasks_path = tmp_path / "tasks.json"
     tasks_path.write_text("{}", encoding="utf-8")
@@ -211,6 +211,72 @@ def test_launch_task_agent_script_creates_dedicated_branch(tmp_path):
     assert current_branch == "task/BASE-TASK-BRANCH-0001", (result.stdout + result.stderr)
 
 
+def test_launch_task_agent_script_creates_dedicated_worktree(tmp_path):
+    """End-to-end: launch_task_agent.ps1 checks the task branch out into its own
+    worktree (leaving the main working tree on its original branch)."""
+    import subprocess as sp
+    import shutil as _shutil
+
+    pwsh = _shutil.which("pwsh")
+    if not pwsh:
+        import pytest
+        pytest.skip("pwsh is not available")
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+
+    def git(*args):
+        return sp.run(["git", "-C", str(repo), *args], capture_output=True, text=True, check=True)
+
+    git("init")
+    git("config", "user.email", "tester@example.com")
+    git("config", "user.name", "Tester")
+    git("checkout", "-B", "main")
+    (repo / "seed.txt").write_text("seed", encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-m", "init")
+
+    prompt = tmp_path / "prompt.md"
+    prompt.write_text("do the task", encoding="utf-8")
+
+    stub = tmp_path / "copilot_stub.cmd"
+    stub.write_text("@echo off\r\nexit /b 0\r\n", encoding="ascii")
+
+    script = Path(task_manager.__file__).resolve().parent / "launch_task_agent.ps1"
+    worktree = tmp_path / "repo.worktrees" / "BASE-TASK-WT-0001"
+
+    result = sp.run(
+        [
+            pwsh, "-NoProfile", "-File", str(script),
+            "-WorkspaceRoot", str(repo),
+            "-TaskId", "BASE-TASK-WT-0001",
+            "-PromptFile", str(prompt),
+            "-TaskFile", str(repo / "tasks.json"),
+            "-CopilotCli", str(stub),
+            "-SessionName", "Worktree worker test",
+            "-WindowTitle", "",
+            "-TaskBranch", "task/BASE-TASK-WT-0001",
+            "-Worktree", str(worktree),
+        ],
+        capture_output=True, text=True, check=False,
+    )
+
+    # The main working tree must stay on main (not be switched in place).
+    main_branch = sp.run(
+        ["git", "-C", str(repo), "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    assert main_branch == "main", (result.stdout + result.stderr)
+
+    # A dedicated worktree on the task branch must have been created.
+    assert worktree.exists(), (result.stdout + result.stderr)
+    worktree_branch = sp.run(
+        ["git", "-C", str(worktree), "rev-parse", "--abbrev-ref", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    assert worktree_branch == "task/BASE-TASK-WT-0001", (result.stdout + result.stderr)
+
+
 def test_start_copilot_for_task_records_worker_session(monkeypatch, tmp_path):
     class DummyProc:
         pid = 24680
@@ -225,7 +291,7 @@ def test_start_copilot_for_task_records_worker_session(monkeypatch, tmp_path):
 
     monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
     monkeypatch.setattr(task_manager.subprocess, "Popen", lambda *args, **kwargs: DummyProc())
-    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path, store=None: "review prompt")
+    monkeypatch.setattr(task_manager, "_build_review_prompt", lambda task, tasks_path, store=None, workspace_override=None: "review prompt")
 
     task_manager._start_copilot_for_task(task, tasks_path, DummyStore(), mode="review")
     session = task.get("worker_session")
@@ -356,7 +422,7 @@ def test_start_copilot_for_task_passes_permission_flags(monkeypatch, tmp_path):
 
     monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
     monkeypatch.setattr(task_manager.subprocess, "Popen", lambda *args, **kwargs: launched.append((args, kwargs)) or object())
-    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None, workspace_override=None: "prompt")
 
     prompt_path = task_manager._start_copilot_for_task(
         task,
@@ -1066,7 +1132,7 @@ def test_start_copilot_for_task_wires_status_queue_mcp(monkeypatch, tmp_path):
 
     monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
     monkeypatch.setattr(task_manager.subprocess, "Popen", fake_popen)
-    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None, workspace_override=None: "prompt")
 
     task = {"id": "BASE-TASK-MCP-0001", "title": "MCP wiring test"}
     task_manager._start_copilot_for_task(task, tasks_path, store, mode="work")
@@ -1097,7 +1163,7 @@ def test_start_copilot_for_task_omits_mcp_when_store_disabled(monkeypatch, tmp_p
     monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
     monkeypatch.setattr(task_manager.subprocess, "Popen",
                         lambda *a, **k: launched.update(argv=a[0] if a else k.get("args")) or DummyProc())
-    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None, workspace_override=None: "prompt")
 
     task = {"id": "BASE-TASK-MCP-0002", "title": "MCP disabled test"}
     task_manager._start_copilot_for_task(task, tasks_path, store, mode="work")
@@ -1122,12 +1188,70 @@ def test_start_copilot_for_task_writes_prompt_into_prompt_store(monkeypatch, tmp
 
     monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
     monkeypatch.setattr(task_manager.subprocess, "Popen", lambda *a, **k: DummyProc())
-    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None: "prompt")
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None, workspace_override=None: "prompt")
 
     task = {"id": "BASE-TASK-PS-0001", "title": "prompt store test"}
     prompt_path = task_manager._start_copilot_for_task(task, tasks_path, store, mode="work")
     assert prompt_path.parent == (Path(tmp_path) / "task_prompts").resolve()
     assert prompt_path.exists()
+
+
+def test_worktree_path_for_task_is_peer_under_app_container(tmp_path):
+    store, _store_root, _tasks_path = _make_status_store(tmp_path)
+    path = task_manager._worktree_path_for_task(store, "BASE-TASK-WT-0001")
+    base = Path(tmp_path).resolve()
+    # The worktree location is fixed: one level up from the main working tree
+    # (base_dir) to the {APP} container, so the task worktree is a sibling of main.
+    expected = base.parent / "BASE-TASK-WT-0001"
+    assert path == expected
+    # The worktree lives beside the main working tree, never nested inside it.
+    assert base not in path.parents
+    assert path.parent == base.parent
+
+
+def test_worktree_root_is_parent_of_main_working_tree(tmp_path):
+    store, _store_root, _tasks_path = _make_status_store(tmp_path)
+    base = Path(tmp_path).resolve()
+    # The worktree root is fixed (not configurable): always the {APP} container,
+    # i.e. the parent of the main working tree.
+    assert task_manager._worktree_root(store) == base.parent
+
+
+def test_start_copilot_for_task_passes_worktree_to_launcher(monkeypatch, tmp_path):
+    store, _store_root, tasks_path = _make_status_store(tmp_path)
+    tasks_path.write_text("{}", encoding="utf-8")
+
+    captured = {}
+
+    class DummyProc:
+        pid = 27182
+
+    def fake_popen(args, *a, **k):
+        captured["args"] = args
+        return DummyProc()
+
+    monkeypatch.setattr(task_manager.shutil, "which", lambda name: "copilot")
+    monkeypatch.setattr(task_manager.subprocess, "Popen", fake_popen)
+    monkeypatch.setattr(task_manager, "_build_copilot_prompt", lambda task, tasks_path, store=None, workspace_override=None: "prompt")
+
+    task = {"id": "BASE-TASK-WT-0003", "title": "worktree wiring"}
+    task_manager._start_copilot_for_task(task, tasks_path, store, mode="work")
+
+    args = captured["args"]
+    assert "-Worktree" in args
+    worktree_value = args[args.index("-Worktree") + 1]
+    expected = Path(tmp_path).resolve().parent / "BASE-TASK-WT-0003"
+    assert Path(worktree_value) == expected
+    assert task["worker_session"]["worktree"] == expected.as_posix()
+
+
+def test_build_copilot_prompt_uses_workspace_override(tmp_path):
+    store, _store_root, _tasks_path = _make_status_store(tmp_path)
+    tasks_path = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    task = {"id": "BASE-TASK-WT-0004", "title": "t", "status": "ToDo", "description": "d"}
+    override = (Path(tmp_path) / "wt-override")
+    prompt = task_manager._build_copilot_prompt(task, tasks_path, store=store, workspace_override=str(override))
+    assert override.resolve().as_posix() in prompt
 
 
 # ---------------------------------------------------------------------------

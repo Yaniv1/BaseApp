@@ -7,6 +7,7 @@ param(
     [string]$SessionName,
     [string]$WindowTitle,
     [string]$TaskBranch,
+    [string]$Worktree,
     [string]$McpConfig,
     [switch]$EnableFullRead,
     [switch]$EnableFullEdit,
@@ -15,14 +16,67 @@ param(
 
 Set-Location -LiteralPath $WorkspaceRoot
 
-# Work each task on its own short-lived, ad-hoc branch so that changes for
-# multiple tasks worked on at the same time never mix together. The branch is
-# created and checked out off the current HEAD before the worker session
-# begins. Any uncommitted work in the tree is carried onto the new branch by
-# the checkout. This is best-effort: if the workspace is not a git repository
-# or the branch operation fails, a warning is emitted and the session still
-# starts on the current branch.
-if (-not [string]::IsNullOrWhiteSpace($TaskBranch)) {
+# Work each task in its own dedicated git worktree so that multiple task agents
+# can run in parallel, each on its own short-lived branch, in a physically
+# separate checkout directory. A worktree gives the branch its own working tree
+# that shares the repository's object store with `main` but never collides with
+# other tasks' files (unlike an in-place `git checkout`, which can only have one
+# branch checked out per working tree at a time). The session then runs inside
+# that worktree directory. This is best-effort: if the workspace is not a git
+# repository or the worktree operation fails, a warning is emitted and the
+# session falls back to running on the current branch in the main working tree.
+$sessionRoot = $WorkspaceRoot
+if (-not [string]::IsNullOrWhiteSpace($Worktree) -and -not [string]::IsNullOrWhiteSpace($TaskBranch)) {
+    try {
+        $insideRepo = (& git rev-parse --is-inside-work-tree 2>$null)
+        if ($LASTEXITCODE -eq 0 -and $insideRepo -eq 'true') {
+            if (Test-Path -LiteralPath $Worktree) {
+                # The worktree directory already exists (e.g. a re-launch or a
+                # review of an in-flight task) - reuse it as-is.
+                Write-Host "Reusing existing worktree for '$TaskBranch' at '$Worktree'." -ForegroundColor Green
+                $sessionRoot = $Worktree
+            }
+            else {
+                $parent = Split-Path -Parent $Worktree
+                if (-not [string]::IsNullOrWhiteSpace($parent) -and -not (Test-Path -LiteralPath $parent)) {
+                    New-Item -ItemType Directory -Path $parent -Force | Out-Null
+                }
+                # Reuse an existing branch if one is already present (local or
+                # remote-tracking), otherwise create the branch with the worktree.
+                & git rev-parse --verify --quiet $TaskBranch *> $null
+                $localBranchExists = ($LASTEXITCODE -eq 0)
+                & git rev-parse --verify --quiet "origin/$TaskBranch" *> $null
+                $remoteBranchExists = ($LASTEXITCODE -eq 0)
+                if ($localBranchExists) {
+                    & git worktree add $Worktree $TaskBranch | Out-Host
+                }
+                elseif ($remoteBranchExists) {
+                    & git worktree add -b $TaskBranch $Worktree "origin/$TaskBranch" | Out-Host
+                }
+                else {
+                    & git worktree add -b $TaskBranch $Worktree | Out-Host
+                }
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Warning "Unable to create worktree '$Worktree' for branch '$TaskBranch'; continuing in the main working tree."
+                }
+                else {
+                    Write-Host "Working this task in its own worktree '$Worktree' on branch '$TaskBranch'." -ForegroundColor Green
+                    $sessionRoot = $Worktree
+                }
+            }
+        }
+        else {
+            Write-Warning "Workspace '$WorkspaceRoot' is not a git repository; skipping task worktree creation."
+        }
+    }
+    catch {
+        Write-Warning "Task worktree setup failed: $($_.Exception.Message). Continuing in the main working tree."
+    }
+}
+elseif (-not [string]::IsNullOrWhiteSpace($TaskBranch)) {
+    # Legacy fallback: no worktree configured, so check the branch out in place
+    # on the main working tree. NOTE: this prevents truly parallel task agents
+    # because a working tree can only hold one branch at a time.
     try {
         $insideRepo = (& git rev-parse --is-inside-work-tree 2>$null)
         if ($LASTEXITCODE -eq 0 -and $insideRepo -eq 'true') {
@@ -54,6 +108,11 @@ if (-not [string]::IsNullOrWhiteSpace($TaskBranch)) {
         Write-Warning "Task branch setup failed: $($_.Exception.Message). Continuing on the current branch."
     }
 }
+
+# Run the worker session from inside the task's worktree (when one was created)
+# so all of its file edits, commits, and tool invocations are scoped to the
+# isolated checkout rather than the shared main working tree.
+Set-Location -LiteralPath $sessionRoot
 
 # Keep a deterministic console window title (the task title) so the task
 # manager can trace and re-focus this window when the task later moves to the

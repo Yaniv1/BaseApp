@@ -13,9 +13,9 @@ Task Description:
 
 Please implement this task end-to-end in the workspace. Review the relevant instruction and requirement files, follow the existing code patterns, update the task ledger when appropriate, and run relevant tests or validation before finishing.
 
-## Branch
+## Branch & Worktree
 
-Work this task on its own short-lived, ad-hoc branch (e.g. `{task_id}`) created off the latest `main`, never directly on `main`. Do all of the task's commits on that branch and push the branch. After approval the task is finalized and pushed to that branch (the `Deployed` status); it is later merged into `main` and dissolved when the task is fully integrated (the `Done` status), under the integration engineer's supervision.
+Work this task on its own short-lived, ad-hoc branch (e.g. `{task_id}`) created off the latest `main`, never directly on `main`. The Task Manager launches you inside a **dedicated git worktree** for this task — a separate checkout directory that is a sibling of `main` under the `{APP}` container (`{APP}/<task-id>`), sharing the repository's bare object store but isolated from `main` and from other tasks' worktrees so that several task agents can run in parallel without colliding. Your `{workspace_root}` above is that worktree directory: do all of your file edits and commits there, and push the branch. After approval the task is finalized and pushed to that branch (the `Deployed` status); it is later merged into `main`, and the branch and its worktree are dissolved when the task is fully integrated (the `Done` status), under the integration engineer's supervision.
 
 ## Task Status Updates
 
