@@ -1122,7 +1122,13 @@
             "type": "Feature",
             "priority": "High",
             "status": "InProgress",
-            "comments": [],
+            "comments": [
+                {
+                    "author": "BASE-TASK-260622-0004 worker",
+                    "content": "Started work on BASE-TASK-260622-0004: adding per-column sorting (asc/desc/none) and value filtering to the Task Manager task list table.",
+                    "timestamp": "2026-06-26T23:10:11Z"
+                }
+            ],
             "worker_session": {
                 "pid": 28560,
                 "window_title": "Task Manager UI allow sorting task list by priority, type, and ID (BASE-TASK-260622-0004)",
