@@ -1630,6 +1630,11 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Rewrite the README.doc to provide an overview of the app in its final form and not a list of updates",
                     "timestamp": "2026-06-24T19:50:54Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0003 worker",
+                    "content": "Started work on rewriting README.md from a version-by-version changelog into a high-level app overview (purpose, structure, features, and setup/run/instantiate/pull/build-via-task-manager instructions).",
+                    "timestamp": "2026-06-26T23:07:57Z"
                 }
             ],
             "worker_session": {
