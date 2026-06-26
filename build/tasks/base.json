@@ -1803,7 +1803,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1814,6 +1814,11 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Started work on BASE-TASK-260626-0003: adding the bare/worktree multi-branch repository initialization script (init_bare_worktree_repo.ps1) to scripts/, working on the task branch task/BASE-TASK-260626-0003.",
                     "timestamp": "2026-06-26T23:07:21Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Specification ready. Added scripts/init_bare_worktree_repo.ps1 (Feature 3.8) — a machine-agnostic, idempotent PowerShell script that clones BaseApp or any variant app into the bare shared-object-store + per-branch worktree layout (bare clone into {APP}/.bare, rename-safe relative .git pointer, all-branch fetch, default-branch worktree, optional -TaskBranch worktree) instead of a plain git clone. Registered architecture features 3.8/3.8.1 and requirement BASE-REQ-014.13 with solution mappings. Variant apps inherit the script automatically because resources/manifests/pull.json propagates the whole scripts/ folder. Spec committed on branch task/BASE-TASK-260626-0003 (not pushed). Summary at task_results/BASE-TASK-260626-0003/BASE-TASK-260626-0003.html.",
+                    "timestamp": "2026-06-26T23:11:23Z"
                 }
             ],
             "worker_session": {
