@@ -1638,6 +1638,22 @@
                     "timestamp": "2026-06-24T20:30:00Z"
                 }
             ]
+        },
+        {
+            "author": "BASE-TASK-260624-0002 Agentic Builder",
+            "id": "BASE-TASK-260626-0001",
+            "uuid": "1f48f3c6-d26f-4017-8f71-7fff2b4e7240",
+            "title": "Task Manager status-sync must commit only the task ledger, not sweep worker changes via git add -A",
+            "description": [
+                "Problem: When the Task Manager applies a queued status-update request, its git sync (_sync_task_store_to_git / status-inbox processing) stages with 'git add -A' before committing. On a task branch this sweeps the worker agent's UNCOMMITTED code/spec/test changes into the server's 'Apply task status update' commits and pushes them to origin -- BEFORE the engineer's explicit push approval gate.",
+                "Evidence (BASE-TASK-260624-0002): commits 1177fa3 (swept build/requirements/base.json) and 87181bd (swept resources/templates/task_manager.html) pushed worker code ahead of approval; a 'git pull --rebase --autostash' during a sync also dropped an uncommitted test-file edit (test/tests/base/task_manager.py), which had to be re-applied manually.",
+                "Impact: (1) violates the Ready/Deployed approval gate by pushing worker code early; (2) risk of losing uncommitted worker changes via autostash; (3) mixes ledger-only commits with unrelated worker changes, muddying history.",
+                "Proposed fix: Scope the ledger commit to ONLY the task ledger (build/tasks/<app>.json) -- e.g. 'git add -- build/tasks/<app>.json' and a path-scoped commit -- instead of 'git add -A'/'commit -a'. Avoid autostash side effects on the worker's working tree (or operate on the ledger via a dedicated worktree/clone). Add a regression test asserting the status-sync commit touches only the ledger path and never stages other modified files."
+            ],
+            "type": "Bug",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": []
         }
     ]
 }
