@@ -1,4 +1,4 @@
-# BaseApp V-26.06.24.06
+# BaseApp V-26.06.25.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.25.01)
+
+- **Independent scrolling for the Task Manager's task list and task details** (Feature 3.6; Requirement BASE-REQ-014.11): The Task Manager UI (`resources/templates/task_manager.html`) now presents the task list and the selected task's details as two fixed, vertically-stacked blocks that each scroll on their own, instead of rendering the details below the list inside a single page-level scroll. The page body is a full-height flex column with hidden overflow; the content area holds a `.split` column containing a `.list-pane` (the task table, `overflow:auto`), a draggable `.split-divider` gutter, and a `.detail-pane` (the detail panel plus a placeholder, `overflow:auto`), with the panes sized by `flex-grow` 60/40. A new `initSplit()` handler drags the divider to reallocate space (ratio clamped 12%-88%), persists the chosen ratio in `localStorage['tm_split_ratio']`, and resets to the default 60/40 on double-click. `showDetail()`/`hideDetail()` toggle a placeholder ("Select a task above to view its details.") and reset the details pane to the top when a task is opened. New test in `test/tests/base/task_manager.py`. Build tests verified: 1 run, 0 failures.
 
 ## Release Highlights (26.06.24.06)
 

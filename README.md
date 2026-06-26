@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.24.06
-- App template version: A26.06.24.06
+- Base version: 26.06.25.01
+- App template version: A26.06.25.01
+
+## Highlights (26.06.25.01)
+
+- **The Task Manager's task list and details scroll independently.** The web UI now shows the task list and the selected task's details as two stacked blocks, each with its own scrollbar, so reviewing a long task no longer scrolls the whole window or pushes the list out of view. A draggable bar between the two blocks lets you give more room to either one; it defaults to a 60% list / 40% details split, remembers your choice across reloads, and snaps back to the default on a double-click. When no task is selected, the details block shows a short prompt to pick one.
 
 ## Highlights (26.06.24.06)
 

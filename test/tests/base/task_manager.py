@@ -286,6 +286,26 @@ def test_task_manager_template_has_other_catch_all_tab():
     assert "return 'Other';" in template
 
 
+def test_task_manager_template_has_resizable_split_panes():
+    """Feature 3.6: task list and task details are two stacked, independently
+    scrolling blocks separated by a draggable divider (default 60/40 split)."""
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    # Two stacked panes plus the draggable gutter between them.
+    assert 'class="list-pane"' in template
+    assert 'class="detail-pane"' in template
+    assert 'id="split-divider"' in template
+    # Each pane scrolls on its own.
+    assert ".list-pane{" in template and "overflow:auto" in template
+    assert ".detail-pane{" in template
+    # The gutter is a horizontal, row-resize separator.
+    assert "cursor:row-resize" in template
+    assert 'aria-orientation="horizontal"' in template
+    # Default division is 60% list / 40% details and is wired through JS.
+    assert "DEFAULT_RATIO = 0.6" in template
+    assert "function initSplit()" in template
+
+
 def test_delete_task_soft_deletes_then_removes():
     tasks = [
         {"id": "BASE-TASK-0001", "title": "Keep", "status": "ToDo"},
