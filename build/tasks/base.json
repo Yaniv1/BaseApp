@@ -1652,12 +1652,17 @@
             ],
             "type": "Bug",
             "priority": "High",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "BASE-TASK-260626-0001 worker",
                     "content": "Started work on BASE-TASK-260626-0001 (status-sync ledger isolation). Reviewed instructions, requirements, architecture, and the current sync path: scripts/task_manager.py::_sync_task_store_to_git delegates to scripts/sync_task_repo.ps1. Found that 'git add -A' was already replaced by path-scoped 'git add -- <ledger>' in BASE-TASK-260624-0002, but the remaining risks persist: the headless status-inbox sync runs in the shared working tree (currently the worker's task branch), commits the ledger onto that branch, and runs 'git pull --rebase --autostash', which can disturb/drop the worker's uncommitted files and push worker code before the approval gate. Designing an isolated-worktree fix so the ledger commit goes to the main branch without touching the worker's working tree, plus a regression test.",
                     "timestamp": "2026-06-26T19:01:17Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0001 worker",
+                    "content": "Specification ready for review. Root cause: the headless status-inbox sync (scripts/task_manager.py::_sync_task_store_to_git(headless=True) -> scripts/sync_task_repo.ps1) runs in the shared working tree, which while a worker is active is on the worker's task/<id> branch; it commits the ledger there and runs 'git pull --rebase --autostash', which can sweep/early-push worker code and drop the worker's uncommitted changes. (Note: the 'git add -A' from the title was already replaced with path-scoped 'git add -- <ledger>' in BASE-TASK-260624-0002; the remaining defects are the task-branch commit target and the working-tree autostash.) Design: rewrite sync_task_repo.ps1 to commit/push ONLY the ledger inside a dedicated DETACHED git worktree built from the latest origin/<branch> tip (never touching the worker's working tree); add an optional -Branch param (default current HEAD; headless passes APP.TASK_MANAGER.ledger_branch, default 'main'); rebase only the single ledger commit inside the isolated worktree on non-fast-forward. task_manager.py gains _resolve_ledger_branch and a 'branch' param on _sync_task_store_to_git wired from _apply_status_request_file; config/base.json gains APP.TASK_MANAGER.ledger_branch. Spec artifacts updated: requirement BASE-REQ-014.12 + solution rows (build/requirements/base.json) and architecture feature 3.7 + test feature 5.3.1.7.2 (build/architecture/base.json). Planned regression test: test_sync_task_repo_isolates_ledger_commit_from_worker_tree. Work summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260626-0001/BASE-TASK-260626-0001.html. Awaiting engineer approval of the specification before implementing.",
+                    "timestamp": "2026-06-26T19:06:49Z"
                 }
             ],
             "worker_session": {
