@@ -1526,7 +1526,7 @@
             ],
             "type": "Feature",
             "priority": "Low",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1537,6 +1537,11 @@
                     "author": "BASE-TASK-260624-0002 worker",
                     "content": "Started work on BASE-TASK-260624-0002: split the Task Manager UI into two independently-scrolling, vertically-stacked blocks (task list and task details) with a draggable divider defaulting to a 60/40 split.",
                     "timestamp": "2026-06-26T00:14:40Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0002 worker",
+                    "content": "Specification ready. Requirements: added BASE-REQ-014.11 (Task Manager UI split-pane layout). Architecture: no change (lives in resources/templates/task_manager.html under scripts.task_manager / Feature 3.6). Design: content area becomes a vertical split with .list-pane (task list) and .detail-pane (task details), each independently scrolling, separated by a draggable .split-divider; default 60/40, ratio persisted in localStorage, double-click resets; placeholder shown when no task selected. Test added: test_task_manager_template_has_resizable_split_panes. Awaiting engineer review of the specification.",
+                    "timestamp": "2026-06-26T00:21:02Z"
                 }
             ],
             "worker_session": {
