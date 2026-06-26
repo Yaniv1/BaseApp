@@ -128,4 +128,5 @@ perform the Change Finalizing and Deployment steps below:
         e. The Task Manager server applies the `Done` status and comment to the ledger on `main` (you do not commit the ledger yourself).
         f. Delete (dissolve) the short-lived task branch, since it is no longer needed.
         g. Update the task report in the task result store (the `{result_store}` location given in your `task.md` prompt), e.g. `<result_store>/{task_id}/{task_id}.html`.
+        h. Perform `git pull` on the local `main` to have it in full sync with the remote `main` after integration.
         
