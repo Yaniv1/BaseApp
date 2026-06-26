@@ -47,6 +47,47 @@ function Invoke-Git {
     }
 }
 
+function Sync-PrimaryBranchToRemote {
+    # Keep the PRIMARY working tree's local <branch> from falling behind the
+    # freshly updated origin/<branch>. The ledger commit is pushed straight to
+    # origin from an isolated worktree, so without this the primary tree's local
+    # branch pointer never advances and it drifts behind the remote (its ledger
+    # file lingering as a perpetual "uncommitted change").
+    #
+    # This only acts when (a) the primary tree is actually on <branch> and (b) a
+    # pure fast-forward is possible (local <branch> is an ancestor of
+    # origin/<branch>), so it can never clobber un-pushed local commits or a
+    # diverged branch. It uses a MIXED reset, which advances the branch pointer
+    # and refreshes the index WITHOUT touching any working-tree files -- so any
+    # legitimately modified ledger content (the next pending update) or other
+    # working changes are preserved exactly as-is.
+    param([string]$TargetBranch)
+
+    $head = Invoke-Git @('rev-parse', '--abbrev-ref', 'HEAD')
+    if ($head.ExitCode -ne 0 -or $head.Output.Trim() -ne $TargetBranch) {
+        return
+    }
+    $ancestor = Invoke-Git @('merge-base', '--is-ancestor', "refs/heads/$TargetBranch", "origin/$TargetBranch")
+    if ($ancestor.ExitCode -ne 0) {
+        # Local branch is ahead of or diverged from origin (or origin tip is
+        # unknown): never reset over it. Leave it untouched.
+        return
+    }
+    $localTip = Invoke-Git @('rev-parse', "refs/heads/$TargetBranch")
+    $remoteTip = Invoke-Git @('rev-parse', "origin/$TargetBranch")
+    if ($localTip.ExitCode -eq 0 -and $remoteTip.ExitCode -eq 0 -and $localTip.Output -eq $remoteTip.Output) {
+        # Already in sync; nothing to do.
+        return
+    }
+    $ff = Invoke-Git @('reset', '--mixed', "origin/$TargetBranch")
+    if ($ff.ExitCode -ne 0) {
+        Write-Output "Warning: could not fast-forward local $TargetBranch to origin/${TargetBranch}: $($ff.Output)"
+    }
+    else {
+        Write-Output "Fast-forwarded local $TargetBranch to origin/$TargetBranch"
+    }
+}
+
 $repoPath = (Resolve-Path -Path $RepoRoot).Path
 $taskRel = ($TaskFile -replace '\\', '/').TrimStart('/')
 
@@ -124,6 +165,10 @@ try {
     if ($stage.ExitCode -ne 0) { throw "Unable to stage ledger in worktree: $($stage.Output)" }
     $staged = Invoke-Git @('status', '--porcelain', '--', $taskRel) $worktreePath
     if (-not $staged.Output) {
+        # Even when this sync has no ledger change to push, the primary tree may
+        # still be lagging behind origin/<branch> from an earlier push, so
+        # reconcile it here too.
+        Sync-PrimaryBranchToRemote -TargetBranch $Branch
         Write-Output "No ledger changes to sync for $taskRel on $Branch"
         return
     }
@@ -149,6 +194,10 @@ try {
         }
     }
     if (-not $pushed) { throw "git push failed for $taskRel on $Branch after retry." }
+
+    # The ledger commit is now on origin/<branch>; advance the primary working
+    # tree's local <branch> so it never falls behind the remote.
+    Sync-PrimaryBranchToRemote -TargetBranch $Branch
 
     Write-Output "Synced $taskRel to git on $Branch (isolated worktree)"
 }
