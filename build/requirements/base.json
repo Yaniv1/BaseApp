@@ -1197,9 +1197,13 @@
                                                                               "comments": []
                                                                           },
                 {
-                    "id": "BASE-REQ-014.12",
-                    "description": "Status-sync ledger-isolation requirement: When the Task Manager server applies a queued status-update request and syncs the task ledger to git, that sync shall affect ONLY the task ledger (build/tasks/<app>.json) and shall never stage, commit, push, stash, rebase, or otherwise modify any other file in the worker's working tree. Because the shared working tree is, while a worker is active, checked out on the worker's short-lived task/<id> branch with uncommitted worker code/spec/test changes, the headless status-sync shall not commit the ledger onto the task branch and shall not run 'git add -A'/'commit -a' or a working-tree 'git pull --rebase --autostash' that could sweep the worker's uncommitted changes into the server's commits, push worker code ahead of the engineer's Ready/Deployed approval gate, or drop uncommitted worker changes via autostash. Instead, the server shall commit and push the ledger change in isolation from the worker's working tree -- via a dedicated detached git worktree built from the latest origin tip of the ledger branch -- so the ledger commit lands on the configured ledger branch (APP.TASK_MANAGER.ledger_branch, default main) with the ledger as its only changed path, and any rebase needed to integrate a moved remote occurs inside that isolated worktree (which only ever contains the ledger change) rather than in the worker's working tree. The ledger branch shall be configurable and the manual 'Sync Git' button / startup sync may continue to sync the currently checked-out branch, but always through the same working-tree-isolating mechanism. After the ledger commit is pushed to origin/<ledger-branch>, the server shall keep the primary 'main' worktree's local ledger branch from falling behind that remote tip: when (and only when) the primary working tree is checked out on the ledger branch and a pure fast-forward is possible (the local branch is an ancestor of origin/<ledger-branch>), it shall advance the local branch pointer to the pushed remote tip using a mixed reset that refreshes the branch pointer and index WITHOUT touching any working-tree files (so any legitimately modified ledger content or other working changes are preserved). It shall never reset over a diverged or ahead local branch, so un-pushed local commits are never clobbered.",
                     "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.13",
+                    "description": "Multi-branch repository initialization requirement: The framework shall provide a reusable, machine-agnostic PowerShell script (scripts/init_bare_worktree_repo.ps1) that clones a repository into the multi-branch bare/worktree layout rather than as a plain single-tree git clone. Given a clone URL (and optional root, container name, default branch, and task branch), the script shall create the {APP} container directory, perform a bare clone into {APP}/.bare, write a rename-safe relative .git pointer ('gitdir: ./.bare'), normalize the fetch refspec so every remote branch is tracked, fetch all branches, and check out the default branch as the {APP}/<default-branch> worktree, optionally adding a second worktree for a supplied task branch (created off the default branch when it does not yet exist). The operation shall be idempotent so re-running against an existing container safely skips completed work, and shall not be hard-coded to any user, drive, or absolute path. The same script shall serve both BaseApp and variant apps (selected purely by the clone URL passed in), and because the whole scripts/ folder is propagated to variant apps via resources/manifests/pull.json, variant apps shall receive this initializer automatically, so that variant-app development benefits from the identical multi-branch architecture used by BaseApp.",
+                    "priority": "Medium",
                     "comments": []
                 }
                                ],
@@ -1286,6 +1290,20 @@
                     "role": "test_sync_task_repo_isolates_ledger_commit_from_worker_tree runs sync_task_repo.ps1 -Branch main against a clone on a task branch with uncommitted ledger and worker-file edits, asserting the ledger commit is isolated to origin/main, the worker's edit is preserved, HEAD stays on the task branch, and the ledger commit never lands on the task branch.",
                     "implementation": 1.0,
                     "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.8",
+                    "role": "scripts/init_bare_worktree_repo.ps1 clones any repo (BaseApp or variant app, selected by -Url) into the bare/worktree multi-branch layout: bare clone into {APP}/.bare, rename-safe relative .git pointer, normalized fetch refspec, all-branch fetch, default-branch worktree, and an optional -TaskBranch worktree. Idempotent and machine-agnostic; propagated to variant apps via resources/manifests/pull.json (scripts/).",
+                    "implementation": 1.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.8.1",
+                    "role": "Add-Worktree adds each branch's worktree subfolder idempotently: skips already-registered worktrees, leaves untracked existing folders untouched, checks out an existing local/remote branch, or creates a new branch off origin/<default-branch> when -CreateIfMissing is set.",
+                    "implementation": 1.0,
+                    "verification": 0.0,
                     "deployment": 0.0
                 }
             ]

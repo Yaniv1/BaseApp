@@ -407,6 +407,20 @@
                     "description": "PowerShell helper that commits and pushes ONLY the task ledger (build/tasks/<app>.json) to the linked git remote, fully isolated from the worker's primary working tree. It takes an optional -Branch parameter (the ledger branch; defaults to the current HEAD branch, and the headless status-inbox sync passes the configured APP.TASK_MANAGER.ledger_branch, default main). It reads the server-updated ledger content from the primary working tree and applies it inside a dedicated, reusable DETACHED git worktree built from the latest origin/<branch> tip, where it path-scopes the change with 'git add -- <ledger>', commits with the provided message, and pushes to refs/heads/<branch>; on a non-fast-forward push it fetches and rebases the single ledger commit inside that isolated worktree (which only ever contains the ledger change) and retries. It never runs 'git add -A'/'commit -a' and never stages, commits, stashes, rebases (autostash), or otherwise touches the worker's primary working tree, so it cannot sweep the worker's uncommitted code into the server's commits, push worker code ahead of the approval gate, or drop uncommitted worker changes. Invoked by the task manager UI Sync Git button, the automatic startup sync, and the headless status-inbox sync.",
                     "type": "Folder.Ps1File",
                     "path": "scripts/sync_task_repo.ps1"
+                },
+                "3.8": {
+                    "name": "scripts.init_bare_worktree_repo",
+                    "description": "Machine-agnostic, idempotent PowerShell script that clones any repo (BaseApp or a variant app) into the multi-branch bare/worktree layout instead of a plain git clone: it bare-clones the remote into {APP}/.bare, writes a rename-safe relative .git pointer (gitdir: ./.bare), normalizes the fetch refspec and fetches all branches, then checks the default branch out as the {APP}/<default-branch> worktree and optionally adds a second worktree for a -TaskBranch (created off the default branch when missing). Parametrized by -Url with optional -Root/-Name/-DefaultBranch/-TaskBranch/-TaskFolder, so the same script serves BaseApp and any variant app; the Add-Worktree helper adds each branch worktree idempotently. Distributed to variant apps automatically because the whole scripts/ folder is propagated via resources/manifests/pull.json.",
+                    "type": "Folder.Ps1File",
+                    "path": "scripts/init_bare_worktree_repo.ps1",
+                    "features": {
+                        "3.8.1": {
+                            "name": "scripts.init_bare_worktree_repo.Add-Worktree",
+                            "description": "Idempotent helper that adds a git worktree subfolder under the {APP} container for a given branch: it skips paths already registered as worktrees, leaves untracked existing folders untouched, checks out an existing local or remote-tracking branch, and (when -CreateIfMissing is set) creates a new branch off origin/<default-branch>.",
+                            "type": "Folder.Ps1File.Function",
+                            "path": "scripts/init_bare_worktree_repo.ps1::Add-Worktree"
+                        }
+                    }
                 }
             }
         },
