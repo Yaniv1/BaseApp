@@ -1652,7 +1652,7 @@
             ],
             "type": "Bug",
             "priority": "High",
-            "status": "Ready",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "BASE-TASK-260626-0001 worker",
@@ -1668,6 +1668,11 @@
                     "author": "BASE-TASK-260626-0001 worker",
                     "content": "Implementation complete; ready for review. Changes (uncommitted, pending approval): (1) scripts/sync_task_repo.ps1 rewritten to commit/push ONLY the ledger inside a dedicated, reusable DETACHED git worktree (<git-common-dir>/baseapp-ledger-sync) built from the latest origin/<branch> tip -- it reads the server-updated ledger from the primary tree and applies it in isolation (path-scoped 'git add -- <ledger>' + commit + 'push HEAD:refs/heads/<branch>', single-commit rebase-and-retry on non-fast-forward), and NEVER runs 'git add -A'/'commit -a' or a working-tree autostash/rebase, so the worker's primary working tree is never staged, stashed, rebased, or pushed early; added a -Branch param. (2) scripts/task_manager.py: added _resolve_ledger_branch (reads APP.TASK_MANAGER.ledger_branch, default main), added a branch param to _sync_task_store_to_git forwarding -Branch, and _apply_status_request_file now passes the ledger branch to the headless sync. (3) config/base.json: added APP.TASK_MANAGER.ledger_branch = main. (4) Spec: requirement BASE-REQ-014.12 + solution rows (build/requirements/base.json) and architecture feature 3.7 + test feature 5.3.1.7.2 (build/architecture/base.json). (5) Regression test test_sync_task_repo_isolates_ledger_commit_from_worker_tree (test/tests/base/task_manager.py) asserts the ledger commit is isolated to origin/main, the worker's uncommitted file is preserved byte-for-byte, HEAD stays on the task branch, and the ledger commit never lands on the task branch. Verification: regression test passes; test/tests/build.py exits 0 (deployment test 25/25, 0 failures); the only 2 failing unit tests (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port) are pre-existing and unrelated. NOTE: while this task ran, the live Task Manager (old script) processed my queued updates and its autostash DID stage my uncommitted files in the primary tree -- a real demonstration of the bug -- though path-scoping kept my code out of its 'Apply task status update' commits and nothing was lost. Per the approval gate I have NOT committed/pushed; versioning and documentation are deferred to Deployed. Work summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260626-0001/BASE-TASK-260626-0001.html.",
                     "timestamp": "2026-06-26T19:19:48Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0001 worker",
+                    "content": "Engineer granted explicit approval to stage/commit/push (\"approved. deploy.\"). Finalized and deployed to branch task/BASE-TASK-260626-0001 (commit 9a31c77, rebased over the server's ledger commits). Version bumped to 26.06.26.01 (app A26.06.26.01) across resources/version/base.txt, resources/version/app.txt, and config/base.json COMMON.VERSION; documentation updated in docs/readme/base.md, build/updates/base.json, and README.md. Committed only code/spec/test/doc changes (the task ledger build/tasks/base.json was NOT committed -- it remains server-owned). Verification before push: regression test test_sync_task_repo_isolates_ledger_commit_from_worker_tree passes and test/tests/build.py exits 0 (deployment test 25/25, 0 failures). Not yet merged into main; integration (Done) is a separate engineer-supervised step. Moving to Deployed (pushed to the task branch, not yet merged into main).",
+                    "timestamp": "2026-06-26T19:26:58Z"
                 }
             ],
             "worker_session": {
