@@ -1,4 +1,4 @@
-# BaseApp V-26.06.26.03
+# BaseApp V-26.06.26.04
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -8,7 +8,7 @@ BaseApp is a reusable Python foundation for app projects that need:
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
 
-## Release Highlights (26.06.26.03)
+## Release Highlights (26.06.26.04)
 
 - **README.md is now an app overview, with guardrails against changelog drift** (Feature 5.3.1.1.4; Requirement BASE-REQ-013.8): The top-level `README.md` was rewritten from a long per-release "Highlights" changelog into a current-state overview of the app (what it does, project structure, and how to set up / run / instantiate / pull base updates / build via the Task Manager). To stop it from drifting back into a changelog, the finalization instructions were hardened — `build/instructions/base.md` (deployment step 4e) and `build/instructions/app.md` now explicitly forbid `Highlights`/`Changelog`/`Release Notes`/`What's New` sections, release enumeration, and date/version-stamped headings in `README.md`, and require editing the overview in place (per-release history stays only in `docs/readme/{base,app}.md` and `build/updates/{base,app}.json`). A new advisory test `test.tests.base.base.test_readme_overview_only` (registered as the build-phase test `build_readme_overview_only` in `test/config/base.json`) scans `README.md` for those markers and reports a non-blocking **WARN** (never FAIL, since `fail_on=["FAIL"]`) so the convention is surfaced without breaking the build. Added architecture feature 5.3.1.1.4 and requirement BASE-REQ-013.8. Build tests verified: build phase 2/2, 0 failures.
 
