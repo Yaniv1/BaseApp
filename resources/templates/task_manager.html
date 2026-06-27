@@ -112,6 +112,14 @@ details.cli-sect{margin-top:2px}
 .pri-high{background:rgba(249,115,22,.2);color:#fdba74}
 .pri-medium{background:rgba(234,179,8,.17);color:#fde047}
 .pri-low{background:rgba(148,163,184,.11);color:var(--mu)}
+/* Sortable headers + per-column filters */
+.task-table th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
+.task-table th.sortable:hover{color:var(--tx)}
+.sort-ind{margin-left:5px;font-size:.7rem;color:var(--ac)}
+.filter-row th{padding:0 10px 9px;border-bottom:1px solid var(--ln)}
+.col-filter{width:100%;box-sizing:border-box;background:var(--bg);color:var(--tx);
+  border:1px solid var(--ln);border-radius:6px;padding:4px 7px;font:inherit;font-size:.76rem}
+.col-filter:focus{outline:none;border-color:var(--ac)}
 .empty{color:var(--mu);text-align:center;padding:36px;font-size:.9rem}
 .hidden{display:none!important}
 
@@ -243,7 +251,18 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
         <div class="table-wrap">
           <table class="task-table">
             <thead>
-              <tr><th>ID</th><th>Title</th><th>Type</th><th>Priority</th></tr>
+              <tr class="sort-row">
+                <th class="sortable" data-col="id">ID<span class="sort-ind" id="sort-ind-id"></span></th>
+                <th class="sortable" data-col="title">Title<span class="sort-ind" id="sort-ind-title"></span></th>
+                <th class="sortable" data-col="type">Type<span class="sort-ind" id="sort-ind-type"></span></th>
+                <th class="sortable" data-col="priority">Priority<span class="sort-ind" id="sort-ind-priority"></span></th>
+              </tr>
+              <tr class="filter-row">
+                <th><input type="text" id="filter-id" class="col-filter" placeholder="Filter ID&hellip;" autocomplete="off"></th>
+                <th><input type="text" id="filter-title" class="col-filter" placeholder="Filter title&hellip;" autocomplete="off"></th>
+                <th><select id="filter-type" class="col-filter"><option value="">All types</option></select></th>
+                <th><select id="filter-priority" class="col-filter"><option value="">All priorities</option></select></th>
+              </tr>
             </thead>
             <tbody id="task-tbody"></tbody>
           </table>
@@ -318,6 +337,14 @@ const defaultPath = SM ? SM.getAttribute('data-tasks-path') : '';
 const defaultTasksDir = SM ? SM.getAttribute('data-tasks-dir') : '';
 const defaultAppName = SM ? SM.getAttribute('data-app-name') : 'App';
 let allTasks = [], currentStatus = 'ToDo', selectedId = null;
+// Column sort state: which column (id|title|type|priority) and direction.
+// Sorting cycles none -> asc -> desc -> none per column.
+let sortColumn = null, sortDir = 'asc';
+// Per-column filters: id/title are substring text filters, type/priority are
+// exact-value selections drawn from the values present in the task list.
+const colFilters = { id: '', title: '', type: '', priority: '' };
+const PRIORITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
+const PRIORITY_ORDER = ['Critical', 'High', 'Medium', 'Low'];
 const STATUS_TABS = ['ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted', 'Other'];
 
 function normalizeStatus(value) {
@@ -375,6 +402,7 @@ function ensureGitSidebar() {
   await loadTasks();
   initCreateForm();
   initTabs();
+  initColumnControls();
   initDetail();
   initSplit();
 })().catch(e => setMsg('create-msg', e.message, true));
@@ -582,6 +610,7 @@ async function loadTasks() {
   } catch { return; }
   allTasks = tasks.map(task => ({ ...task, status: normalizeStatus(task.status) }));
   populateAuthorDropdown();
+  populateColumnFilters();
   renderTable();
   updateBadges();
   if (selectedId) {
@@ -600,11 +629,19 @@ function updateBadges() {
 
 function renderTable() {
   currentStatus = normalizeStatus(currentStatus);
-  const tasks = allTasks.filter(t => normalizeStatus(t.status) === currentStatus);
+  const tasks = getVisibleTasks();
   const tbody = document.getElementById('task-tbody');
   const noEl = document.getElementById('no-tasks');
   tbody.innerHTML = '';
-  if (!tasks.length) { noEl.classList.remove('hidden'); return; }
+  if (!tasks.length) {
+    const filtersActive = colFilters.id || colFilters.title || colFilters.type || colFilters.priority;
+    const hasUnfiltered = allTasks.some(t => normalizeStatus(t.status) === currentStatus);
+    noEl.textContent = (filtersActive && hasUnfiltered)
+      ? 'No tasks match the current filters.'
+      : 'No tasks in this status.';
+    noEl.classList.remove('hidden');
+    return;
+  }
   noEl.classList.add('hidden');
   tasks.forEach(task => {
     const tr = document.createElement('tr');
@@ -621,6 +658,99 @@ function renderTable() {
     tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(task); } });
     tbody.appendChild(tr);
   });
+}
+
+// ── Sorting & filtering ───────────────────────────────────────
+// Returns tasks for the current status tab with column filters applied
+// and the active column sort, if any.
+function getVisibleTasks() {
+  let tasks = allTasks.filter(t => normalizeStatus(t.status) === currentStatus);
+  tasks = tasks.filter(t => {
+    if (colFilters.id && !String(t.id || '').toLowerCase().includes(colFilters.id.toLowerCase())) return false;
+    if (colFilters.title && !String(t.title || '').toLowerCase().includes(colFilters.title.toLowerCase())) return false;
+    if (colFilters.type && String(t.type || 'Feature') !== colFilters.type) return false;
+    if (colFilters.priority && String(t.priority || 'Medium') !== colFilters.priority) return false;
+    return true;
+  });
+  if (sortColumn) {
+    tasks = tasks.slice().sort((a, b) => {
+      const c = compareCol(a, b, sortColumn);
+      return sortDir === 'asc' ? c : -c;
+    });
+  }
+  return tasks;
+}
+
+// Compare two tasks on a column. Priority sorts by severity rank
+// (Critical > High > Medium > Low); other columns sort naturally.
+function compareCol(a, b, col) {
+  if (col === 'priority') {
+    const ra = PRIORITY_RANK[String(a.priority || 'Medium').toLowerCase()] || 0;
+    const rb = PRIORITY_RANK[String(b.priority || 'Medium').toLowerCase()] || 0;
+    return ra - rb;
+  }
+  let va, vb;
+  if (col === 'id') { va = a.id || ''; vb = b.id || ''; }
+  else if (col === 'title') { va = a.title || ''; vb = b.title || ''; }
+  else { va = a.type || 'Feature'; vb = b.type || 'Feature'; }
+  return String(va).localeCompare(String(vb), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+// Cycle a column's sort state: none -> ascending -> descending -> none.
+function cycleSort(col) {
+  if (sortColumn !== col) { sortColumn = col; sortDir = 'asc'; }
+  else if (sortDir === 'asc') { sortDir = 'desc'; }
+  else { sortColumn = null; sortDir = 'asc'; }
+  updateSortIndicators();
+  renderTable();
+}
+
+function updateSortIndicators() {
+  ['id', 'title', 'type', 'priority'].forEach(c => {
+    const el = document.getElementById('sort-ind-' + c);
+    if (!el) return;
+    el.textContent = (sortColumn === c) ? (sortDir === 'asc' ? '\u25B2' : '\u25BC') : '';
+  });
+}
+
+// Fill the type/priority filter dropdowns from the distinct values present
+// across all tasks, preserving the current selection when still available.
+function populateColumnFilters() {
+  const typeSel = document.getElementById('filter-type');
+  const priSel = document.getElementById('filter-priority');
+  if (typeSel) {
+    const types = [...new Set(allTasks.map(t => String(t.type || 'Feature')))].sort((a, b) => a.localeCompare(b));
+    fillFilterSelect(typeSel, types, colFilters.type, 'All types');
+    colFilters.type = typeSel.value;
+  }
+  if (priSel) {
+    const present = new Set(allTasks.map(t => String(t.priority || 'Medium')));
+    const known = PRIORITY_ORDER.filter(p => present.has(p));
+    const extra = [...present].filter(p => !PRIORITY_ORDER.includes(p)).sort((a, b) => a.localeCompare(b));
+    fillFilterSelect(priSel, [...known, ...extra], colFilters.priority, 'All priorities');
+    colFilters.priority = priSel.value;
+  }
+}
+
+function fillFilterSelect(sel, values, current, allLabel) {
+  sel.innerHTML = '<option value="">' + esc(allLabel) + '</option>' +
+    values.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join('');
+  sel.value = (current && values.includes(current)) ? current : '';
+}
+
+// Wire header clicks (sorting) and filter inputs. Called once at startup.
+function initColumnControls() {
+  document.querySelectorAll('.task-table th.sortable').forEach(th => {
+    th.addEventListener('click', () => cycleSort(th.dataset.col));
+  });
+  const fid = document.getElementById('filter-id');
+  const fti = document.getElementById('filter-title');
+  const fty = document.getElementById('filter-type');
+  const fpr = document.getElementById('filter-priority');
+  if (fid) fid.addEventListener('input', () => { colFilters.id = fid.value; renderTable(); });
+  if (fti) fti.addEventListener('input', () => { colFilters.title = fti.value; renderTable(); });
+  if (fty) fty.addEventListener('change', () => { colFilters.type = fty.value; renderTable(); });
+  if (fpr) fpr.addEventListener('change', () => { colFilters.priority = fpr.value; renderTable(); });
 }
 
 // ── Detail panel ──────────────────────────────────────────────
