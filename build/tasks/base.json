@@ -1121,7 +1121,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Ready",
+            "status": "Approved",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0004 worker",
@@ -1132,6 +1132,11 @@
                     "author": "BASE-TASK-260622-0004 worker",
                     "content": "Implemented per-column sorting (none/asc/desc, with indicator; Priority sorts by severity rank) and per-column filtering (ID/Title substring; Type/Priority dropdowns of distinct values) on the Task Manager task list. Added requirement BASE-REQ-014.13 and a template test. Template tests pass (9/9); full task_manager module 57 passed, 2 pre-existing unrelated failures confirmed on baseline. Not committed/pushed yet; awaiting review.",
                     "timestamp": "2026-06-26T23:14:31Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0004 worker",
+                    "content": "Engineer approved the implementation and staged the files. Builder finalizing: bumping versions, updating updates ledger, readme/base.md and README.md. Awaiting explicit final approval to stage/commit/push.",
+                    "timestamp": "2026-06-27T00:26:40Z"
                 }
             ],
             "worker_session": {
