@@ -1640,7 +1640,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "Specified",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1656,6 +1656,11 @@
                     "author": "BASE-TASK-260624-0003 worker",
                     "content": "Design + implementation ready for review. README.md rewritten from a per-release \"Highlights\" changelog into a high-level app overview: What it does, Project structure, Getting started (setup_env, run app, instantiate, pullbase, deploy), Building with the Task Manager, and Versioning. Documentation-only change (no requirements/architecture/code/test changes). Work summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260624-0003/BASE-TASK-260624-0003.html",
                     "timestamp": "2026-06-26T23:10:23Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0003 worker",
+                    "content": "Implementation ready for review. (1) README.md rewritten as a current-state overview. (2) Added guardrails so it can't drift back into a changelog: hardened build/instructions/base.md (step 4e) and app.md to forbid changelog-style README content; added advisory WARN-only check test_readme_overview_only (Feature 5.3.1.1.4) registered as a BUILD-phase test (build_readme_overview_only) that scans for Highlights/Changelog/Release headings and repeated date/version-stamped headings; added BASE-REQ-013.8 and architecture feature 5.3.1.1.4. The test reports WARN (never FAIL) so it never breaks the build (fail_on=[\"FAIL\"]). Verified: build.py build phase 2/2 0 failures (exit 0), deployment 25/25, app run 0 WARN/0 ERROR; guard PASSes on current README and WARNs on a synthetic changelog. No version bump / docs/readme / updates changes yet (deployment-phase steps). Summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260624-0003/BASE-TASK-260624-0003.html",
+                    "timestamp": "2026-06-27T00:41:12Z"
                 }
             ],
             "worker_session": {
