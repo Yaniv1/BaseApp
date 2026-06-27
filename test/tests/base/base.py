@@ -1141,3 +1141,90 @@ def test_tasks_by_type_status(manager=None, message=None, **kwargs):
             } if isinstance(tasks_by_type_status, dict) else None,
         },
     }
+
+
+# Feature 5.3.1.1.4
+def test_readme_overview_only(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.1.4. Warn (never fail) when README.md drifts into a changelog.
+
+    The top-level README.md is meant to be a current-state overview of the app's
+    capabilities, not a per-release changelog (release history belongs in
+    docs/readme/base.md and build/updates/base.json). This advisory build-phase test
+    scans README.md for changelog markers and reports WARN (not FAIL) when any are
+    found, so the convention is surfaced without breaking the build.
+    """
+    # Resolve the project root: prefer the manager's configured base_dir,
+    # otherwise derive it from this file's fixed location (test/tests/base/base.py).
+    base_dir = ""
+    if manager is not None:
+        base_dir = str(getattr(manager, "base_dir", "") or "")
+    if not base_dir:
+        base_dir = str(Path(__file__).resolve().parents[3])
+
+    readme_path = os.path.join(base_dir, "README.md")
+
+    criteria = []
+
+    file_found = os.path.isfile(readme_path)
+    criteria.append({
+        "name": "readme_found",
+        "success": file_found,
+        # A missing README is not this test's concern (architecture compliance
+        # owns that), so stay advisory: PASS when present, WARN when absent.
+        "status": "PASS" if file_found else "WARN",
+        "actual": file_found,
+        "expected": True,
+    })
+
+    markers = []
+    if file_found:
+        try:
+            with open(readme_path, "r", encoding="utf-8") as fh:
+                text = fh.read()
+        except Exception as exc:
+            return {
+                "status": "WARN",
+                "message": message or "Could not read README.md for changelog scan",
+                "criteria": criteria + [{
+                    "name": "readme_readable",
+                    "success": False,
+                    "status": "WARN",
+                    "actual": str(exc),
+                    "expected": "Readable README.md",
+                }],
+                "features": ["5.3.1.1.4"],
+            }
+
+        heading_lines = [ln.strip() for ln in text.splitlines() if ln.lstrip().startswith("#")]
+
+        # 1) Headings that read like release/highlight/changelog sections.
+        changelog_heading = re.compile(r"(?i)\b(highlights?|change\s*log|changelog|release\s+notes?|what'?s\s+new)\b")
+        flagged_headings = [h for h in heading_lines if changelog_heading.search(h)]
+        if flagged_headings:
+            markers.append(f"{len(flagged_headings)} changelog-style heading(s), e.g. {flagged_headings[0]!r}")
+
+        # 2) Repeated date/version-stamped headings such as "(26.06.26.02)" or "V-26.06.26".
+        version_heading = re.compile(r"\(?\s*[A-Za-z]?\d{2}\.\d{2}\.\d{2}(?:\.\d{2})?\s*\)?")
+        version_headings = [h for h in heading_lines if version_heading.search(h)]
+        if len(version_headings) >= 2:
+            markers.append(f"{len(version_headings)} date/version-stamped headings (a single overview should not enumerate releases)")
+
+    has_markers = bool(markers)
+    criteria.append({
+        "name": "readme_is_overview_not_changelog",
+        "success": not has_markers,
+        # Advisory only: drift is a documentation smell, not a build breaker.
+        "status": "WARN" if has_markers else "PASS",
+        "actual": markers if has_markers else "no changelog markers found",
+        "expected": "README.md reads as a current-state overview (no per-release changelog sections)",
+    })
+
+    has_warnings = any(c["status"] == "WARN" for c in criteria)
+    return {
+        # This test never returns FAIL by design.
+        "status": "WARN" if has_warnings else "PASS",
+        "message": message or "Validated README.md is an overview and not a changelog",
+        "criteria": criteria,
+        "features": ["5.3.1.1.4"],
+        "data": {"markers": markers, "readme_path": readme_path},
+    }

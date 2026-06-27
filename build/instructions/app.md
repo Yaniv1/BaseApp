@@ -37,4 +37,4 @@ When logging, utilize logger functionality - use message codes instead of text, 
 
 If a generic functionality is needed, submit a task into the `build/tasks/base.json` file so that the functionality will be implemented as a base functionality and be available to all apps utilizing this framework.
 
-Update the app's README.md file and use it to provide an overview of the app and its capabilities, functionalities, and features.
+Update the app's README.md file and use it to provide an overview of the app and its capabilities, functionalities, and features. **`README.md` is a current-state overview, never a changelog:** edit the overview sections **in place** and do not add per-release/per-version/per-task entries. It must not contain `Highlights`, `Changelog`, `Release Notes`, or `What's New` sections, must not enumerate releases, and must not carry date- or version-stamped headings — all release history belongs only in `docs/readme/app.md` and `build/updates/app.json`. The advisory `WARN`-only test `test_readme_overview_only` flags drift back into a changelog.
