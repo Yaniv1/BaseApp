@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.26.02
-- App template version: A26.06.26.02
+- Base version: 26.06.26.03
+- App template version: A26.06.26.03
+
+## Highlights (26.06.26.03)
+
+- **Sort and filter the Task Manager task list.** The web UI's task list is no longer static — you can click any column header (ID, Title, Type, Priority) to sort by it, cycling through ascending, descending, and back to unsorted, with an arrow marking the active column; Priority sorts by importance (Critical, High, Medium, Low) rather than alphabetically. A filter row beneath the headers lets you narrow the list: type to match IDs or titles, or pick a value from a dropdown to show only a given Type or Priority (for example, only Bugs). Sorting and filtering apply within the selected status tab and work together, and the list tells you when no tasks match the current filters.
 
 ## Highlights (26.06.26.02)
 

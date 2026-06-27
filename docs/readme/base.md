@@ -1,4 +1,4 @@
-# BaseApp V-26.06.26.02
+# BaseApp V-26.06.26.03
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.26.03)
+
+- **Sort and filter the Task Manager task list by each column** (Feature 3.6; Requirement BASE-REQ-014.13): The Task Manager UI (`resources/templates/task_manager.html`) task list is no longer static — it can now be sorted and filtered by each of its columns (ID, Title, Type, Priority). Clicking a column header cycles that column's sort through **none → ascending → descending**, with a ▲/▼ indicator marking the active sort column and direction (only one column sorts at a time); the Priority column sorts by **severity rank** (Critical &gt; High &gt; Medium &gt; Low) rather than alphabetically. A filter row under the headers restricts the visible rows: **ID and Title** filter by case-insensitive substring text, while **Type and Priority** filter by an exact value chosen from a dropdown populated with the distinct values present in the list (e.g. filter Type to Bug or Feature), each with an "All" option that clears the filter. Sorting and filtering act within the selected status tab and combine (filters first, then sort); when filters exclude every task the list shows "No tasks match the current filters." Implemented entirely in the single-page template (new JS `getVisibleTasks`/`compareCol`/`cycleSort`/`populateColumnFilters`/`initColumnControls`); no server-side change. New test `test_task_manager_template_has_column_sorting_and_filtering` in `test/tests/base/task_manager.py`.
 
 ## Release Highlights (26.06.26.02)
 

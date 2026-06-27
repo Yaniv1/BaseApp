@@ -372,6 +372,29 @@ def test_task_manager_template_has_resizable_split_panes():
     assert "function initSplit()" in template
 
 
+def test_task_manager_template_has_column_sorting_and_filtering():
+    """BASE-REQ-014.13: the task list supports per-column sorting
+    (none/asc/desc) and per-column value filtering."""
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    # Every column header is sortable and carries a sort indicator.
+    for col in ("id", "title", "type", "priority"):
+        assert 'data-col="' + col + '"' in template
+        assert 'id="sort-ind-' + col + '"' in template
+    assert 'class="sortable"' in template
+    # Each column has a filter control: text inputs for id/title, selects for type/priority.
+    assert 'id="filter-id"' in template
+    assert 'id="filter-title"' in template
+    assert 'id="filter-type"' in template
+    assert 'id="filter-priority"' in template
+    # Sorting cycles none -> asc -> desc and is wired through JS.
+    assert "function cycleSort(" in template
+    assert "function getVisibleTasks()" in template
+    assert "function initColumnControls()" in template
+    # Priority sorts by severity rank rather than alphabetically.
+    assert "PRIORITY_RANK" in template
+
+
 def test_delete_task_soft_deletes_then_removes():
     tasks = [
         {"id": "BASE-TASK-0001", "title": "Keep", "status": "ToDo"},
