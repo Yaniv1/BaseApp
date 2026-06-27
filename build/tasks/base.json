@@ -1121,8 +1121,33 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
-            "comments": []
+            "status": "Approved",
+            "comments": [
+                {
+                    "author": "BASE-TASK-260622-0004 worker",
+                    "content": "Started work on BASE-TASK-260622-0004: adding per-column sorting (asc/desc/none) and value filtering to the Task Manager task list table.",
+                    "timestamp": "2026-06-26T23:10:11Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0004 worker",
+                    "content": "Implemented per-column sorting (none/asc/desc, with indicator; Priority sorts by severity rank) and per-column filtering (ID/Title substring; Type/Priority dropdowns of distinct values) on the Task Manager task list. Added requirement BASE-REQ-014.13 and a template test. Template tests pass (9/9); full task_manager module 57 passed, 2 pre-existing unrelated failures confirmed on baseline. Not committed/pushed yet; awaiting review.",
+                    "timestamp": "2026-06-26T23:14:31Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0004 worker",
+                    "content": "Engineer approved the implementation and staged the files. Builder finalizing: bumping versions, updating updates ledger, readme/base.md and README.md. Awaiting explicit final approval to stage/commit/push.",
+                    "timestamp": "2026-06-27T00:26:40Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 28560,
+                "window_title": "Task Manager UI allow sorting task list by priority, type, and ID (BASE-TASK-260622-0004)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260622-0004",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260622-0004",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260622-0004.md",
+                "started_at": "2026-06-26T23:06:57Z"
+            }
         },
         {
             "id": "BASE-TASK-260622-0005",
@@ -1615,14 +1640,38 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "ToDo",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Rewrite the README.doc to provide an overview of the app in its final form and not a list of updates",
                     "timestamp": "2026-06-24T19:50:54Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0003 worker",
+                    "content": "Started work on rewriting README.md from a version-by-version changelog into a high-level app overview (purpose, structure, features, and setup/run/instantiate/pull/build-via-task-manager instructions).",
+                    "timestamp": "2026-06-26T23:07:57Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0003 worker",
+                    "content": "Design + implementation ready for review. README.md rewritten from a per-release \"Highlights\" changelog into a high-level app overview: What it does, Project structure, Getting started (setup_env, run app, instantiate, pullbase, deploy), Building with the Task Manager, and Versioning. Documentation-only change (no requirements/architecture/code/test changes). Work summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260624-0003/BASE-TASK-260624-0003.html",
+                    "timestamp": "2026-06-26T23:10:23Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0003 worker",
+                    "content": "Implementation ready for review. (1) README.md rewritten as a current-state overview. (2) Added guardrails so it can't drift back into a changelog: hardened build/instructions/base.md (step 4e) and app.md to forbid changelog-style README content; added advisory WARN-only check test_readme_overview_only (Feature 5.3.1.1.4) registered as a BUILD-phase test (build_readme_overview_only) that scans for Highlights/Changelog/Release headings and repeated date/version-stamped headings; added BASE-REQ-013.8 and architecture feature 5.3.1.1.4. The test reports WARN (never FAIL) so it never breaks the build (fail_on=[\"FAIL\"]). Verified: build.py build phase 2/2 0 failures (exit 0), deployment 25/25, app run 0 WARN/0 ERROR; guard PASSes on current README and WARNs on a synthetic changelog. No version bump / docs/readme / updates changes yet (deployment-phase steps). Summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260624-0003/BASE-TASK-260624-0003.html",
+                    "timestamp": "2026-06-27T00:41:12Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 26716,
+                "window_title": "Rewrite the README.doc to provide an overview of the app in its final form and not a list of updates (BASE-TASK-260624-0003)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260624-0003",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260624-0003",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260624-0003.md",
+                "started_at": "2026-06-26T23:06:30Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1733,14 +1782,38 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager UI Task Search",
                     "timestamp": "2026-06-26T21:37:58Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0002 worker",
+                    "content": "Started work on BASE-TASK-260626-0002: adding a task-id search bar above the status tabs in the Task Manager UI that, on match, switches to the task's status tab and opens its details.",
+                    "timestamp": "2026-06-26T23:08:23Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0002 worker",
+                    "content": "Specification ready. Added requirement BASE-REQ-014.13 (task-search bar above status tabs) and architecture feature 11.2.2 (resources.templates.task_manager). Design: confine UI change to resources/templates/task_manager.html — add search bar markup above the tab bar, .search-bar CSS, and searchTask()/initSearch() JS reusing normalizeStatus/renderTable/showDetail; match by id (exact then unique substring, case-insensitive). Awaiting Specified review.",
+                    "timestamp": "2026-06-26T23:11:32Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0002 worker",
+                    "content": "Implementation ready for review. Added the task-search bar above the status tabs in resources/templates/task_manager.html (markup + .search-bar CSS + searchTask/findTaskById/activateStatusTab/initSearch JS); a matched id switches to the task's status tab, selects/scrolls its row, and opens its details. Reused normalizeStatus/renderTable/showDetail/refreshRows/setMsg. Added test_task_manager_template_has_task_search. Tests: 9 search/template pass; full module 57 pass (2 unrelated pre-existing failures). Committed on task branch (not pushed).",
+                    "timestamp": "2026-06-27T00:36:49Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 32932,
+                "window_title": "Task Manager UI Task Search (BASE-TASK-260626-0002)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260626-0002",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0002",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0002.md",
+                "started_at": "2026-06-26T23:06:14Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1755,12 +1828,51 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Add a deployment script that respects the multi-branch architecture",
                     "timestamp": "2026-06-26T21:59:28Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Started work on BASE-TASK-260626-0003: adding the bare/worktree multi-branch repository initialization script (init_bare_worktree_repo.ps1) to scripts/, working on the task branch task/BASE-TASK-260626-0003.",
+                    "timestamp": "2026-06-26T23:07:21Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Specification ready. Added scripts/init_bare_worktree_repo.ps1 (Feature 3.8) — a machine-agnostic, idempotent PowerShell script that clones BaseApp or any variant app into the bare shared-object-store + per-branch worktree layout (bare clone into {APP}/.bare, rename-safe relative .git pointer, all-branch fetch, default-branch worktree, optional -TaskBranch worktree) instead of a plain git clone. Registered architecture features 3.8/3.8.1 and requirement BASE-REQ-014.13 with solution mappings. Variant apps inherit the script automatically because resources/manifests/pull.json propagates the whole scripts/ folder. Spec committed on branch task/BASE-TASK-260626-0003 (not pushed). Summary at task_results/BASE-TASK-260626-0003/BASE-TASK-260626-0003.html.",
+                    "timestamp": "2026-06-26T23:11:23Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 21316,
+                "window_title": "Add a deployment script that respects the multi-branch architecture (BASE-TASK-260626-0003)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260626-0003",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0003",
+                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0003.md",
+                "started_at": "2026-06-26T23:06:01Z"
+            }
+        },
+        {
+            "author": "ymordecai",
+            "id": "BASE-TASK-260626-0004",
+            "uuid": "57ef79b5-7267-4edd-a949-7e60832aadc6",
+            "title": "Figure out a solution that minimizes the impact of BaseApp updates on instance apps",
+            "description": [
+                "Currently each BaseApp update followed by pullbase causes multiple changes that require staging and commiting to the isntance app's repo.",
+                "It might be easier to use import but we need to make sure the structure of the code remains the same as the BaseApp so that the burden of miantianing structure doesn't fall on the instance app designer all over again (which is what BaseApp was meant to solve to begin with)"
+            ],
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "ymordecai",
+                    "content": "Task created: Figure out a solution that minimizes the impact of BaseApp updates on instance apps",
+                    "timestamp": "2026-06-26T23:10:16Z"
                 }
             ]
         }
