@@ -688,6 +688,20 @@
                                             "path": "test/tests/base/task_manager.py::test_sync_task_repo_isolates_ledger_commit_from_worker_tree"
                                         }
                                     }
+                                },
+                                "5.3.1.8": {
+                                    "name": "test.tests.base.init_bare_worktree_repo",
+                                    "description": "Test module for the bare/worktree repository initializer (feature 3.8).",
+                                    "type": "Folder.Folder.Folder.PyFile",
+                                    "path": "test/tests/base/init_bare_worktree_repo.py",
+                                    "features": {
+                                        "5.3.1.8.1": {
+                                            "name": "test.tests.base.init_bare_worktree_repo.test_init_bare_worktree_repo_builds_bare_and_worktrees",
+                                            "description": "Regression test for feature 3.8 (BASE-REQ-014.13): cloning from a purely local source repo (no network), runs scripts/init_bare_worktree_repo.ps1 and asserts it creates the shared bare store at {APP}/.bare, writes the rename-safe relative pointer {APP}/.git -> 'gitdir: ./.bare', checks the default branch out as the {APP}/<default-branch> worktree with repo content present, adds a second worktree for a brand-new -TaskBranch created off the default branch, and is idempotent on re-run.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/init_bare_worktree_repo.py::test_init_bare_worktree_repo_builds_bare_and_worktrees"
+                                        }
+                                    }
                                 }
                             }
                         },

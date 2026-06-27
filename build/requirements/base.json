@@ -1296,14 +1296,21 @@
                     "feature": "3.8",
                     "role": "scripts/init_bare_worktree_repo.ps1 clones any repo (BaseApp or variant app, selected by -Url) into the bare/worktree multi-branch layout: bare clone into {APP}/.bare, rename-safe relative .git pointer, normalized fetch refspec, all-branch fetch, default-branch worktree, and an optional -TaskBranch worktree. Idempotent and machine-agnostic; propagated to variant apps via resources/manifests/pull.json (scripts/).",
                     "implementation": 1.0,
-                    "verification": 0.0,
+                    "verification": 1.0,
                     "deployment": 0.0
                 },
                 {
                     "feature": "3.8.1",
                     "role": "Add-Worktree adds each branch's worktree subfolder idempotently: skips already-registered worktrees, leaves untracked existing folders untouched, checks out an existing local/remote branch, or creates a new branch off origin/<default-branch> when -CreateIfMissing is set.",
                     "implementation": 1.0,
-                    "verification": 0.0,
+                    "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "5.3.1.8.1",
+                    "role": "test_init_bare_worktree_repo_builds_bare_and_worktrees clones a local source repo via init_bare_worktree_repo.ps1 and asserts the .bare store, relative .git pointer, default-branch worktree with content, a new -TaskBranch worktree off the default branch, and idempotent re-run.",
+                    "implementation": 1.0,
+                    "verification": 1.0,
                     "deployment": 0.0
                 }
             ]
