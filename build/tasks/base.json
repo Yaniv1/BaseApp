@@ -1777,7 +1777,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Specified",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1793,6 +1793,11 @@
                     "author": "BASE-TASK-260626-0002 worker",
                     "content": "Specification ready. Added requirement BASE-REQ-014.13 (task-search bar above status tabs) and architecture feature 11.2.2 (resources.templates.task_manager). Design: confine UI change to resources/templates/task_manager.html — add search bar markup above the tab bar, .search-bar CSS, and searchTask()/initSearch() JS reusing normalizeStatus/renderTable/showDetail; match by id (exact then unique substring, case-insensitive). Awaiting Specified review.",
                     "timestamp": "2026-06-26T23:11:32Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0002 worker",
+                    "content": "Implementation ready for review. Added the task-search bar above the status tabs in resources/templates/task_manager.html (markup + .search-bar CSS + searchTask/findTaskById/activateStatusTab/initSearch JS); a matched id switches to the task's status tab, selects/scrolls its row, and opens its details. Reused normalizeStatus/renderTable/showDetail/refreshRows/setMsg. Added test_task_manager_template_has_task_search. Tests: 9 search/template pass; full module 57 pass (2 unrelated pre-existing failures). Committed on task branch (not pushed).",
+                    "timestamp": "2026-06-27T00:36:49Z"
                 }
             ],
             "worker_session": {
