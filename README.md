@@ -1,259 +1,154 @@
 # BaseApp
 
-BaseApp is a reusable Python application template for configuration-driven runtime loading, logging, manifest-based app instantiation, and base synchronization.
-
-## Version
-
-- Base version: 26.06.26.03
-- App template version: A26.06.26.03
-
-## Highlights (26.06.26.03)
-
-- **Sort and filter the Task Manager task list.** The web UI's task list is no longer static — you can click any column header (ID, Title, Type, Priority) to sort by it, cycling through ascending, descending, and back to unsorted, with an arrow marking the active column; Priority sorts by importance (Critical, High, Medium, Low) rather than alphabetically. A filter row beneath the headers lets you narrow the list: type to match IDs or titles, or pick a value from a dropdown to show only a given Type or Priority (for example, only Bugs). Sorting and filtering apply within the selected status tab and work together, and the list tells you when no tasks match the current filters.
-
-## Highlights (26.06.26.02)
-
-- **Each task now runs in its own isolated folder.** The project uses a layout where every branch — including `main` and each task's short-lived branch — lives in its own working folder beside the others, all sharing a single underlying repository. A task's folder is created automatically when its worker starts, so several tasks can be worked on at the same time without their changes ever mixing or overwriting one another. When a task is fully integrated into `main`, its folder and branch are cleaned up.
-
-## Highlights (26.06.26.01)
-
-- **Task-status sync no longer disturbs a worker's in-progress changes.** When the Task Manager records a task's status change, it now commits and pushes only the task list itself, fully separated from whatever a worker is editing. Previously this background sync could accidentally stage and push a worker's unfinished code ahead of review, or shuffle their uncommitted edits while updating the remote. The sync now happens in an isolated, dedicated workspace targeting the main task branch, so a worker's branch and uncommitted work are never touched, pushed early, or disturbed.
-
-## Highlights (26.06.25.01)
-
-- **The Task Manager's task list and details scroll independently.** The web UI now shows the task list and the selected task's details as two stacked blocks, each with its own scrollbar, so reviewing a long task no longer scrolls the whole window or pushes the list out of view. A draggable bar between the two blocks lets you give more room to either one; it defaults to a 60% list / 40% details split, remembers your choice across reloads, and snaps back to the default on a double-click. When no task is selected, the details block shows a short prompt to pick one.
-
-## Highlights (26.06.24.06)
-
-- **Agents request task-status changes through a durable store instead of editing the ledger.** With each task on its own branch, workers no longer edit or commit the task ledger. They request every status change and progress comment by writing a small, durable request file into a configurable "task status store", and the Task Manager is the only writer that applies those requests to the ledger on `main`. Because the store is file-based and durable, restarting or unexpectedly stopping the server never blocks an agent from recording progress — pending requests simply wait and are applied once the server is back, and each request is applied exactly once.
-- **A built-in MCP tool to submit status updates.** Each worker is given a per-agent MCP server exposing an `enqueue_status_update` tool, so updating a task's status or adding a comment is a single tool call rather than hand-written files. Writing the request file directly remains a supported fallback, so the tool is never on the critical path.
-- **Live health check of the MCP servers.** A live test runs every 60 seconds and reports, on the console, how many MCP servers are up versus down and the overall active rate. It flags **GOOD** when all are up, **WARN** when exactly one is down, and **FAIL** when more than one is down.
-
-## Highlights (26.06.24.05)
-
-- **Each task runs on its own branch.** Work on a task now happens on a dedicated short-lived `task/<id>` branch instead of directly on `main`, so concurrent tasks never mix their changes. The branch is created automatically by the task launcher when a worker starts. If a branch already exists for the task, the Task Manager asks you to confirm before starting another worker on it, so in-progress work isn't unknowingly duplicated.
-- **`Deployed` status distinguishes "pushed" from "merged".** The task lifecycle is now `ToDo -> InProgress -> Ready -> Deployed -> Done`. **Deployed** means the task is finalized and pushed to its own branch but not yet merged; **Done** means it is fully integrated into `main` (its branch merged and dissolved, supervised by the integration engineer).
-- **More status tabs in the Task Manager.** The web UI now shows tabs for `ToDo, InProgress, Specified, Ready, Deployed, Approved, Done`, plus `Deleted`, and a new pathological **Other** tab that collects any task in an unrecognized status so nothing is silently hidden.
-
-## Highlights (26.06.24.04)
-
-- **Delete tasks from the Task Manager.** Tasks can now be deleted from the web UI. Deleting a task moves it to a new **Deleted** tab; deleting it again from there removes it permanently. A deleted task is read-only and cannot be worked on, edited, or commented — only its status can change.
-- **Automatic task sync on startup.** When the Task Manager UI starts, it automatically syncs the selected app's task list with its linked git repository before showing the tasks, so what you see reflects the latest synced state. It is skipped when no repository is linked, never blocks startup on failure, and can be turned off with `--no-startup-sync`.
-
-## Highlights (26.06.24.01)
-
-- **Reviewable `Ready` task state.** Tasks now move through `ToDo -> InProgress -> Ready -> Done`. When the Copilot worker finishes, it marks the task `Ready` and pauses instead of finalizing — the engineer reviews the change and only then is it finalized, committed, pushed, and marked `Done`. The Task Manager web UI adds a dedicated **Ready** tab, and activating Copilot on a Ready task brings the original worker window back to the foreground for review, or starts a focused review session that explains the changes and checks requirement fulfilment when that window is no longer available.
-
-## Highlights (26.06.22.01)
-
-- **Task Manager Copilot Integration**.
-
-## Highlights (26.06.19.01)
-
-- **Local task manager web UI.** `scripts/task_manager.py` provides a zero-dependency local web interface (stdlib HTTP server + single-page JS) for task management. All changes persist immediately to disk. Run with `python scripts/task_manager.py --open-browser`.
-- **HTML template path fix.** Relative `HTML_TEMPLATE` values in config are now resolved against the project root (`base_dir`) in all three call sites (`utils/baseutils.py`, `scripts/instantiate.py`, `scripts/pullbase.py`). The config value is now the clean project-root-relative path `resources/templates/dataset_table.html`.
-
-## Highlights (26.06.18.01)
-
-- **Config file filtering by name and flag.** Config now skips config JSON files based on naming convention (underscore `_` or dot `.` prefix) and explicit flag (`LOADME: false` key). This allows users to disable config overrides without deleting files and follow naming conventions for temporary/development configs. Alphabetical load order is preserved for active files.
-
-## Highlights (26.06.17.01)
-
-- **Error-summary console mode.** Logger now prints ERROR summary to console.
-- **Coverage added for grouped logs.** Post test `test_logs_by_type` validates grouped runtime structure and per-type output file creation.
-
-## Highlights (26.06.16.01)
-
-- **Logger message text placeholders.** `Logger.log()` now accepts `populate=False`. When `True`, `{key}` placeholders in the looked-up message text are replaced with values from the `data` dict before storing or printing. Wrappers are configurable via `message_wrappers` on `Logger` (default `("{","}")`). Message texts updated across `logger.csv` and `base.csv`; all relevant call sites updated with `populate=True`.
-
-## Highlights (26.06.11.02)
-
-- **`drop.json` entries without a `target` now delete the source.** `pullbase` (`load_drop_entries` / `drop_deprecated_paths`) accepts entries where `target` is absent or null and removes the source file/directory outright. The `build/_workflow` delete entry in `drop.json` now uses this form.
-
-## Highlights (26.06.11.01)
-
-- **Removed `build/_workflow/`.** The folder and its architecture entry (`10.5`) have been removed. Added `build/_workflow` to `drop.json` so instantiated apps clean it up on next pull.
-
-## Highlights (26.06.10.06)
-
-- **Architecture base.json corrected.** Fixed mismatches between `build/architecture/base.json` and the codebase
-## Highlights (26.06.10.04)
-
-- **Local config override support.** `config/local.json` is now a gitignored placeholder that is deployed once via `once.json` manifest. Values in it are deep-merged on top of `base.json` + `app.json` at load time (no code changes — `Config` already processes all JSON files in `config/` sorted alphabetically).
-
-## Highlights (26.06.10.03)
-
-- **Bug fix: log file removal no longer trips the app.** `Logger._remove_old_files()` now silently skips files that cannot be deleted due to permission or in-use errors.
-
-## Highlights (26.06.10.02)
-
-- **More Readable plain text in HTML outputs.**.
-
-## Highlights (26.06.10.01)
-
-- **Config overrides during instantiation.** `instantiate.py` now accepts `--overrides` (a JSON file path or inline JSON string) so the new app's `config/app.json` is pre-configured at creation time without manual edits. Overrides are deep-merged, so only specified keys are changed and all other keys are preserved.
-
-## Highlights (26.06.09.03)
-
-- **Tasks grouped by type and status.** A new `tasks_by_type_status` PROCESS step produces a nested `{type: {status: [tasks]}}` dict; tasks without an explicit type fall under `Feature`. Per-type HTML reports are written via `tasks_by_type_status_split` OUTPUT. New post test validates the nested structure.
-
-## Highlights (26.06.09.02)
-
-- **`DataConverter` now isolates failing conversion steps.** Each step in `DataConverter.apply()` is wrapped in a try/except; any failure (including referencing a missing source column) is caught, logged as `DATAE01`, and collected in `self.errors` — without aborting the remaining steps.
-- **Dict sources passed correctly to `DataConverter`.** When a process step's source is a `dict`, it is now forwarded intact instead of being replaced with an empty DataFrame.
-
-## Highlights (26.06.09.01)
-
-- The user can control the `caller_depth` stack size for logged messages (default is 2, WARN/ERROR/FAIL = 4).
-- The **`instantiate.py`** script supports optional instantiation from a different `--source` folder of the original BaseApp root; improved same-path error message.
-- Task report is grouped by task type and status.
-- HTML outputs now support file paths and URLs as **HTML hyperlinks**.
-
-## Highlights (26.06.08.02)
-
-- Renamed `RESULT_MAP` → `OUTPUT_MAP`; initialized in `AppManager.__init__`; deep-update semantics; `test_manager` isolation.
-
-## Highlights (26.06.08.01)
-
-- `store_outputs` populates `OUTPUT_MAP` with `{output_key: [file_paths]}` and returns it; `result_map` output entry added.
-
-## Highlights (26.06.06.05)
-
-- Enabled capability to drop retired files and folders by adding `resources/manifests/drop.json` (Feature 11.3.3): lists deprecated paths removed from variant apps on every base pull (`docs/instructions`, `docs/tasks`, `docs/requirements`, `docs/architecture`, `docs/message_codes`, `docs/templates`, `docs/manifests`, `docs/version`, `updates`).
-- `scripts/pullbase.py`: new `load_drop_entries()` (Feature 3.2.15) and `drop_deprecated_paths()` (Feature 3.2.16) clean up old locations automatically after each pull. Logged with `PULL009`/`PULL010`.
-
-## Highlights (26.06.06.04)
-
-- `scripts/setup_env.ps1`: replaced `pip.exe` with `python -m pip` to fix *Unable to create process* failures when the venv's Python path has changed.
-
-## Highlights (26.06.06.03)
-
-- `utils/baseutils.py`: Unicode stdout/stderr reconfiguration for safe output on Windows cp1252 consoles.
-
-## Highlights (26.06.06.02)
-
-- Moved `docs/version/` to `resources/version/`, completing the consolidation of shared runtime data under `resources/`.
-
-## Highlights (26.06.06.01)
-
-- Refactored the workspace file tree: build-related assets moved to `build/` (instructions, tasks, requirements, architecture, updates) and runtime data resources moved to `resources/` (message_codes, templates, manifests, version). `docs/` now holds only `readme/`.
-
-## Highlights (26.06.05.01)
-
-- `to_json_compatible` is now a standalone module-level function (Feature 6.1.17) in `utils/baseutils.py`, importable from anywhere in the codebase.
-- Fixed the build-phase deployment test to pass `sys.executable` as the Python interpreter, ensuring the venv Python is used. Build test now 25/25 PASS.
-
-## Highlights (26.06.04.07)
-
-- Added `scripts/setup_env.ps1` (Feature 3.4): creates or reuses the Python virtual environment and installs only the missing packages from `dependencies/base.txt` and `dependencies/app.txt` via pip.
-- Added `scripts/deploy.ps1` (Feature 3.5): deployment ceremony script that calls `setup_env.ps1` → `scripts/test_deployment.ps1` → `test/tests/build.py` in three sequential phases and reports per-criterion PASS/FAIL with an overall summary.
-- `scripts/instantiate.py` and `scripts/pullbase.py` now invoke `setup_env.ps1` automatically after their file operations (Features 3.1.11 and 3.2.14), so every fresh instantiation and every base pull ensures the virtual environment is up to date.
-- Merged `BASE-REQ-011` into `BASE-REQ-012` as sub-requirement `012.8` (deployment validation via `test_deployment.ps1`).
-
-## Highlights (26.06.04.06)
-
-- Refactored `config/requirements.txt` into `dependencies/base.txt` (core runtime packages, pulled on every base update) and `dependencies/app.txt` (variant-specific additions, copied once on instantiation).
-- Updated `docs/manifests/pull.json` and `docs/manifests/once.json` to reference the new dependency files.
-- Added `dependencies` folder as Feature 9 in the base architecture; removed stale Feature 2.3 (`config.requirements.txt`).
-
-## Highlights (26.06.04.05)
-
-- Added `test/tests/build.py` (Feature 5.3.2): a standalone build-phase test runner that loads runtime and test configuration, executes the `build` phase via `TestManager`, stores outputs, and returns exit code 0 (pass) or 1 (fail).
-- Added `test_deployment` (Feature 6.3.5) to `utils/testutils.py`: runs a PowerShell deployment script non-interactively, parses each `[PASS]`/`[FAIL]`/`[WARN]` output line as a structured criterion, and returns a result dict compatible with `TestManager`.
-- Fixed `TestManager.run_a_test` to dynamically initialize the results slot for any phase name, enabling the extensible `build` phase.
-- Added requirement `BASE-REQ-007.5` and message code `TST008`.
-
-## Highlights (26.06.04.04)
-
-- Added a standalone PowerShell integration test that verifies the end-to-end deployment pipeline (instantiate + pullbase) with 25 per-criterion PASS/FAIL checks.
-
-## Highlights (26.06.04.03)
-
-- Added concurrent saving capability to `store_outputs`, to improve output storing performance.
-
-## Highlights (26.06.04.02)
-
-- Extended `pullbase.py` to syncs `once`-manifest items to existing apps if they don't exist.
-
-## Highlights (26.06.04.01)
-
-- Improved Logger performance to append log entries rather than rewrite the log file with each log entry. 
-- Improved App Manager performance by avoiding warnings for string to JSON parsing while saving outputs.
-- Add supports in `DataConverter.apply` for a `custom` scope for expression-based transformations that return raw results.
-
-
-## Highlights (26.06.03.03)
-
-- Added config-driven task report generation with status-based grouping via the built-in `PROCESS` mechanism.
-- Tasks are grouped by status field through custom data conversion expressions and rendered to separate JSON and HTML files.
-- New outputs: `tasks_by_status_split` (JSON) and `tasks_by_status_html` (HTML) stored under `tasks/reports/` folder.
-
-## Highlights (26.06.03.02)
-
-- Added `requirements` and `tasks` as BaseApp runtime inputs.
-- Added HTML outputs for requirements/tasks catalogs under the run output path.
-
-## Highlights (26.06.03.01)
-
-- Added a Task Management framework. Every task gets added to the taks list and progress is tracked.
-- Added a Requirements Engineering framework. Every requirement is specified and a through spec-driven-development is adhered to (breakdown, solution design, implementation, verification, and deployment)
-
-## Highlights (26.06.02.03)
-
-- Full architecture alignment: comparator now reports `MissingInCode=0, MissingInArch=0, Mismatches=0` against `docs/architecture/base.json` and `docs/architecture/app.json`.
-- Expanded base architecture inventory to cover all public functions/methods in `scripts/`, `utils/baseutils.py`, `utils/datautils.py`, `utils/testutils.py`, plus leaf docs files, the `updates/` folder, and `README.md`.
-- Architecture compliance comparator now skips `__init__.py`, dotfiles, and dot-folders (e.g. `.git`, `.vscode`), and resolves JSON-pointer paths of the form `file.json::dotted.key`.
-- `Logger.log` records caller lineage (file, module, class, function, line) on every entry via inspect-based stack walking, surfaced as a new `caller` column in the log CSV/HTML.
-- Test outputs route to a dedicated `TESTS_RESULTS` subfolder via a test-config `OUTPUT_PATH` override, so `TestManager` no longer overwrites the main app's `config.json` / `config.html`.
-
-## Highlights (26.06.02.02)
-
-- Added an output-level `delta` flag in `_save_output_artifact` backed by a sha256 content-checksum manifest.
-- `AppManager` holds an in-memory `output_manifest` (loaded from `<OUTPUT_PATH>/manifest.json` at init) keyed by full artifact path with `{sha256, mtime}` values.
-- Saves are skipped only when the new content checksum matches the stored sha256 AND the on-disk file mtime matches the manifest entry; the skip is logged via `BASE003` with `skipped: true, delta: true, sha256: <hash>`.
-- After every write the manifest entry is refreshed and the manifest is flushed to disk so it survives process restarts.
-- Applies per leaf for split outputs. Restored the missing `save_kwargs` initialization so output saves work end-to-end.
-
-## Highlights (26.06.02.01)
-
-- Added an input-level `delta` flag in `DataLoader`: when enabled, the loader rescans the input surface on every call and only loads files that are new or whose on-disk mtime changed since the previous load.
-- `AppManager` persists a per-input `last_modified` map (`self.input_meta`) across cycles, enabling fast cyclic / periodic scanning of large input stores and automatic pickup of modified files.
-- `BASE012` now reports `delta`, `loaded`, and `skipped` counters for observability.
-
-## Highlights (26.05.28.02)
-
-- Moved suggested architecture change JSON files and the compliance report into `{$OUTPUT_PATH$}/tests/results/architecture_changes`.
-- Kept the architecture review HTML artifacts in the dedicated review output folder.
-
-## Highlights (26.05.28.01)
-
-- Added path metadata to `docs/architecture/base.json` and `docs/architecture/app.json`.
-- Added a class-based architecture compliance prep test in `test/tests/base/base.py`.
-- Added combined-architecture and code-tree HTML review artifacts for architecture compliance runs.
-- Updated the test runner so class-based tests can construct from normal input bindings.
-- Added a shebang to `app/app.py` for direct interpreter execution.
-
-## Highlights (26.05.26.03)
-
-- Added a built-in test framework with config-driven prep, live, and post phases.
-- Added a dedicated PASS/WARN/FAIL test logger and persisted test results/log artifacts.
-- Derived test config from the integrated runtime config so app-specific COMMON overrides flow into test outputs.
-- Switched monitoring to the main logger `data_map`, allowing the app to publish lightweight runtime state without direct test coupling.
-- Added richer test reporting with explicit failure ids, failure counts, and traceback context.
-- Fixed app exit handling so the process returns an integer code instead of a structured object.
-
-## Highlights (26.05.26.02)
-
-- Added unified input loading for file and folder sources under `config.input`.
-- Moved BaseApp changelog entries into `updates/base.json` while keeping them loadable as input data.
-- Added `config.process` support with `DataConverter` for sequential result transformations.
-- Added recursive JSON field materialization for stored outputs.
-- Improved HTML rendering with item/type columns and content-width nested tables.
-- Added split output support so dict outputs can be written as separate artifacts by key.
-- Added multi-layer split support and dotted source resolution for nested output sources such as `results.message_codes`.
-
-## Core Scripts
-
-- `scripts/instantiate.py`: instantiate a new app from BaseApp manifests.
-- `scripts/pullbase.py`: pull base updates into an instantiated app.
-- `app/app.py`: run the app.
+BaseApp is a reusable Python application framework for building configuration-driven
+data applications. It gives every project a common foundation — layered JSON
+configuration, structured logging, template-based output artifacts, a built-in test
+harness, and a managed task/requirements workflow — so that new apps can be spun up
+quickly and kept in sync with the framework as it evolves.
+
+You use BaseApp in two roles:
+
+- **As a base** — the canonical framework that you run, test, and extend.
+- **As an instantiated app** — a new project created *from* the base that inherits the
+  framework, adds its own logic, and pulls future base improvements on demand.
+
+## What it does
+
+- **Layered configuration.** Configuration is assembled from all JSON files in `config/`
+  (loaded alphabetically and deep-merged), driven by a shared `COMMON` block that
+  supports placeholder expansion and expression evaluation. Files can be disabled by
+  naming convention (`_`/`.` prefix) or a `LOADME: false` flag, and a gitignored
+  `local.json` lets you override settings per machine without touching tracked files.
+- **Structured logging.** A built-in logger writes to the console, CSV, and HTML using
+  message codes (defined in `resources/message_codes/`) rather than free text, records
+  caller lineage on every entry, and prints an error summary on close.
+- **Data loading & transformation.** Inputs are loaded from file or folder sources
+  (with optional delta/incremental scanning) and passed through a configurable
+  sequence of `DataConverter` transformation steps.
+- **Output artifacts.** Results are rendered as JSON and template-based HTML, with
+  support for split outputs, content-aware change detection, and concurrent saving.
+- **Built-in testing.** A config-driven test framework runs `prep`, `live`, `post`, and
+  `build` phases, reporting per-criterion PASS/WARN/FAIL results with traceback context.
+- **App lifecycle tooling.** Scripts to instantiate new apps from the base and to pull
+  base updates into existing apps, both manifest-driven.
+- **Task & requirements management.** A local web-based Task Manager and a spec-driven
+  workflow (requirements → architecture → design → implementation → tests → deploy)
+  that integrates with git and GitHub Copilot to drive work task-by-task.
+
+## Project structure
+
+| Path | Purpose |
+| --- | --- |
+| `app/` | Application entry point (`app.py`) and its base (`base.py`). |
+| `config/` | Layered JSON configuration (`base.json`, `app.json`, optional `local.json`). |
+| `utils/` | Framework code: `baseutils.py` (Config, Logger, output rendering), `datautils.py` (data loading/conversion), `testutils.py` (test helpers), `apputils.py` (app overrides). |
+| `scripts/` | Lifecycle tooling: instantiate, pullbase, environment setup, deploy, and the Task Manager. |
+| `resources/` | Runtime data: `manifests/`, `message_codes/`, `templates/`, `version/`. |
+| `dependencies/` | Python requirements: `base.txt` (core) and `app.txt` (variant-specific). |
+| `build/` | Engineering ledgers: `requirements/`, `architecture/`, `tasks/`, `updates/`, `instructions/`. |
+| `test/` | The test suite and the `build.py` build-phase runner. |
+| `docs/readme/` | Detailed, implementation-level release notes (`base.md`, `app.md`). |
+
+> `README.md` (this file) is a high-level overview. The per-release implementation
+> history lives in `docs/readme/base.md` and `build/updates/base.json`.
+
+## Getting started
+
+### 1. Set up the environment
+
+`setup_env.ps1` creates (or reuses) a Python virtual environment and installs only the
+missing packages from `dependencies/base.txt` and `dependencies/app.txt`:
+
+```powershell
+scripts/setup_env.ps1
+```
+
+### 2. Run the app
+
+The app reads its configuration, initializes the logger, and executes a tracked run:
+
+```powershell
+python app/app.py
+```
+
+### 3. Instantiate a new app from the base
+
+Create a brand-new app that inherits the framework. The target gets the base files plus
+the one-time placeholders, and its environment is set up automatically:
+
+```powershell
+python scripts/instantiate.py <target-folder>
+# optionally seed the new app's config without manual edits:
+python scripts/instantiate.py <target-folder> --overrides overrides.json
+```
+
+- `--source` points at a specific BaseApp root (defaults to this checkout).
+- `--overrides` takes a JSON file path or inline JSON that is deep-merged into the new
+  app's `config/app.json`.
+
+### 4. Pull base updates into an instantiated app
+
+From within an instantiated app, refresh the framework files to the latest base. This
+copies the `pull` manifest items, adds any missing `once` items, and removes retired
+paths listed in the `drop` manifest:
+
+```powershell
+python scripts/pullbase.py
+python scripts/pullbase.py --hard   # also overwrite app-specific placeholders
+```
+
+App-specific artifacts (e.g. `app.py`, `apputils.py`, `config/app.json`) are preserved
+on a normal pull — customize the framework by overriding in these app files rather than
+editing base files.
+
+### 5. Deploy / verify
+
+`deploy.ps1` runs the full deployment ceremony — environment setup, the
+instantiate/pullbase deployment test, and the build-phase tests — reporting per-criterion
+PASS/FAIL:
+
+```powershell
+scripts/deploy.ps1
+```
+
+## Building with the Task Manager
+
+Work on BaseApp is organized as **tasks** that move through a managed, spec-driven
+lifecycle: `ToDo → InProgress → Specified → Ready → Deployed → Approved → Done`. The
+Task Manager is a local, zero-dependency web UI for creating, tracking, and driving
+these tasks.
+
+```powershell
+python scripts/task_manager.py            # serves the UI and opens a browser
+python scripts/task_manager.py --browser-off
+```
+
+How a task flows through the system:
+
+- **Isolation per task.** The repository uses a bare shared object store with every
+  branch — including `main` — checked out as its own git worktree under one container.
+  Each task is worked on a short-lived `task/<id>` branch in its own dedicated worktree,
+  so several tasks can run in parallel without their changes mixing.
+- **Copilot integration.** From the UI you can launch a GitHub Copilot worker for a
+  task; it works the task on its branch, and a focused review session can be opened when
+  the task is `Ready`.
+- **Durable status channel.** Workers never edit the task ledger directly. They request
+  status changes and progress comments through a durable file-based **task status
+  store** (via an `enqueue_status_update` MCP tool), and the Task Manager is the sole
+  writer that applies those requests to the ledger on `main`. A server restart never
+  blocks a worker — pending requests wait and are applied exactly once.
+- **Reviewed promotion.** A task is set to `Ready` for engineer review, `Deployed` once
+  finalized and pushed to its own branch, and `Done` only after it is merged into `main`
+  and its branch/worktree are dissolved under the integration engineer's supervision. Branch pruning keeps the repository tidy and clean, with a few short-lived task branches that reflect the current state of development at any given moment.
+
+Useful Task Manager flags:
+
+- `--port` / `--host` — choose the bind address.
+- `--no-startup-sync` — skip auto-syncing each app's task file with its git repo on start.
+- `--no-status-inbox` — disable the watcher that applies queued status-update requests.
+
+## Versioning
+
+The current base and app template versions are recorded in `resources/version/base.txt`
+and `resources/version/app.txt` (the app version mirrors the base version with an `A`
+prefix), and surfaced in the `COMMON` block of `config/base.json`.

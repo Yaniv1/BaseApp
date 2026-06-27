@@ -1083,6 +1083,12 @@
                     "description": "Compatibility requirement: instantiate.py shall read the destination field (with fallback to target, then source) for once-manifest entries.",
                     "priority": "Medium",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-013.8",
+                    "description": "Documentation requirement: The top-level README.md shall be maintained as a current-state overview of the app's capabilities and features, and shall not be a changelog. It shall not contain Highlights/Changelog/Release Notes/What's New sections, shall not enumerate releases, and shall not carry date- or version-stamped headings; per-release history shall live only in docs/readme/{base,app}.md and build/updates/{base,app}.json. An advisory build test shall report a non-blocking WARN when README.md drifts back into a changelog.",
+                    "priority": "Medium",
+                    "comments": []
                 }
             ],
             "solution": [

@@ -41,6 +41,14 @@
                     "message": "Run the app test deployment script and assert expected outcomes at each phase",
                     "script_path": "scripts/test_deployment.ps1"
                 }
+            },
+            {
+                "id": "build_readme_overview_only",
+                "name": "Build README overview only",
+                "callable": "test.tests.base.base.test_readme_overview_only",
+                "inputs": {
+                    "message": "Advisory (WARN-only) check that README.md reads as a current-state overview and has not drifted into a per-release changelog"
+                }
             }
         ],
         "prep": [
