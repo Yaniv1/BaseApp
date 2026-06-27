@@ -86,6 +86,12 @@ details.cli-sect{margin-top:2px}
   padding:9px 11px;font-family:"Cascadia Code","Fira Code",monospace;font-size:.72rem;
   color:#7dd3fc;white-space:pre-wrap;word-break:break-all;margin-top:5px;line-height:1.55}
 
+/* ── Search bar (above the status tabs) ──────────────────────── */
+.search-bar{display:flex;align-items:center;gap:8px;padding:12px 20px 0;flex-shrink:0}
+.search-bar input{flex:0 1 280px;max-width:340px;min-width:160px}
+.search-bar .msg{flex:1 1 auto;min-height:auto}
+.search-bar .msg.ok{color:var(--gn)}
+
 /* ── Tabs ────────────────────────────────────────────────────── */
 .tab-bar{display:flex;gap:2px;border-bottom:1px solid var(--ln);padding:12px 20px 0;flex-shrink:0}
 .tab{background:transparent;border:none;color:var(--mu);padding:7px 12px;font:inherit;
@@ -227,6 +233,11 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
   </aside>
 
   <section class="content">
+    <div class="search-bar">
+      <input id="task-search-input" type="search" placeholder="Search by task ID…" aria-label="Search task by ID" autocomplete="off">
+      <button id="task-search-btn" class="btn secondary" type="button">Search</button>
+      <span id="task-search-msg" class="msg"></span>
+    </div>
     <div class="tab-bar">
       <button class="tab active" data-status="ToDo">ToDo <span id="cnt-ToDo" class="badge">0</span></button>
       <button class="tab" data-status="InProgress">InProgress <span id="cnt-InProgress" class="badge">0</span></button>
@@ -375,6 +386,7 @@ function ensureGitSidebar() {
   await loadTasks();
   initCreateForm();
   initTabs();
+  initSearch();
   initDetail();
   initSplit();
 })().catch(e => setMsg('create-msg', e.message, true));
@@ -867,6 +879,68 @@ function initTabs() {
       renderTable();
     });
   });
+}
+
+// ── Task search ───────────────────────────────────────────────
+// Locate a task by its id (exact match first, then a unique
+// case-insensitive substring match), switch to the matched task's
+// status tab, select and reveal its row, and open its details.
+function activateStatusTab(status) {
+  currentStatus = normalizeStatus(status);
+  document.querySelectorAll('.tab').forEach(b =>
+    b.classList.toggle('active', b.dataset.status === currentStatus));
+}
+
+function findTaskById(query) {
+  const lc = query.toLowerCase();
+  const exact = allTasks.find(t => String(t.id || '').toLowerCase() === lc);
+  if (exact) return { task: exact };
+  const partial = allTasks.filter(t => String(t.id || '').toLowerCase().includes(lc));
+  if (partial.length === 1) return { task: partial[0] };
+  if (partial.length > 1) return { ambiguous: partial.length };
+  return {};
+}
+
+function searchTask(rawQuery) {
+  const query = String(rawQuery == null ? '' : rawQuery).trim();
+  if (!query) { setMsg('task-search-msg', 'Enter a task ID to search.', true); return; }
+  const result = findTaskById(query);
+  if (result.ambiguous) {
+    setMsg('task-search-msg', result.ambiguous + ' tasks match "' + query + '". Enter a more specific ID.', true);
+    return;
+  }
+  if (!result.task) {
+    setMsg('task-search-msg', 'No task found for "' + query + '".', true);
+    return;
+  }
+  const task = result.task;
+  const status = normalizeStatus(task.status);
+  // Switch to the matched task's status tab and render its list.
+  activateStatusTab(status);
+  renderTable();
+  // Select the matched row and open its details.
+  selectedId = task.id;
+  refreshRows();
+  showDetail(task);
+  // Bring the selected row into view within the (independently scrolling) list pane.
+  const safeId = (window.CSS && CSS.escape) ? CSS.escape(task.id) : String(task.id).replace(/"/g, '\\"');
+  const row = document.querySelector('.task-row[data-id="' + safeId + '"]');
+  if (row && row.scrollIntoView) row.scrollIntoView({ block: 'nearest' });
+  const msgEl = document.getElementById('task-search-msg');
+  if (msgEl) { msgEl.className = 'msg ok'; msgEl.textContent = 'Showing ' + task.id + ' (' + status + ').'; }
+}
+
+function initSearch() {
+  const input = document.getElementById('task-search-input');
+  const btn = document.getElementById('task-search-btn');
+  if (btn) btn.addEventListener('click', () => searchTask(input ? input.value : ''));
+  if (input) {
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); searchTask(input.value); }
+    });
+    // Clear the status message once the field is emptied.
+    input.addEventListener('input', () => { if (!input.value.trim()) setMsg('task-search-msg', ''); });
+  }
 }
 
 // ── Author dropdown ───────────────────────────────────────────

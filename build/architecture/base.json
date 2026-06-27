@@ -1279,6 +1279,12 @@
                             "description": "Default HTML template for rendering tables with optional titles and captions.",
                             "type": "Folder.Folder.HtmlFile",
                             "path": "resources/templates/dataset_table.html"
+                        },
+                        "11.2.2": {
+                            "name": "resources.templates.task_manager",
+                            "description": "Single-page HTML/CSS/JS template served by scripts/task_manager.py for the Task Manager UI: status tabs with count badges, a task list / task-details split-pane, create and edit forms, and a task-search bar above the status tabs that locates a task by its id (exact then unique-substring, case-insensitive), switches to the matched task's status tab, and opens its details.",
+                            "type": "Folder.Folder.HtmlFile",
+                            "path": "resources/templates/task_manager.html"
                         }
                     }
                 },
