@@ -1035,8 +1035,23 @@
             "description": "The task manager should be able to sync task statuses from local work to the central gip repository.",
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
-            "comments": []
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "BASE-TASK-260621-0003 worker",
+                    "content": "Started work. Investigation finding: the described capability (Task Manager UI pushing task status updates to the central git repo) already exists on main — the \"Sync Git\" UI button -> POST /api/tasks/sync-git -> _sync_task_store_to_git() + scripts/sync_task_repo.ps1 (isolated-worktree commit + push to origin), plus startup auto-sync and the status-queue inbox that headlessly applies worker status updates to the ledger on main and pushes. These were introduced by earlier tasks (BASE-TASK-260619-0002 onward) predating this ToDo. Seeking engineer guidance on the intended remaining gap before specifying/implementing.",
+                    "timestamp": "2026-06-29T20:44:18Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 23108,
+                "window_title": "Task Manager UI to push task updates to git repo (BASE-TASK-260621-0003)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260621-0003",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260621-0003",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260621-0003.md",
+                "started_at": "2026-06-29T20:41:01Z"
+            }
         },
         {
             "id": "BASE-TASK-260621-0004",
@@ -1107,7 +1122,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Deleted",
             "comments": []
         },
         {
@@ -1922,14 +1937,23 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "ymordecai",
                     "content": "Task created: Figure out a solution that minimizes the impact of BaseApp updates on instance apps",
                     "timestamp": "2026-06-26T23:10:16Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 15408,
+                "window_title": "Figure out a solution that minimizes the impact of BaseApp updates on instance apps (BASE-TASK-260626-0004)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260626-0004",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0004",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260626-0004.md",
+                "started_at": "2026-06-29T20:43:26Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1942,7 +1966,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Deleted",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1964,14 +1988,23 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager UI Add a Tab `ALL` that shows all the tasks without status division",
                     "timestamp": "2026-06-27T01:06:08Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 43380,
+                "window_title": "Task Manager UI Add a Tab `ALL` that shows all the tasks without status division (BASE-TASK-260627-0002)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260627-0002",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260627-0002",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260627-0002.md",
+                "started_at": "2026-06-29T20:44:13Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
