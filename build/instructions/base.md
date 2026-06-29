@@ -87,12 +87,16 @@ Tasks move through the following steps.
 
 3. *Task Implementing*: This step is triggered by the engineer, and accomplished by you. If you are asked to work on a task:
         After the engineer approves the specification, you can continue to implementation based on the engineer-approved design, which may be different from your initial design.
-        n. Complete building the solution according to the approved design.
-        o. Design, build, and run tests for the required feature. This includes running the `test/tests/build.py` script to execute the build tests, which include the build phase and app running in order to execute the prep/live/post tests once for the app. Maintain three tests for each feature if necessary and applicable: pre-test, live test, and post-test. Tests can be combined with other tests to simplify the test system. For example, if a single variable or object is sufficient for two separate tests, we can do away with a single test and two success criteria to match the two tests. Each test has to report which feature(s) it covers.
-        p. Update the relevant `build/updates/{base_or_app}.json` file with the prgoress that you made.
-        q. Request a progress-report comment to be appended to the task (via the task status store).
-        r. Create a list of modified files and present them to the user. The files must be clickable and diff-reviewable. You can use a call to Visual Studio CODE to load the files in diff view to visualize the changes you made in each file, or you can create your own diff view in HTML and use the built-in HTML generator to create and store the file that shows the diff. Use a diff tool/package to visualize the changes clearly.
-        s. Request a status change to `Ready` via the task status store.
+        3a. Update the 
+        3b. Make sure there are no duplicate requirement numbers between the current task and the main branch. If there are, renumber the requirements in the current task branch to avoid conflict.
+        Update the task branch with the specification artifacts (local and remote).
+        3c. Merge the task branch's specification artifacts to the main branch.
+        3d. Complete building the solution according to the approved design.
+        3e. Design, build, and run tests for the required feature. This includes running the `test/tests/build.py` script to execute the build tests, which include the build phase and app running in order to execute the prep/live/post tests once for the app. Maintain three tests for each feature if necessary and applicable: pre-test, live test, and post-test. Tests can be combined with other tests to simplify the test system. For example, if a single variable or object is sufficient for two separate tests, we can do away with a single test and two success criteria to match the two tests. Each test has to report which feature(s) it covers.
+        3f. Update the relevant `build/updates/{base_or_app}.json` file with the prgoress that you made.
+        3g. Request a progress-report comment to be appended to the task (via the task status store).
+        3h. Create a list of modified files and present them to the user. The files must be clickable and diff-reviewable. You can use a call to Visual Studio CODE to load the files in diff view to visualize the changes you made in each file, or you can create your own diff view in HTML and use the built-in HTML generator to create and store the file that shows the diff. Use a diff tool/package to visualize the changes clearly.
+        3i. Request a status change to `Ready` via the task status store.
 
 **Await the engineer's review and approval of the implementation.**
 
