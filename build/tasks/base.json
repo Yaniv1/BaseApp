@@ -2053,7 +2053,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2064,6 +2064,11 @@
                     "author": "BASE-TASK-260627-0003 worker",
                     "content": "Started work on BASE-TASK-260627-0003 (Task Manager UI VIEWS). Reviewed instructions, requirements (BASE-REQ-014), architecture (Feature 11.2.2), the task_manager.html template, and the existing test suite. Views are per-status saved sort/filter configurations, persisted client-side in localStorage (consistent with tm_split_ratio/tm_file), surfaced as a views bar below the status tabs.",
                     "timestamp": "2026-06-29T22:33:08Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Specification ready. Requirements: added BASE-REQ-014.15 (Task Manager UI saved-views) under BASE-REQ-014. Architecture: updated feature 11.2.2 (resources.templates.task_manager). Design: views are per-status saved sort/filter configs in resources/templates/task_manager.html, rendered as a views bar below the status tabs, persisted in localStorage (key tm_views), with save/apply/rename/delete, per-tab restore, manual-change deselection, and search integration. No server changes.",
+                    "timestamp": "2026-06-29T22:42:07Z"
                 }
             ],
             "worker_session": {
