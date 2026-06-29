@@ -1943,6 +1943,11 @@
                     "author": "ymordecai",
                     "content": "Task created: Figure out a solution that minimizes the impact of BaseApp updates on instance apps",
                     "timestamp": "2026-06-26T23:10:16Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Started work on BASE-TASK-260626-0004. Investigated the pullbase mechanism: each base update copies ~25 base-owned files/dirs (the manifest 'pull' set) into the instance app working tree, all git-tracked, forcing the instance designer to stage/commit base churn. Designing a solution that keeps the code structure/imports identical while removing the version-control burden.",
+                    "timestamp": "2026-06-29T20:47:26Z"
                 }
             ],
             "worker_session": {
