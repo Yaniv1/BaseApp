@@ -1121,7 +1121,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Deployed",
+            "status": "Done",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0004 worker",
@@ -1142,6 +1142,11 @@
                     "author": "BASE-TASK-260622-0004 worker",
                     "content": "User granted explicit final approval to push. Committed (2ceead1) and pushed to branch task/BASE-TASK-260622-0004: per-column sorting/filtering of the task list, requirement BASE-REQ-014.13, template test, version bump to 26.06.26.03, and docs/updates/README. Task ledger intentionally not committed (server-owned). Not yet merged into main.",
                     "timestamp": "2026-06-27T01:08:45Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0004 worker",
+                    "content": "Integrated: merged task/BASE-TASK-260622-0004 into main with --no-ff (no conflicts; main only had server ledger commits, task branch touched 9 disjoint files) and pushed origin/main (a294c98). The task ledger was not committed by the merge. Proceeding to dissolve the task branch and worktree.",
+                    "timestamp": "2026-06-27T01:12:57Z"
                 }
             ],
             "worker_session": {
