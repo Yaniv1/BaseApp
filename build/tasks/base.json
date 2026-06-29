@@ -1121,7 +1121,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Approved",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0004 worker",
@@ -1137,6 +1137,11 @@
                     "author": "BASE-TASK-260622-0004 worker",
                     "content": "Engineer approved the implementation and staged the files. Builder finalizing: bumping versions, updating updates ledger, readme/base.md and README.md. Awaiting explicit final approval to stage/commit/push.",
                     "timestamp": "2026-06-27T00:26:40Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0004 worker",
+                    "content": "User granted explicit final approval to push. Committed (2ceead1) and pushed to branch task/BASE-TASK-260622-0004: per-column sorting/filtering of the task list, requirement BASE-REQ-014.13, template test, version bump to 26.06.26.03, and docs/updates/README. Task ledger intentionally not committed (server-owned). Not yet merged into main.",
+                    "timestamp": "2026-06-27T01:08:45Z"
                 }
             ],
             "worker_session": {
