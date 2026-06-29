@@ -972,7 +972,7 @@
             ],
             "type": "Bug",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Deleted",
             "comments": []
         },
         {
@@ -1868,7 +1868,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1894,6 +1894,11 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Reopened from Ready for review-driven scope expansion. Engineer clarified the task scope: variant apps must be deployed INTO the multi-branch (bare/worktree) dev architecture, which requires adapting instantiate.py and pullbase.py (not just adding the init script). Moving back to InProgress to complete the specification (requirements + architecture + design) before implementation.",
                     "timestamp": "2026-06-29T20:36:38Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Specification complete for the expanded scope. Requirements: added BASE-REQ-014.16 (instantiate deploys variant apps into the {container}/{app-name}/{branch} multi-branch layout; writes COMMON.BASEAPP into gitignored config/local.json; emits no git metadata so post-hoc git init can adopt non-destructively) and BASE-REQ-014.17 (pullbase resolves BaseApp source from COMMON.BASEAPP with worktree->main-worktree->auto fallback and a --branch selector); broadened 014.15. Architecture: added instantiate features 3.1.14 resolve_app_root and 3.1.15 populate_local_config, pullbase feature 3.2.17 resolve_baseapp_source, and tests 5.3.1.5.2/5.3.1.5.3 (instantiate layout + git-init safety) and 5.3.1.4.2 (pullbase resolution). Awaiting engineer approval of the specification before implementation.",
+                    "timestamp": "2026-06-29T20:40:30Z"
                 }
             ],
             "worker_session": {
