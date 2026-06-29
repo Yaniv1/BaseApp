@@ -1863,7 +1863,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Specified",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1879,6 +1879,11 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Specification ready. Added scripts/init_bare_worktree_repo.ps1 (Feature 3.8) — a machine-agnostic, idempotent PowerShell script that clones BaseApp or any variant app into the bare shared-object-store + per-branch worktree layout (bare clone into {APP}/.bare, rename-safe relative .git pointer, all-branch fetch, default-branch worktree, optional -TaskBranch worktree) instead of a plain git clone. Registered architecture features 3.8/3.8.1 and requirement BASE-REQ-014.13 with solution mappings. Variant apps inherit the script automatically because resources/manifests/pull.json propagates the whole scripts/ folder. Spec committed on branch task/BASE-TASK-260626-0003 (not pushed). Summary at task_results/BASE-TASK-260626-0003/BASE-TASK-260626-0003.html.",
                     "timestamp": "2026-06-26T23:11:23Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Implementation complete. scripts/init_bare_worktree_repo.ps1 (Feature 3.8) added; clones BaseApp or any variant app into the bare/worktree multi-branch layout (idempotent, machine-agnostic). Added no-network regression test test/tests/base/init_bare_worktree_repo.py (registered as test feature 5.3.1.8/5.3.1.8.1) asserting the .bare store, relative .git pointer, default-branch worktree with content, a new -TaskBranch worktree off the default branch, and idempotent re-run. Recorded in build/updates/base.json. Verification: new test passes; build-phase deployment test passes (1 run, 0 failures). Note: two PRE-EXISTING, unrelated failures in test/tests/base/task_manager.py (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port_when_requested_port_is_busy) reproduce without this task's changes and were left untouched. Changes committed on branch task/BASE-TASK-260626-0003 (not pushed). Summary at task_results/BASE-TASK-260626-0003/BASE-TASK-260626-0003.html.",
+                    "timestamp": "2026-06-27T01:28:52Z"
                 }
             ],
             "worker_session": {
