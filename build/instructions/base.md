@@ -51,8 +51,9 @@ Tasks move through the following steps.
         e. Task Breakdown: break down each task into simple sub-tasks, including requirements specification tasks, architcture adjustment tasks, solution design tasks, implementation tasks, testing tasks, and deployment verification tasks. Execute the sub-tasks one by one. There is no need to document the simpler tasks in the tasks file. This is mainly for better agentic flow. But you can update in the comments about each task what you achieved and that would reflect the task breakdown.
         **Begin working on systems engineering:**
         f. Complete requirements specification. Requirements Engineering Guidance: For every task that includes a system enhancement or modification:
-                f1 Clearly state the system requirement in the appropriate location in the hierarchy of requirements in `build/requirements/base.json`
-                f2 Follow the requirements engineering instructions in `build/architecture/req-eng-instructions.md`
+                f1 Clearly state the system requirement in the appropriate location in the hierarchy of requirements in `build/requirements/base.json`.
+                Each task must have a running enumerator, `id`, a concise `title`, and an imperative `description`.
+                f2 Follow the requirements engineering instructions in `build/architecture/req-eng-instructions.md`.
                 f3 For maintenance requirements, there is typically no need to change the requirements or the architecture, unless it's clearly stated that the fix requires architecture changes.
         g. Complete architecture specification / modifications:
                 g1 Use `build/architecture/base.json` for BaseApp items including folders. Use `build/architecture/app.json` for Variant App items and placeholders for future extension by the variant app designer. Identifiers must be unique across both files. For example, the `app` folder is listed as Feature #1 in `build/architecture/base.json` and as feature #1 in `build/architecture/app.json` without additional details (only for scaffolding) except for its sub-features. Then `app.py` is listed as Feature #1.2 in `build/architecture/app.json` under Feature #1. There is a separate mechanism for reconciliation between the two files.

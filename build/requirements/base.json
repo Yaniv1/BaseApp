@@ -1197,17 +1197,41 @@
                                                                               "comments": []
                                                                           },
                 {
+                    "id": "BASE-REQ-014.12",
+                    "description": "Status-sync ledger-isolation requirement: When the Task Manager server applies a queued status-update request and syncs the task ledger to git, that sync shall affect ONLY the task ledger (build/tasks/<app>.json) and shall never stage, commit, push, stash, rebase, or otherwise modify any other file in the worker's working tree. Because the shared working tree is, while a worker is active, checked out on the worker's short-lived task/<id> branch with uncommitted worker code/spec/test changes, the headless status-sync shall not commit the ledger onto the task branch and shall not run 'git add -A'/'commit -a' or a working-tree 'git pull --rebase --autostash' that could sweep the worker's uncommitted changes into the server's commits, push worker code ahead of the engineer's Ready/Deployed approval gate, or drop uncommitted worker changes via autostash. Instead, the server shall commit and push the ledger change in isolation from the worker's working tree -- via a dedicated detached git worktree built from the latest origin tip of the ledger branch -- so the ledger commit lands on the configured ledger branch (APP.TASK_MANAGER.ledger_branch, default main) with the ledger as its only changed path, and any rebase needed to integrate a moved remote occurs inside that isolated worktree (which only ever contains the ledger change) rather than in the worker's working tree. The ledger branch shall be configurable and the manual 'Sync Git' button / startup sync may continue to sync the currently checked-out branch, but always through the same working-tree-isolating mechanism. After the ledger commit is pushed to origin/<ledger-branch>, the server shall keep the primary 'main' worktree's local ledger branch from falling behind that remote tip: when (and only when) the primary working tree is checked out on the ledger branch and a pure fast-forward is possible (the local branch is an ancestor of origin/<ledger-branch>), it shall advance the local branch pointer to the pushed remote tip using a mixed reset that refreshes the branch pointer and index WITHOUT touching any working-tree files (so any legitimately modified ledger content or other working changes are preserved). It shall never reset over a diverged or ahead local branch, so un-pushed local commits are never clobbered.",
                     "priority": "High",
                     "comments": []
                 },
                 {
-                    "id": "BASE-REQ-014.13",
-                    "description": "Multi-branch repository initialization requirement: The framework shall provide a reusable, machine-agnostic PowerShell script (scripts/init_bare_worktree_repo.ps1) that clones a repository into the multi-branch bare/worktree layout rather than as a plain single-tree git clone. Given a clone URL (and optional root, container name, default branch, and task branch), the script shall create the {APP} container directory, perform a bare clone into {APP}/.bare, write a rename-safe relative .git pointer ('gitdir: ./.bare'), normalize the fetch refspec so every remote branch is tracked, fetch all branches, and check out the default branch as the {APP}/<default-branch> worktree, optionally adding a second worktree for a supplied task branch (created off the default branch when it does not yet exist). The operation shall be idempotent so re-running against an existing container safely skips completed work, and shall not be hard-coded to any user, drive, or absolute path. The same script shall serve both BaseApp and variant apps (selected purely by the clone URL passed in), and because the whole scripts/ folder is propagated to variant apps via resources/manifests/pull.json, variant apps shall receive this initializer automatically, so that variant-app development benefits from the identical multi-branch architecture used by BaseApp.",
+                    "id": "BASE-REQ-014.17",
+                    "title": "Multi-Branch Repository Initializer Script",
+                    "description": "Multi-branch repository initialization requirement: As part of deploying variant apps into the same multi-branch dev architecture used by BaseApp, the framework shall provide a reusable, machine-agnostic PowerShell script (scripts/init_bare_worktree_repo.ps1) that clones a repository into the multi-branch bare/worktree layout rather than as a plain single-tree git clone. Given a clone URL (and optional root, container name, default branch, and task branch), the script shall create the {APP} container directory, perform a bare clone into {APP}/.bare, write a rename-safe relative .git pointer ('gitdir: ./.bare'), normalize the fetch refspec so every remote branch is tracked, fetch all branches, and check out the default branch as the {APP}/<default-branch> worktree, optionally adding a second worktree for a supplied task branch (created off the default branch when it does not yet exist). The operation shall be idempotent so re-running against an existing container safely skips completed work, and shall not be hard-coded to any user, drive, or absolute path. The same script shall serve both BaseApp and variant apps (selected purely by the clone URL passed in), and because the whole scripts/ folder is propagated to variant apps via resources/manifests/pull.json, variant apps shall receive this initializer automatically, so that variant-app development benefits from the identical multi-branch architecture used by BaseApp.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.18",
+                    "title": "Branch-Aware Variant App Instantiation",
+                    "description": "Variant-app multi-branch instantiation requirement: scripts/instantiate.py shall deploy a new variant app directly into the multi-branch bare/worktree directory layout instead of a flat single-tree folder. It shall accept --container (default '../../../' resolved relative to the script's directory, i.e. the parent of the BaseApp container, so running from c:/code/BaseApp/main/scripts targets c:/code/), --app-name (default 'MyApp{YYYYMMDD}'), and --branch (default 'main'), and shall place the instantiated app at {abspath(container)}/{app-name}/{branch}. APP_NAME shall be written to config/app.json COMMON.APP_NAME from --app-name; the app's branch shall be implied by the worktree folder name and shall not be separately stored. The script shall persist a single absolute path to the BaseApp source branch folder it was instantiated from as COMMON.BASEAPP inside the app's gitignored, once-deployed config/local.json, maintained as the single source of truth in the app's main worktree, so that pull-back tooling can locate the base without re-discovery and without that local-only path being synced to git. instantiate shall NOT create any git metadata (.git, .bare, or git pointer files); it shall only lay down the directory structure so that a later, post-hoc git initialization into the bare/worktree layout can adopt the {APP}/{branch} directory non-destructively, without overwriting or deleting any instantiated file. The operation shall remain machine-agnostic, with no hard-coded user, drive, or absolute path.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.19",
+                    "title": "Branch-Aware Base-Pull Source Resolution",
+                    "description": "Variant-app multi-branch base-pull requirement: scripts/pullbase.py shall locate its BaseApp source from the persisted COMMON.BASEAPP path rather than ad-hoc discovery, and shall accept --branch (default 'main') selecting which BaseApp worktree to pull updates from, resolving the source as {parent-of-BASEAPP}/{branch}. Because config/local.json is gitignored and therefore not materialized in freshly created task-branch worktrees, pullbase shall resolve COMMON.BASEAPP through a fallback chain: first the current worktree's config/local.json, then the app's main worktree config/local.json ({container}/main/config/local.json where {container} is the parent of the running worktree), then the pre-existing --source/auto discovery for backward compatibility. local.json shall be maintained as the single source of truth in the app's main worktree; pullbase running inside a task-branch worktree shall read main's reference as a fallback without mutating main's local.json.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-014.20",
+                    "title": "Migrate Existing Deployment to Multi-Branch Layout",
+                    "description": "Existing-deployment multi-branch migration requirement: scripts/init_bare_worktree_repo.ps1 shall, in addition to cloning a remote into the bare/worktree layout, automatically migrate an EXISTING branch-agnostic single-tree app deployment (for example a flat instantiate output or a plain git checkout) in place into the multi-branch bare/worktree layout. Mode selection shall be automatic: when the resolved {APP} container already contains app content but no {APP}/.bare store, the script shall migrate that content in place; when the target is empty/new it shall clone from -Url as before. Migration shall promote the existing app directory to the {APP} container and relocate its contents into a {APP}/{branch} worktree (branch defaulting to the existing repo's current branch when it is a git repository, otherwise 'main'), producing the same canonical layout as the clone path: a bare object store at {APP}/.bare, a rename-safe relative .git pointer ('gitdir: ./.bare'), and {APP}/{branch} registered as a proper linked worktree (as reported by 'git worktree list --porcelain'). Migration shall be non-destructive: it shall preserve commit history when the source is already a git repository (and create an initial commit when it is not), and shall preserve untracked and gitignored working files that are not part of git history -- in particular the gitignored config/local.json carrying COMMON.BASEAPP -- excluding only regenerable artifacts (.venv, __pycache__). It shall be idempotent (re-running against an already-migrated container, i.e. one that already has {APP}/.bare, safely skips), machine-agnostic, and shall not silently destroy or overwrite any existing app file.",
                     "priority": "Medium",
                     "comments": []
                 }
-                               ],
-                               "solution": [
+            ],
+            "solution": [
                 {
                     "feature": "3.6",
                     "role": "scripts/task_manager.py provides the HTTP server, task store helpers, and single-page UI.",
@@ -1311,6 +1335,62 @@
                     "role": "test_init_bare_worktree_repo_builds_bare_and_worktrees clones a local source repo via init_bare_worktree_repo.ps1 and asserts the .bare store, relative .git pointer, default-branch worktree with content, a new -TaskBranch worktree off the default branch, and idempotent re-run.",
                     "implementation": 1.0,
                     "verification": 1.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.1.14",
+                    "role": "resolve_app_root computes the variant app root {abspath(container)}/{app-name}/{branch} from the --container (default script-relative '../../../'), --app-name (default 'MyApp{YYYYMMDD}'), and --branch (default 'main') CLI args.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.1.15",
+                    "role": "populate_local_config writes COMMON.BASEAPP (the absolute path of the BaseApp source branch folder instantiate ran from) into the app's gitignored, once-deployed config/local.json in the app's main worktree, without emitting any git metadata.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.2.19",
+                    "role": "resolve_baseapp_source resolves the BaseApp source from COMMON.BASEAPP via a worktree->main-worktree->auto fallback chain and applies --branch by swapping the BASEAPP leaf ({parent-of-BASEAPP}/{branch}); backward compatible with --source/auto.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "5.3.1.5.2",
+                    "role": "test_instantiate_branch_aware_layout asserts instantiate places content under {container}/{app-name}/{branch} (default main and a custom --branch), sets app.json COMMON.APP_NAME from --app-name, writes COMMON.BASEAPP into config/local.json, and emits no git metadata.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "5.3.1.5.3",
+                    "role": "test_instantiate_layout_survives_git_init instantiates an app then performs a post-hoc in-place git init/adopt into the bare/worktree layout and asserts every instantiated file is preserved byte-for-byte (git-init safety).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.8.2",
+                    "role": "Convert-ExistingDeployment migrates an existing branch-agnostic single-tree app (flat instantiate output or plain git checkout) in place into the canonical {APP}/.bare + {APP}/{branch} worktree layout: it commits/initialises history as needed, records untracked/gitignored files (preserving config/local.json, excluding .venv/__pycache__), bare-clones the history into {APP}/.bare, writes the .git pointer, registers {APP}/{branch} via 'git worktree add', and restores the preserved files. Non-destructive, idempotent, auto-selected when {APP} has content but no .bare.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "5.3.1.8.2",
+                    "role": "test_init_bare_worktree_repo_migrates_existing_deployment builds a flat branch-agnostic app (incl. a gitignored config/local.json), runs the migration mode, and asserts the canonical bare/worktree layout (porcelain), preservation of all files including local.json, a clean working tree, attachable task worktrees, and idempotent re-run.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "5.3.1.4.2",
+                    "role": "test_pullbase_baseapp_resolution_with_main_fallback asserts pullbase resolves COMMON.BASEAPP from the current worktree's local.json, falls back to the app's main worktree local.json when the task worktree has none, and applies --branch by swapping the BASEAPP leaf.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
                     "deployment": 0.0
                 }
             ]

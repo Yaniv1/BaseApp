@@ -6,7 +6,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_init_bare_worktree_repo_builds_bare_and_worktrees(tmp_path):
-    """Feature 3.8 / BASE-REQ-014.13 regression test.
+    """Feature 3.8 / BASE-REQ-014.17 regression test.
 
     ``scripts/init_bare_worktree_repo.ps1`` must clone a repository into the
     multi-branch bare/worktree layout rather than a plain single-tree clone.
