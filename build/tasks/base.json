@@ -1035,7 +1035,7 @@
             "description": "The task manager should be able to sync task statuses from local work to the central gip repository.",
             "type": "Feature",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "BASE-TASK-260621-0003 worker",
@@ -1046,6 +1046,11 @@
                     "author": "BASE-TASK-260621-0003 worker",
                     "content": "Engineer decision: close as already-implemented, no code change. Verified the requested capability already exists on main: UI \"Sync Git\" button (resources/templates/task_manager.html) -> POST /api/tasks/sync-git -> _sync_task_store_to_git() + scripts/sync_task_repo.ps1 (isolated-worktree commit + push to origin), plus startup auto-sync (_sync_selected_app_on_startup) and the headless status-queue inbox that applies worker status updates to the ledger on main and pushes. Relevant requirements (startup sync, file-store task status channel, status-sync ledger isolation) already captured in build/requirements/base.json. No repository files changed. Work-summary written to task result store: C:/data/MyApp/task_results/BASE-TASK-260621-0003/BASE-TASK-260621-0003.html. Awaiting engineer direction on final task status.",
                     "timestamp": "2026-06-29T22:25:14Z"
+                },
+                {
+                    "author": "BASE-TASK-260621-0003 worker",
+                    "content": "Closed as already-implemented per engineer decision; no code change required. Status set to Done.",
+                    "timestamp": "2026-06-29T22:26:40Z"
                 }
             ],
             "worker_session": {
