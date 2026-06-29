@@ -1868,7 +1868,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Ready",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1889,6 +1889,11 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Implementation complete. scripts/init_bare_worktree_repo.ps1 (Feature 3.8) added; clones BaseApp or any variant app into the bare/worktree multi-branch layout (idempotent, machine-agnostic). Added no-network regression test test/tests/base/init_bare_worktree_repo.py (registered as test feature 5.3.1.8/5.3.1.8.1) asserting the .bare store, relative .git pointer, default-branch worktree with content, a new -TaskBranch worktree off the default branch, and idempotent re-run. Recorded in build/updates/base.json. Verification: new test passes; build-phase deployment test passes (1 run, 0 failures). Note: two PRE-EXISTING, unrelated failures in test/tests/base/task_manager.py (test_build_copilot_prompt_uses_plain_task_request, test_create_server_falls_back_to_free_port_when_requested_port_is_busy) reproduce without this task's changes and were left untouched. Changes committed on branch task/BASE-TASK-260626-0003 (not pushed). Summary at task_results/BASE-TASK-260626-0003/BASE-TASK-260626-0003.html.",
                     "timestamp": "2026-06-27T01:28:52Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Reopened from Ready for review-driven scope expansion. Engineer clarified the task scope: variant apps must be deployed INTO the multi-branch (bare/worktree) dev architecture, which requires adapting instantiate.py and pullbase.py (not just adding the init script). Moving back to InProgress to complete the specification (requirements + architecture + design) before implementation.",
+                    "timestamp": "2026-06-29T20:36:38Z"
                 }
             ],
             "worker_session": {
