@@ -1893,7 +1893,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Specified",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1924,6 +1924,11 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Specification complete for the expanded scope. Requirements: added BASE-REQ-014.16 (instantiate deploys variant apps into the {container}/{app-name}/{branch} multi-branch layout; writes COMMON.BASEAPP into gitignored config/local.json; emits no git metadata so post-hoc git init can adopt non-destructively) and BASE-REQ-014.17 (pullbase resolves BaseApp source from COMMON.BASEAPP with worktree->main-worktree->auto fallback and a --branch selector); broadened 014.15. Architecture: added instantiate features 3.1.14 resolve_app_root and 3.1.15 populate_local_config, pullbase feature 3.2.17 resolve_baseapp_source, and tests 5.3.1.5.2/5.3.1.5.3 (instantiate layout + git-init safety) and 5.3.1.4.2 (pullbase resolution). Awaiting engineer approval of the specification before implementation.",
                     "timestamp": "2026-06-29T20:40:30Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Implementation complete and validated (awaiting review; code not yet pushed). Variant apps now deploy into the multi-branch bare/worktree architecture: (1) instantiate.py adds --container/--app-name/--branch with resolve_app_root (3.1.14) computing {abspath(container)}/{app-name}/{branch} and populate_local_config (3.1.15) recording COMMON.BASEAPP in config/local.json; (2) pullbase.py adds --branch and resolve_baseapp_source (3.2.19) with worktree->main->auto fallback and BASEAPP leaf-swap; (3) init_bare_worktree_repo.ps1 adds auto-detected MIGRATION mode Convert-ExistingDeployment (3.8.2) converting an existing single-tree deployment in place into {APP}/.bare + {APP}/{branch}, preserving git history and gitignored files (e.g. local.json), excluding .venv, dropping the dangling origin, idempotent. Tests 5.3.1.5.2, 5.3.1.5.3, 5.3.1.4.2 (structured) and 5.3.1.8.2 (pytest migration) added. Validation: prep phase 17 run/0 failures; init pytest 2 passed; build phase 0 failures.",
+                    "timestamp": "2026-06-29T23:21:14Z"
                 }
             ],
             "worker_session": {
