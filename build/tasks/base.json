@@ -1750,7 +1750,7 @@
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
             "id": "BASE-TASK-260624-0005",
             "uuid": "85d2bfc1-b36a-4920-bc9d-7d4c1061496b",
-            "title": "Rebuilt Task Manager as a dedicated app that builds on BaseApp",
+            "title": "Rebuild Task Manager as a dedicated app that builds on BaseApp",
             "description": [
                 "Currently task manager is a combination of items stitched into BaseApp.",
                 "I want to rebuild it as its own app that you woud run by calling TaskManager/app/app.py rather then BaseApp/scripts/task_manager.py",
@@ -2074,6 +2074,11 @@
                     "author": "BASE-TASK-260627-0003 worker",
                     "content": "Implementation complete and validated. Added the saved-views bar (markup+CSS) below the status tabs and the full views JS in resources/templates/task_manager.html: load/save to localStorage, auto-naming (e.g. 'High Priority Task Manager Bugs'), apply/rename(double-click)/delete(X icon), per-tab restore on tab switch, deselect-on-manual-change, and search integration. Added test_task_manager_template_has_saved_views. Validation: node --check passes; a DOM/localStorage-stub Node harness verified save/persist/restore/rename/delete/auto-name; pytest test/tests/base/task_manager.py -> 59 passed incl. the new test (2 pre-existing unrelated failures, confirmed on clean baseline). Versioning/README deferred to Deployed per workflow. No commit/push yet — awaiting engineer review.",
                     "timestamp": "2026-06-29T22:42:16Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Applied two requested refinements to the saved-views feature. (1) View definitions are now persisted SERVER-SIDE in the app's machine-local config/local.json (key TASK_MANAGER_VIEWS) via new GET/PUT /api/views endpoints (scripts/task_manager.py helpers _local_config_path/_load_local_config_raw/_load_views/_save_views, atomic write preserving other keys), replacing the earlier localStorage approach so views persist across sessions and browsers; the frontend loads them async on startup and writes back fire-and-forget. (2) The Type and Priority column filters now always offer their canonical values regardless of the loaded data (TYPE_ORDER = Feature/Bug/Chore/Doc; PRIORITY_ORDER = Critical/High/Medium/Low), appending any extra values found in the data. Updated BASE-REQ-014.15 and BASE-REQ-014.13, architecture features 11.2.2 and 3.6.15. Added tests test_task_manager_template_has_saved_views, test_task_manager_template_filters_offer_canonical_values, test_views_store_round_trips_through_local_config, test_views_endpoints_get_and_put. python -m pytest test/tests/base/task_manager.py -> 62 passed, 2 pre-existing unrelated failures. No commit/push made; awaiting review/approval.",
+                    "timestamp": "2026-06-29T23:19:38Z"
                 }
             ],
             "worker_session": {
@@ -2085,6 +2090,29 @@
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260627-0003.md",
                 "started_at": "2026-06-29T22:27:50Z"
             }
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260629-0001",
+            "uuid": "0dc2349c-e844-45fc-8bb5-02a35c35ebf5",
+            "title": "Task Manager Track model used by copilot and number of Tokens consumed",
+            "description": [
+                "add to worker_session in task template.",
+                "model - which model was used by the copilot.",
+                "tokens:",
+                "- TOTAL : how many tokens were consumed in total.",
+                "- per-state: how many tokens were consumed to get to each state. note that if the task has to go back to a past task, the accrued tokens will count toward getting back to that state and get added to any tokens used in the first round."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Manager Track model used by copilot and number of Tokens consumed",
+                    "timestamp": "2026-06-29T22:45:23Z"
+                }
+            ]
         }
     ]
 }
