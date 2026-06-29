@@ -247,6 +247,18 @@
                             "description": "Migrate or remove deprecated paths in the local app. For each (source, target) pair: if target is absent, move source to target preserving data; if target exists, delete source. Returns (moved, removed, skipped).",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::drop_deprecated_paths"
+                        },
+                        "3.2.17": {
+                            "name": "scripts.pullbase.derive_base_managed_paths",
+                            "description": "Compute the deduplicated, sorted list of base-owned ignore paths from the manifest pull entries (file targets as-is, directory targets as directory prefixes), used to populate the base-managed .gitignore block.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::derive_base_managed_paths"
+                        },
+                        "3.2.18": {
+                            "name": "scripts.pullbase.update_base_gitignore",
+                            "description": "Write or refresh a delimited base-managed block in the instance app's .gitignore listing base-owned pull paths, idempotently and gated by COMMON.BASE_GITIGNORE, preserving user content outside the sentinels so base updates do not churn the instance repo.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::update_base_gitignore"
                         }
                     }
                 },

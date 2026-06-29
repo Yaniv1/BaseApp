@@ -681,6 +681,45 @@
                             "comments": []
                         }
                     ]
+                },
+                {
+                    "id": "BASE-REQ-008.7",
+                    "title": "Minimize Version-Control Impact of Base Updates on Instance Apps",
+                    "description": "The system must minimize the version-control burden a BaseApp update imposes on an instance app: base-owned files synchronized by the manifest 'pull' set shall be present in the instance working tree (so code structure and import paths remain identical to BaseApp) but excluded from the instance app's git tracking, so that running pullbase after a base update does not produce staged/committed changes in the instance repo. Only app-owned ('once') artifacts remain tracked by the instance app.",
+                    "priority": "Medium",
+                    "comments": [],
+                    "breakdown": [
+                        {
+                            "id": "BASE-REQ-008.7.1",
+                            "description": "Process requirement: During a normal (non-hard) pullbase run, and during instantiation, the system shall write/refresh a delimited base-managed block in the instance app's .gitignore that lists every base-owned path derived from the manifest 'pull' entries (per-file for file entries, whole-directory for directory entries), so those paths are untracked by the instance app's git.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.7.2",
+                            "description": "Constraint requirement: The base-managed .gitignore block shall be bounded by clearly marked begin/end sentinel lines and shall be rewritten idempotently (re-running pullbase produces no further .gitignore changes when the pull set is unchanged), preserving any user-authored content outside the sentinels.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.7.3",
+                            "description": "Constraint requirement: App-owned 'once' manifest targets (e.g. config/app.json, app/app.py, build/architecture, build/requirements/app.json, build/tasks/app.json) shall never be added to the base-managed ignore block, so the instance app continues to track its own customizations. The .gitignore file itself shall remain tracked.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.7.4",
+                            "description": "Configuration requirement: The behavior shall be controlled by a config flag (COMMON.BASE_GITIGNORE, default enabled) and the block sentinel markers shall be configurable, with no hard-coded paths or markers in code. When disabled, pullbase shall not modify .gitignore.",
+                            "priority": "Low",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.7.5",
+                            "description": "Verification requirement: A test shall confirm that after pullbase the managed block contains the pull-derived paths, excludes once-owned paths, is idempotent across repeated runs, and is omitted when the flag is disabled.",
+                            "priority": "Medium",
+                            "comments": []
+                        }
+                    ]
                 }
             ],
             "solution": [
@@ -746,6 +785,41 @@
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0
+                },
+                {
+                    "feature": "3.2.17",
+                    "role": "derive_base_managed_paths computes the deduplicated, sorted list of base-owned ignore paths from the manifest pull entries (BASE-REQ-008.7.1, 008.7.3).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.2.18",
+                    "role": "update_base_gitignore writes/refreshes the delimited base-managed block in the instance .gitignore idempotently, gated by COMMON.BASE_GITIGNORE (BASE-REQ-008.7.1, 008.7.2, 008.7.4).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.2.3",
+                    "role": "main() invokes update_base_gitignore after the pull/drop/once steps so base-owned files become untracked in the instance app (BASE-REQ-008.7.1).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.1.2",
+                    "role": "instantiate seeds the initial base-managed .gitignore block so a freshly instantiated app starts in the import model (BASE-REQ-008.7.1).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "7.x.pullbase_gitignore",
+                    "role": "Pullbase test verifies managed block content, once-exclusion, idempotency, and flag-off behavior (BASE-REQ-008.7.5).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
                 }
             ]
         },
