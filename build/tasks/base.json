@@ -1807,7 +1807,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Deployed",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1838,16 +1838,21 @@
                     "author": "BASE-TASK-260626-0002 worker",
                     "content": "Engineer granted final approval to push. Finalized for 26.06.29.01 (versions bumped; README/readme/updates updated), committed (a42ecb0 feature + 05b57d4 finalize) and pushed to branch task/BASE-TASK-260626-0002. Build phase: 1 run, 0 failures. Not yet merged into main.",
                     "timestamp": "2026-06-29T18:18:25Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0002 worker",
+                    "content": "Reconciling ledger: the task-search feature is already implemented, finalized (26.06.29.01), pushed to task/BASE-TASK-260626-0002, and merged into main (merge commit ffcd421). Worktree and task branch are dissolved. Per engineer instruction, advancing the stale ledger status (InProgress) to Done to reflect that the implementation is approved and integrated into main.",
+                    "timestamp": "2026-06-29T18:44:13Z"
                 }
             ],
             "worker_session": {
-                "pid": 32932,
+                "pid": 40564,
                 "window_title": "Task Manager UI Task Search (BASE-TASK-260626-0002)",
                 "mode": "work",
                 "branch": "task/BASE-TASK-260626-0002",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0002",
-                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0002.md",
-                "started_at": "2026-06-26T23:06:14Z"
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260626-0002.md",
+                "started_at": "2026-06-29T18:39:32Z"
             }
         },
         {
@@ -1887,13 +1892,13 @@
                 }
             ],
             "worker_session": {
-                "pid": 21316,
+                "pid": 11020,
                 "window_title": "Add a deployment script that respects the multi-branch architecture (BASE-TASK-260626-0003)",
-                "mode": "work",
-                "branch": "task/BASE-TASK-260626-0003",
+                "mode": "review",
+                "branch": null,
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0003",
-                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0003.md",
-                "started_at": "2026-06-26T23:06:01Z"
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260626-0003-review.md",
+                "started_at": "2026-06-29T18:43:09Z"
             }
         },
         {
