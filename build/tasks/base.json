@@ -1640,7 +1640,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "Deployed",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1671,6 +1671,11 @@
                     "author": "BASE-TASK-260624-0003 worker",
                     "content": "Engineer approved the implementation and explicitly approved staging/committing/pushing.",
                     "timestamp": "2026-06-27T01:20:18Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0003 worker",
+                    "content": "Integration complete. Merged task/BASE-TASK-260624-0003 into main (merge commit 166c8e6) and pushed to origin/main. Resolved a version collision with BASE-TASK-260622-0004 by revving this task to 26.06.26.04 and merging origin/main into the task branch first (conflicts resolved keeping the rewritten overview README, version 26.06.26.04, and both release-highlights/updates entries). Post-merge build green: build phase 2/2, 0 failures, exit 0. README is now a current-state app overview with hardened instructions and the advisory WARN-only build test build_readme_overview_only guarding against changelog drift. Dissolving the task branch and worktree next.",
+                    "timestamp": "2026-06-27T01:32:39Z"
                 }
             ],
             "worker_session": {
