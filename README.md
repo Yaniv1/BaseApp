@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.26.02
-- App template version: A26.06.26.02
+- Base version: 26.06.29.01
+- App template version: A26.06.29.01
+
+## Highlights (26.06.29.01)
+
+- **Find a task by ID in the Task Manager.** The web UI adds a search bar above the status tabs: type a task ID and the Task Manager jumps straight to that task — switching to its status tab and opening its details — instead of hunting through the tabs by hand. Matching is case-insensitive and accepts a partial ID when it identifies a single task; an ambiguous partial ID asks you to be more specific, and an unknown ID shows a brief "not found" message without changing your current view.
 
 ## Highlights (26.06.26.02)
 

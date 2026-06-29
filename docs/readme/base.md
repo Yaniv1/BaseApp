@@ -1,4 +1,4 @@
-# BaseApp V-26.06.26.02
+# BaseApp V-26.06.29.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.29.01)
+
+- **Task Manager UI task search** (Feature 3.6; Requirement BASE-REQ-014.14): The Task Manager UI (`resources/templates/task_manager.html`) gains a task-search bar positioned **above the status tabs** that locates a task by its id. Submitting a query (via the Search button or Enter) matches task ids case-insensitively — an exact id match takes precedence, and otherwise a unique substring match is accepted, while an ambiguous substring match prompts the user to enter a more specific id. When a task is found, the UI switches the active status tab to the matched task's status, renders that list, selects and scrolls the matched row into view, and opens the task's details in the details pane; a no-match query reports an inline message and leaves the view unchanged. The search reuses the existing `normalizeStatus`/`renderTable`/`showDetail`/`refreshRows` logic via new `searchTask`/`findTaskById`/`activateStatusTab`/`initSearch` helpers. Architecture feature `11.2.2 resources.templates.task_manager` records the (previously un-architected) single-page UI template. New test `test_task_manager_template_has_task_search` in `test/tests/base/task_manager.py`. Build tests verified: 1 run, 0 failures.
 
 ## Release Highlights (26.06.26.02)
 
