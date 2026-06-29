@@ -1994,6 +1994,11 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager UI Add a Tab `ALL` that shows all the tasks without status division",
                     "timestamp": "2026-06-27T01:06:08Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Started implementation of the ALL tab feature for the Task Manager UI (a single view of all tasks, with sorting/filtering and an added status filter/sort).",
+                    "timestamp": "2026-06-29T20:47:09Z"
                 }
             ],
             "worker_session": {
