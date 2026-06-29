@@ -2053,7 +2053,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Specified",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2069,6 +2069,11 @@
                     "author": "BASE-TASK-260627-0003 worker",
                     "content": "Specification ready. Requirements: added BASE-REQ-014.15 (Task Manager UI saved-views) under BASE-REQ-014. Architecture: updated feature 11.2.2 (resources.templates.task_manager). Design: views are per-status saved sort/filter configs in resources/templates/task_manager.html, rendered as a views bar below the status tabs, persisted in localStorage (key tm_views), with save/apply/rename/delete, per-tab restore, manual-change deselection, and search integration. No server changes.",
                     "timestamp": "2026-06-29T22:42:07Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Implementation complete and validated. Added the saved-views bar (markup+CSS) below the status tabs and the full views JS in resources/templates/task_manager.html: load/save to localStorage, auto-naming (e.g. 'High Priority Task Manager Bugs'), apply/rename(double-click)/delete(X icon), per-tab restore on tab switch, deselect-on-manual-change, and search integration. Added test_task_manager_template_has_saved_views. Validation: node --check passes; a DOM/localStorage-stub Node harness verified save/persist/restore/rename/delete/auto-name; pytest test/tests/base/task_manager.py -> 59 passed incl. the new test (2 pre-existing unrelated failures, confirmed on clean baseline). Versioning/README deferred to Deployed per workflow. No commit/push yet — awaiting engineer review.",
+                    "timestamp": "2026-06-29T22:42:16Z"
                 }
             ],
             "worker_session": {
