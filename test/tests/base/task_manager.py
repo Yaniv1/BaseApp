@@ -352,6 +352,25 @@ def test_task_manager_template_has_other_catch_all_tab():
     assert "return 'Other';" in template
 
 
+def test_task_manager_template_has_task_search():
+    """Feature 3.6 / BASE-REQ-014.14: a search bar above the status tabs locates a
+    task by id, switches to its status tab, and opens its details."""
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    # Search bar markup is present.
+    assert 'id="task-search-input"' in template
+    assert 'id="task-search-btn"' in template
+    assert 'id="task-search-msg"' in template
+    assert 'class="search-bar"' in template
+    # The search bar is positioned above (before) the status tab bar.
+    assert template.index('class="search-bar"') < template.index('class="tab-bar"')
+    # Search logic is wired through dedicated helpers and the init sequence.
+    assert "function searchTask(" in template
+    assert "function findTaskById(" in template
+    assert "function initSearch()" in template
+    assert "initSearch();" in template
+
+
 def test_task_manager_template_has_resizable_split_panes():
     """Feature 3.6: task list and task details are two stacked, independently
     scrolling blocks separated by a draggable divider (default 60/40 split)."""
