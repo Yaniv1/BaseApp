@@ -1041,6 +1041,11 @@
                     "author": "BASE-TASK-260621-0003 worker",
                     "content": "Started work. Investigation finding: the described capability (Task Manager UI pushing task status updates to the central git repo) already exists on main — the \"Sync Git\" UI button -> POST /api/tasks/sync-git -> _sync_task_store_to_git() + scripts/sync_task_repo.ps1 (isolated-worktree commit + push to origin), plus startup auto-sync and the status-queue inbox that headlessly applies worker status updates to the ledger on main and pushes. These were introduced by earlier tasks (BASE-TASK-260619-0002 onward) predating this ToDo. Seeking engineer guidance on the intended remaining gap before specifying/implementing.",
                     "timestamp": "2026-06-29T20:44:18Z"
+                },
+                {
+                    "author": "BASE-TASK-260621-0003 worker",
+                    "content": "Engineer decision: close as already-implemented, no code change. Verified the requested capability already exists on main: UI \"Sync Git\" button (resources/templates/task_manager.html) -> POST /api/tasks/sync-git -> _sync_task_store_to_git() + scripts/sync_task_repo.ps1 (isolated-worktree commit + push to origin), plus startup auto-sync (_sync_selected_app_on_startup) and the headless status-queue inbox that applies worker status updates to the ledger on main and pushes. Relevant requirements (startup sync, file-store task status channel, status-sync ledger isolation) already captured in build/requirements/base.json. No repository files changed. Work-summary written to task result store: C:/data/MyApp/task_results/BASE-TASK-260621-0003/BASE-TASK-260621-0003.html. Awaiting engineer direction on final task status.",
+                    "timestamp": "2026-06-29T22:25:14Z"
                 }
             ],
             "worker_session": {
