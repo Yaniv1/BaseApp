@@ -1640,7 +1640,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "Ready",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1661,6 +1661,11 @@
                     "author": "BASE-TASK-260624-0003 worker",
                     "content": "Implementation ready for review. (1) README.md rewritten as a current-state overview. (2) Added guardrails so it can't drift back into a changelog: hardened build/instructions/base.md (step 4e) and app.md to forbid changelog-style README content; added advisory WARN-only check test_readme_overview_only (Feature 5.3.1.1.4) registered as a BUILD-phase test (build_readme_overview_only) that scans for Highlights/Changelog/Release headings and repeated date/version-stamped headings; added BASE-REQ-013.8 and architecture feature 5.3.1.1.4. The test reports WARN (never FAIL) so it never breaks the build (fail_on=[\"FAIL\"]). Verified: build.py build phase 2/2 0 failures (exit 0), deployment 25/25, app run 0 WARN/0 ERROR; guard PASSes on current README and WARNs on a synthetic changelog. No version bump / docs/readme / updates changes yet (deployment-phase steps). Summary: C:/data/MyApp/20260626/task_results/BASE-TASK-260624-0003/BASE-TASK-260624-0003.html",
                     "timestamp": "2026-06-27T00:41:12Z"
+                },
+                {
+                    "author": "BASE-TASK-260624-0003 worker",
+                    "content": "Finalized and deployed: bumped version to 26.06.26.03 (app A26.06.26.03), updated docs/readme/base.md and build/updates/base.json, committed 12 files (commit 7da8c0a) and pushed to branch task/BASE-TASK-260624-0003 (not yet merged to main). Build phase 2/2, 0 failures. Awaiting integration engineer to merge into main (Approved -> Done).",
+                    "timestamp": "2026-06-27T01:20:18Z"
                 }
             ],
             "worker_session": {
@@ -1873,6 +1878,74 @@
                     "author": "ymordecai",
                     "content": "Task created: Figure out a solution that minimizes the impact of BaseApp updates on instance apps",
                     "timestamp": "2026-06-26T23:10:16Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260627-0001",
+            "uuid": "c48b2f97-5dd7-47d9-9a59-8605648caaf2",
+            "title": "Task Status Queue must be version-agnostic",
+            "description": [
+                "Currently it's stored in OUTPUT_PATH which contains OUTPUT_VERSION, but it should be saved under OUTPUT_PREFIX.",
+                "In addition, the queue is currently handled by moving files from sub-folder to sub-folder. this means that if two servers are listening on the same folder, only one will pick up the status request."
+            ],
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Status Queue must be version-agnostic",
+                    "timestamp": "2026-06-27T01:05:03Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260627-0002",
+            "uuid": "81bbec03-5789-4738-a892-b088ad7cf801",
+            "title": "Task Manager UI Add a Tab `ALL` that shows all the tasks without status division",
+            "description": [
+                "Currently there is no single view of all the tasks.",
+                "Add a tab before the status tabs for all the tasks.",
+                "sorting and filtering behavior will apply in this tab just like in status tabs.",
+                "Add status filter/sort which is not available in the status tabs."
+            ],
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Manager UI Add a Tab `ALL` that shows all the tasks without status division",
+                    "timestamp": "2026-06-27T01:06:08Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260627-0003",
+            "uuid": "120b896b-7b64-4cb4-80f6-1350b18aafe5",
+            "title": "Task Manager UI VIEWS",
+            "description": [
+                "Support storing sort/filter configurations as view that the user can quickly switch to or delete if they are no longer needed.",
+                "The views bar will appear below the status tabs bar, i.e. each status tab will have its own views.",
+                "an icon to save a view will be available. when a view is saved, a tab is formed and its name is based on the filters, for example `High Priority Task Manager Bugs`.",
+                "the user will be able to rename the view.",
+                "the user will be able to delete the view by clicking on an X icon next to the view's name.",
+                "views will be remembered across sessions.",
+                "when a user switches tabs, the last view in a tab will be restored.",
+                "Essentially, views are only filter and sorting configs - not fully distinguished entities on the status tab."
+            ],
+            "type": "Feature",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Manager UI VIEWS",
+                    "timestamp": "2026-06-27T01:06:31Z"
                 }
             ]
         }
