@@ -1998,7 +1998,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2009,6 +2009,11 @@
                     "author": "BASE-TASK-260627-0002 worker",
                     "content": "Started implementation of the ALL tab feature for the Task Manager UI (a single view of all tasks, with sorting/filtering and an added status filter/sort).",
                     "timestamp": "2026-06-29T20:47:09Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Design ready for review. Requirements: added BASE-REQ-014.15 (all-tasks ALL tab) and extended the feature 3.6 UI solution role. Design: new ALL tab placed before the status tabs and active by default, listing every task with no status division (count badge cnt-ALL); a Status column added to the list that is sortable (by lifecycle order) and filterable by exact normalized status, shown only in the ALL tab (hidden in per-status tabs via a show-status class). Existing ID/Title/Type/Priority sort+filter behavior is unchanged in the ALL tab. STATUS_TABS array is kept intact; ALL is handled as a virtual tab that bypasses status normalization. Files: resources/templates/task_manager.html, build/requirements/base.json, test/tests/base/task_manager.py. Summary at task_results/BASE-TASK-260627-0002/BASE-TASK-260627-0002.html.",
+                    "timestamp": "2026-06-29T20:52:23Z"
                 }
             ],
             "worker_session": {
