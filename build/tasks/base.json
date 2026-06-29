@@ -2053,14 +2053,28 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager UI VIEWS",
                     "timestamp": "2026-06-27T01:06:31Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Started work on BASE-TASK-260627-0003 (Task Manager UI VIEWS). Reviewed instructions, requirements (BASE-REQ-014), architecture (Feature 11.2.2), the task_manager.html template, and the existing test suite. Views are per-status saved sort/filter configurations, persisted client-side in localStorage (consistent with tm_split_ratio/tm_file), surfaced as a views bar below the status tabs.",
+                    "timestamp": "2026-06-29T22:33:08Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 23744,
+                "window_title": "Task Manager UI VIEWS (BASE-TASK-260627-0003)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260627-0003",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260627-0003",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260627-0003.md",
+                "started_at": "2026-06-29T22:27:50Z"
+            }
         }
     ]
 }
