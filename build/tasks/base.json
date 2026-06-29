@@ -1937,7 +1937,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "ymordecai",
@@ -1948,6 +1948,11 @@
                     "author": "BASE-TASK-260626-0004 worker",
                     "content": "Started work on BASE-TASK-260626-0004. Investigated the pullbase mechanism: each base update copies ~25 base-owned files/dirs (the manifest 'pull' set) into the instance app working tree, all git-tracked, forcing the instance designer to stage/commit base churn. Designing a solution that keeps the code structure/imports identical while removing the version-control burden.",
                     "timestamp": "2026-06-29T20:47:26Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Specification ready for review. Recommended solution (Option A): treat manifest 'pull' (base-owned) files as a VCS-level import — present in the working tree so structure/imports stay identical to BaseApp, but excluded from the instance app's git via a manifest-derived, delimited, idempotent base-managed block written by pullbase (and seeded by instantiate). Only app-owned 'once' artifacts stay tracked, so base updates cause zero staging/commit churn. Drafted requirement BASE-REQ-008.7 (+5 sub-reqs) and architecture features 3.2.17 derive_base_managed_paths / 3.2.18 update_base_gitignore. Design (config flag COMMON.BASE_GITIGNORE, pullbase/instantiate changes, message codes, test) documented in the task result HTML. Rejected pip-package (breaks identical imports) and submodule (interleaved base/app dirs) alternatives. One decision point flagged for the engineer: with this model a fresh clone needs a bootstrap pullbase before base files exist. Awaiting review.",
+                    "timestamp": "2026-06-29T20:51:01Z"
                 }
             ],
             "worker_session": {
