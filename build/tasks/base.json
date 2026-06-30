@@ -2018,7 +2018,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Ready",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2039,6 +2039,11 @@
                     "author": "BASE-TASK-260627-0002 worker",
                     "content": "Implementation complete and ready for review. Added the ALL tab (active by default, before the status tabs) listing all tasks with no status division and a total-count badge, plus a Status column (sortable by lifecycle order, filterable by exact status) shown only in the ALL tab; existing ID/Title/Type/Priority sort+filter behavior is unchanged. Recorded the change in build/updates/base.json (target version 26.06.29.02). Validation: targeted template tests 7 passed; full task_manager module 59 passed (2 pre-existing baseline failures unrelated to this change); build test suite build phase 2 run / 0 failures; template JS passes node --check. No commit/push performed yet (awaiting deploy approval). Files: resources/templates/task_manager.html, build/requirements/base.json, build/updates/base.json, test/tests/base/task_manager.py.",
                     "timestamp": "2026-06-30T01:37:00Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Engineer approved the push. Finalized and pushed to branch task/BASE-TASK-260627-0002 (commit 19a8d4c): ALL tab + Status column feature, BASE-REQ-014.15, docs/readme + README overview, updates ledger, version bumped to 26.06.29.02. Build tests: deployment 25/25, README-overview PASS, 0 failures. The task ledger (build/tasks/base.json) was intentionally excluded from the commit.",
+                    "timestamp": "2026-06-30T01:55:13Z"
                 }
             ],
             "worker_session": {
