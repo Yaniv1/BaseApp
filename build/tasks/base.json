@@ -1967,7 +1967,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Deployed",
+            "status": "Done",
             "comments": [
                 {
                     "author": "ymordecai",
@@ -2013,6 +2013,11 @@
                     "author": "BASE-TASK-260626-0004 worker",
                     "content": "Engineer approval to deploy: the engineer reviewed the Ready implementation and explicitly approved committing the deploy-finalization changes (version 26.06.30.02, build/updates/base.json, docs/readme/base.md, README.md) and pushing them to the task branch BASE-TASK-260626-0004.",
                     "timestamp": "2026-06-30T08:25:55Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Integration complete: task branch BASE-TASK-260626-0004 merged into main via supervised --no-ff merge (merge commit 77a972a) and pushed to origin/main. No conflicts. The short-lived task branch and its worktree are being dissolved.",
+                    "timestamp": "2026-06-30T08:33:59Z"
                 }
             ],
             "worker_session": {
