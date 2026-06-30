@@ -1934,6 +1934,11 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Moving to Deployed. Implementation committed and pushed to task/BASE-TASK-260626-0003 (commit 66a2ad9): variant apps deploy into the multi-branch bare/worktree architecture (instantiate.py --worktree on|off, resolve_app_root/populate_local_config), pullbase.py BaseApp-source resolution with is_self_pull guard (PULLE11) preventing branch overwrite, and init_worktree.ps1 (renamed) with auto migration mode. CLI params aligned to camelCase across all three scripts. Validation: full app/base.py suite EXIT=0; deployment integration 25/25; init pytest 2 passed.",
                     "timestamp": "2026-06-30T04:54:08Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Re-deployed (commit fa774f6, branch BASE-TASK-260626-0003). Renamed the task-branch naming convention to drop the 'task/' prefix: a task branch is now named after the task id exactly (e.g. BASE-TASK-260624-0001) so the branch name matches its worktree folder ({APP}/<task-id>) and no longer instantiates as nested sub-folders from the slash; this also keeps branch folder names consistent in instantiated variant apps. Updated _branch_name_for_task (and _task_branch_exists follows it), the UI confirm fallback, init_worktree.ps1/sync_task_repo.ps1, requirement BASE-REQ-014.9 + 3.6.9 role, instructions base.md/app.md, README, and the task_manager tests. Also renamed the live task branch task/BASE-TASK-260626-0003 -> BASE-TASK-260626-0003 (remote updated). Version bumped to 26.06.26.05. Verified: task_manager pytest passes (2 pre-existing baseline failures unrelated); full app/base.py suite EXIT=0.",
+                    "timestamp": "2026-06-30T05:22:15Z"
                 }
             ],
             "worker_session": {
