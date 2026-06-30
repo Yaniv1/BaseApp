@@ -1967,7 +1967,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Approved",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "ymordecai",
