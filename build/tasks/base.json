@@ -1750,7 +1750,7 @@
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
             "id": "BASE-TASK-260624-0005",
             "uuid": "85d2bfc1-b36a-4920-bc9d-7d4c1061496b",
-            "title": "Rebuilt Task Manager as a dedicated app that builds on BaseApp",
+            "title": "Rebuild Task Manager as a dedicated app that builds on BaseApp",
             "description": [
                 "Currently task manager is a combination of items stitched into BaseApp.",
                 "I want to rebuild it as its own app that you woud run by calling TaskManager/app/app.py rather then BaseApp/scripts/task_manager.py",
@@ -1893,7 +1893,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Specified",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1924,6 +1924,11 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Specification complete for the expanded scope. Requirements: added BASE-REQ-014.16 (instantiate deploys variant apps into the {container}/{app-name}/{branch} multi-branch layout; writes COMMON.BASEAPP into gitignored config/local.json; emits no git metadata so post-hoc git init can adopt non-destructively) and BASE-REQ-014.17 (pullbase resolves BaseApp source from COMMON.BASEAPP with worktree->main-worktree->auto fallback and a --branch selector); broadened 014.15. Architecture: added instantiate features 3.1.14 resolve_app_root and 3.1.15 populate_local_config, pullbase feature 3.2.17 resolve_baseapp_source, and tests 5.3.1.5.2/5.3.1.5.3 (instantiate layout + git-init safety) and 5.3.1.4.2 (pullbase resolution). Awaiting engineer approval of the specification before implementation.",
                     "timestamp": "2026-06-29T20:40:30Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Implementation complete and validated (awaiting review; code not yet pushed). Variant apps now deploy into the multi-branch bare/worktree architecture: (1) instantiate.py adds --container/--app-name/--branch with resolve_app_root (3.1.14) computing {abspath(container)}/{app-name}/{branch} and populate_local_config (3.1.15) recording COMMON.BASEAPP in config/local.json; (2) pullbase.py adds --branch and resolve_baseapp_source (3.2.19) with worktree->main->auto fallback and BASEAPP leaf-swap; (3) init_bare_worktree_repo.ps1 adds auto-detected MIGRATION mode Convert-ExistingDeployment (3.8.2) converting an existing single-tree deployment in place into {APP}/.bare + {APP}/{branch}, preserving git history and gitignored files (e.g. local.json), excluding .venv, dropping the dangling origin, idempotent. Tests 5.3.1.5.2, 5.3.1.5.3, 5.3.1.4.2 (structured) and 5.3.1.8.2 (pytest migration) added. Validation: prep phase 17 run/0 failures; init pytest 2 passed; build phase 0 failures.",
+                    "timestamp": "2026-06-29T23:21:14Z"
                 }
             ],
             "worker_session": {
@@ -2008,7 +2013,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Specified",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2024,6 +2029,11 @@
                     "author": "BASE-TASK-260627-0002 worker",
                     "content": "Design ready for review. Requirements: added BASE-REQ-014.15 (all-tasks ALL tab) and extended the feature 3.6 UI solution role. Design: new ALL tab placed before the status tabs and active by default, listing every task with no status division (count badge cnt-ALL); a Status column added to the list that is sortable (by lifecycle order) and filterable by exact normalized status, shown only in the ALL tab (hidden in per-status tabs via a show-status class). Existing ID/Title/Type/Priority sort+filter behavior is unchanged in the ALL tab. STATUS_TABS array is kept intact; ALL is handled as a virtual tab that bypasses status normalization. Files: resources/templates/task_manager.html, build/requirements/base.json, test/tests/base/task_manager.py. Summary at task_results/BASE-TASK-260627-0002/BASE-TASK-260627-0002.html.",
                     "timestamp": "2026-06-29T20:52:23Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Implementation complete and ready for review. Added the ALL tab (active by default, before the status tabs) listing all tasks with no status division and a total-count badge, plus a Status column (sortable by lifecycle order, filterable by exact status) shown only in the ALL tab; existing ID/Title/Type/Priority sort+filter behavior is unchanged. Recorded the change in build/updates/base.json (target version 26.06.29.02). Validation: targeted template tests 7 passed; full task_manager module 59 passed (2 pre-existing baseline failures unrelated to this change); build test suite build phase 2 run / 0 failures; template JS passes node --check. No commit/push performed yet (awaiting deploy approval). Files: resources/templates/task_manager.html, build/requirements/base.json, build/updates/base.json, test/tests/base/task_manager.py.",
+                    "timestamp": "2026-06-30T01:37:00Z"
                 }
             ],
             "worker_session": {
@@ -2062,8 +2072,65 @@
                 },
                 {
                     "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Started work on BASE-TASK-260627-0003 (Task Manager UI VIEWS). Reviewed instructions, requirements (BASE-REQ-014), architecture (Feature 11.2.2), the task_manager.html template, and the existing test suite. Views are per-status saved sort/filter configurations, persisted client-side in localStorage (consistent with tm_split_ratio/tm_file), surfaced as a views bar below the status tabs.",
+                    "timestamp": "2026-06-29T22:33:08Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Specification ready. Requirements: added BASE-REQ-014.15 (Task Manager UI saved-views) under BASE-REQ-014. Architecture: updated feature 11.2.2 (resources.templates.task_manager). Design: views are per-status saved sort/filter configs in resources/templates/task_manager.html, rendered as a views bar below the status tabs, persisted in localStorage (key tm_views), with save/apply/rename/delete, per-tab restore, manual-change deselection, and search integration. No server changes.",
+                    "timestamp": "2026-06-29T22:42:07Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Implementation complete and validated. Added the saved-views bar (markup+CSS) below the status tabs and the full views JS in resources/templates/task_manager.html: load/save to localStorage, auto-naming (e.g. 'High Priority Task Manager Bugs'), apply/rename(double-click)/delete(X icon), per-tab restore on tab switch, deselect-on-manual-change, and search integration. Added test_task_manager_template_has_saved_views. Validation: node --check passes; a DOM/localStorage-stub Node harness verified save/persist/restore/rename/delete/auto-name; pytest test/tests/base/task_manager.py -> 59 passed incl. the new test (2 pre-existing unrelated failures, confirmed on clean baseline). Versioning/README deferred to Deployed per workflow. No commit/push yet — awaiting engineer review.",
+                    "timestamp": "2026-06-29T22:42:16Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Applied two requested refinements to the saved-views feature. (1) View definitions are now persisted SERVER-SIDE in the app's machine-local config/local.json (key TASK_MANAGER_VIEWS) via new GET/PUT /api/views endpoints (scripts/task_manager.py helpers _local_config_path/_load_local_config_raw/_load_views/_save_views, atomic write preserving other keys), replacing the earlier localStorage approach so views persist across sessions and browsers; the frontend loads them async on startup and writes back fire-and-forget. (2) The Type and Priority column filters now always offer their canonical values regardless of the loaded data (TYPE_ORDER = Feature/Bug/Chore/Doc; PRIORITY_ORDER = Critical/High/Medium/Low), appending any extra values found in the data. Updated BASE-REQ-014.15 and BASE-REQ-014.13, architecture features 11.2.2 and 3.6.15. Added tests test_task_manager_template_has_saved_views, test_task_manager_template_filters_offer_canonical_values, test_views_store_round_trips_through_local_config, test_views_endpoints_get_and_put. python -m pytest test/tests/base/task_manager.py -> 62 passed, 2 pre-existing unrelated failures. No commit/push made; awaiting review/approval.",
+                    "timestamp": "2026-06-29T23:19:38Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Reworked views persistence into the layered config model. (1) Predefined default views now ship in config/base.json under APP.TASK_MANAGER.views (ToDo/InProgress/Ready). (2) Added config/machine.json for machine-specific overrides (git-ignored, added to .gitignore); it is the runtime save target for user views. (3) config/local.json remains the app-local (git-tracked) override placeholder. scripts/task_manager.py now reads APP.TASK_MANAGER.views with precedence base<local<machine (_load_views via _config_file_path/_load_config_file_raw/_nested_get/_views_from_config_file) and _save_views writes user changes to config/machine.json under APP.TASK_MANAGER.views, preserving other keys atomically. GET /api/views serves the effective set; PUT persists to machine.json. Updated BASE-REQ-014.15 and architecture 11.2.2/3.6.15. Tests: added test_views_load_layers_base_local_machine_precedence and test_views_save_writes_machine_config_preserving_keys; updated test_views_endpoints_get_and_put. python -m pytest test/tests/base/task_manager.py -> 63 passed, 2 pre-existing unrelated failures; config.py override test still passes; real Config loads cleanly with machine.json present. No commit/push made; awaiting review/approval.",
+                    "timestamp": "2026-06-30T00:23:33Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
                     "content": "Refined saved-views to protect built-in views: the predefined views shipped in config/base.json are now read-only built-ins (tagged builtin=true) — the UI hides their delete control and disables rename, and the server (_save_views) strips built-ins so only the user's own views persist to config/machine.json. _load_views always re-sources built-ins from base.json and layers user views (local/machine, machine wins) on top, so built-ins can never be deleted. Updated requirement 014.15, architecture 3.6.15/11.2.2, build/updates entry, and result HTML. Tests: 64 passed (incl. test_builtin_views_cannot_be_deleted, test_views_load_merges_builtin_and_user_views, test_views_save_persists_only_user_views_to_machine, test_views_endpoints_get_and_put); the only 2 failures are pre-existing and unrelated. No commit/push made — awaiting review.",
                     "timestamp": "2026-06-30T00:53:38Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 23744,
+                "window_title": "Task Manager UI VIEWS (BASE-TASK-260627-0003)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260627-0003",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260627-0003",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260627-0003.md",
+                "started_at": "2026-06-29T22:27:50Z"
+            }
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260629-0001",
+            "uuid": "0dc2349c-e844-45fc-8bb5-02a35c35ebf5",
+            "title": "Task Manager Track model used by copilot and number of Tokens consumed",
+            "description": [
+                "add to worker_session in task template.",
+                "model - which model was used by the copilot.",
+                "tokens:",
+                "- TOTAL : how many tokens were consumed in total.",
+                "- per-state: how many tokens were consumed to get to each state. note that if the task has to go back to a past task, the accrued tokens will count toward getting back to that state and get added to any tokens used in the first round."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Manager Track model used by copilot and number of Tokens consumed",
+                    "timestamp": "2026-06-29T22:45:23Z"
                 }
             ]
         }
