@@ -653,15 +653,16 @@ def main() -> int:
         return 1
     timestamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 
-    # Resolve display root+branch from explicit args or stored config
-    if args.baseRoot is not None:
-        display_root = resolve_source(script_root, args.baseRoot).as_posix()
+    # Determine the effective branch (args take priority over config)
+    if args.baseBranch is not None:
         display_branch = args.baseBranch
     else:
-        _ba = _read_baseapp(local_root / "config" / "local.json") or \
-              _read_baseapp(local_root.parent / "main" / "config" / "local.json")
-        display_root = _ba["root"] if _ba else source_root.as_posix()
+        _ba = (_read_baseapp(local_root / "config" / "local.json") or
+               _read_baseapp(local_root.parent / "main" / "config" / "local.json"))
         display_branch = _ba.get("branch") if _ba else None
+
+    # display_root is derived directly from source_root: strip the branch leaf if one was applied
+    display_root = (source_root.parent if display_branch else source_root).as_posix()
 
     if not _confirm_pull(
         script_name=Path(__file__).name,
