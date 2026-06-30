@@ -20,7 +20,7 @@ $ErrorActionPreference = 'Stop'
 #
 # The task ledger (build/tasks/<app>.json) is committed and pushed in COMPLETE
 # isolation from the worker's primary working tree. While a worker is active the
-# primary tree is checked out on its short-lived task/<id> branch and holds
+# primary tree is checked out on its short-lived <task-id> branch and holds
 # UNCOMMITTED worker code/spec/test changes; touching it here (e.g. 'git add -A',
 # 'commit -a', or a 'git pull --rebase --autostash') would sweep that work into
 # the server's commits, push it ahead of the engineer's approval gate, or drop it

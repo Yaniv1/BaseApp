@@ -1,4 +1,4 @@
-# BaseApp V-26.06.26.02
+# BaseApp V-26.06.26.05
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.26.05)
+
+- **Task branches are named after the task id (no `task/` prefix)** (Feature 3.6.9; Requirement BASE-REQ-014.9): A task's short-lived branch is now named after the task id exactly (e.g. `BASE-TASK-260624-0001`) instead of `task/<id>`. Because a worktree's folder is derived from the branch's last path segment, the slash in `task/<id>` could instantiate the branch as nested sub-folders (a `task` folder containing `<id>`) and no longer matched the task's worktree folder (`{APP}/<task-id>`, which already had no prefix). `scripts/task_manager.py::_branch_name_for_task` now returns the sanitized task id directly — the same value used for the worktree folder — so the branch name, the worktree folder, and the task id are all identical, which also keeps branch folder names consistent in instantiated variant apps. `_task_branch_exists` derives its local/remote ref from the same helper, and the UI confirm dialog, `init_worktree.ps1` docs/examples, `sync_task_repo.ps1` comments, agent instructions (`base.md`, `app.md`), and the relevant tests were updated to match. Build tests verified: `task_manager` pytest suite passes; full `app/base.py` suite EXIT=0.
 
 ## Release Highlights (26.06.26.02)
 

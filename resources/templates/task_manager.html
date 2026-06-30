@@ -834,7 +834,7 @@ function initDetail() {
       // A branch already exists for this task: let the engineer decide whether
       // to start another worker on it, or stop.
       if (!isReview && r.status === 409 && payload.requires_confirmation) {
-        const proceed = confirm((payload.message || ('A branch "' + (payload.branch || ('task/' + id)) + '" already exists for this task.')) +
+        const proceed = confirm((payload.message || ('A branch "' + (payload.branch || id) + '" already exists for this task.')) +
           '\n\nStart another Copilot worker on it anyway?');
         if (!proceed) {
           setMsg('detail-msg', 'Cancelled — a branch already exists for this task, so no new worker was started.');

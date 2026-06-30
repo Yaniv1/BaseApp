@@ -60,8 +60,10 @@
     Optional. Also create a second worktree for this branch.
       * If the branch exists on the remote it is checked out.
       * Otherwise it is created (branched off the primary branch).
-    The worktree folder name is derived from the branch (e.g. "task/BASE-TASK-1"
-    -> folder "BASE-TASK-1"), or pass -taskFolder to override.
+    The worktree folder name defaults to the branch name (e.g. branch
+    "BASE-TASK-1" -> folder "BASE-TASK-1"); task branches are named after the
+    task id with no "task/" prefix so the folder never nests into sub-folders.
+    Pass -taskFolder to override.
 
 .PARAMETER taskFolder
     Folder name for the -taskBranch worktree. Defaults to the branch's last segment.
@@ -76,7 +78,7 @@
         -baseRepo https://github.com/Yaniv1/MyVariantApp.git `
         -root     D:\work `
         -appName  MyVariantApp `
-        -taskBranch task/APP-TASK-260624-0001
+        -taskBranch APP-TASK-260624-0001
 
 .EXAMPLE
     # MIGRATION: convert an existing branch-agnostic single-tree deployment
