@@ -95,7 +95,7 @@ def _read_baseapp(local_config_path: Path) -> dict | None:
     return None
 
 
-def _write_baseapp(local_config_path: Path, root: str, branch: str) -> None:
+def _write_baseapp(local_config_path: Path, root: str, branch: str | None) -> None:
     """Persist COMMON.BASEAPP = {"root": root, "branch": branch} into a local.json file.
 
     Reads and merges with any existing content so other keys are preserved.
@@ -112,7 +112,10 @@ def _write_baseapp(local_config_path: Path, root: str, branch: str) -> None:
         data = {}
     if not isinstance(data.get("COMMON"), dict):
         data["COMMON"] = {}
-    data["COMMON"]["BASEAPP"] = {"root": root, "branch": branch}
+    data["COMMON"]["BASEAPP"] = {
+        "root": root.replace("\\", "/"),
+        "branch": branch,
+    }  # branch=None means no-worktree mode
     local_config_path.parent.mkdir(parents=True, exist_ok=True)
     with open(local_config_path, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4)
@@ -143,7 +146,12 @@ def resolve_baseapp_source(
     that folder does not exist.
     """
     if source_arg is not None:
-        return resolve_source(script_root, source_arg)
+        base = resolve_source(script_root, source_arg)
+        if branch:
+            candidate = base / branch
+            if candidate.exists():
+                return candidate.resolve()
+        return base
 
     baseapp = _read_baseapp(local_root / "config" / "local.json")
     if not baseapp:
@@ -153,29 +161,17 @@ def resolve_baseapp_source(
     if not baseapp:
         return None
 
-    effective_branch = branch or baseapp.get("branch") or "main"
+    effective_branch = branch or baseapp.get("branch")  # None = no-worktree mode, use root as-is
     baseapp_path = Path(baseapp["root"]).expanduser()
-    candidate = baseapp_path.parent / effective_branch
-    if candidate.exists():
-        return candidate.resolve()
+    if effective_branch:
+        candidate = baseapp_path / effective_branch
+        if candidate.exists():
+            return candidate.resolve()
     return baseapp_path.resolve()
 
 
 def resolve_source(script_root: Path, source_arg: str) -> Path:
-    """Resolve source path from argument, defaulting relative to script root."""
-    if source_arg == "auto":
-        candidates = [
-            script_root.parent.parent,
-            script_root.parent.parent / "BaseApp",
-            script_root.parent.parent.parent / "BaseApp",
-        ]
-        for candidate in candidates:
-            resolved = candidate.resolve()
-            manifests_dir = resolved / MANIFESTS_DIR_REL
-            if manifests_dir.is_dir() and resolved != script_root.parent.resolve():
-                return resolved
-        return candidates[0].resolve()
-
+    """Resolve an explicit source path, handling relative and absolute forms."""
     candidate = Path(source_arg).expanduser()
     if candidate.is_absolute():
         return candidate.resolve()
@@ -586,7 +582,7 @@ def parse_args() -> argparse.Namespace:
         description="Pull and overwrite local base files from a BaseApp source.",
     )
     parser.add_argument(
-        "--baseSource",
+        "--baseRoot",
         default=None,
         help=(
             "Path to BaseApp source root. Required on the first run; the path is then "
@@ -594,12 +590,11 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--branch",
+        "--baseBranch",
         default=None,
         help=(
-            "BaseApp branch worktree to pull from. Selects {parent-of-BASEAPP}/{branch} "
-            "when COMMON.BASEAPP is recorded in config/local.json. Defaults to the branch "
-            "stored in COMMON.BASEAPP, or 'main' when none is recorded."
+            "BaseApp branch (worktree subfolder) to pull from. Combined with --baseRoot as "
+            "baseRoot/baseBranch. Stored in COMMON.BASEAPP. Omit for no-worktree mode."
         ),
     )
     parser.add_argument(
@@ -611,19 +606,65 @@ def parse_args() -> argparse.Namespace:
 
 
 # Feature 3.2.3
+def _confirm_pull(
+    script_name: str,
+    source_root: Path,
+    local_root: Path,
+    base_root: str | None,
+    base_branch: str | None,
+    hard: bool,
+) -> bool:
+    """Show the resolved parameters, the equivalent full command line, and ask for confirmation."""
+    branch_part = base_branch or "(none)"
+    print()
+    print("Pullbase — resolved parameters:")
+    print(f"  Source  : {source_root}")
+    print(f"  Local   : {local_root}")
+    print(f"  baseRoot: {base_root or '(from config)'}")
+    print(f"  baseBranch: {branch_part}")
+    print(f"  hard    : {hard}")
+    print()
+    # Build the equivalent command line so the user can copy/modify it
+    cmd = [f"python {script_name}"]
+    cmd.append(f"--baseRoot \"{source_root.as_posix() if not base_branch else Path(base_root or source_root).as_posix()}\"")
+    if base_branch:
+        cmd.append(f"--baseBranch {base_branch}")
+    if hard:
+        cmd.append("--hard")
+    print("  " + " ".join(cmd))
+    print()
+    try:
+        answer = input("Proceed? [Y/n]: ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return False
+    return answer in ("", "y", "yes")
+
+
 def main() -> int:
     args = parse_args()
 
     script_root = Path(__file__).resolve().parent
     local_root = script_root.parent
-    source_root = resolve_baseapp_source(script_root, local_root, args.branch, args.baseSource)
+    source_root = resolve_baseapp_source(script_root, local_root, args.baseBranch, args.baseRoot)
     if source_root is None:
         print(
             "Error: BaseApp source not found in config. "
-            "Specify --baseSource on the first run to record it."
+            "Specify --baseRoot on the first run to record it."
         )
         return 1
     timestamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
+    if not _confirm_pull(
+        script_name=Path(__file__).name,
+        source_root=source_root,
+        local_root=local_root,
+        base_root=args.baseRoot,
+        base_branch=args.baseBranch,
+        hard=args.hard,
+    ):
+        print("Pull cancelled.")
+        return 0
 
     local_app_name = local_root.name
 
@@ -678,14 +719,15 @@ def main() -> int:
 
     once_copied = once_skipped = 0
 
-    # When an explicit source path was provided, persist it to local.json so future
-    # auto-resolution uses the same location without needing --baseSource again.
-    if args.baseSource != "auto":
+    # When an explicit root was provided, persist it to local.json so
+    # subsequent runs can omit --baseRoot / --baseBranch.
+    if args.baseRoot is not None:
         try:
+            base_path = resolve_source(script_root, args.baseRoot)
             _write_baseapp(
                 local_root / "config" / "local.json",
-                root=str(source_root),
-                branch=args.branch or "main",
+                root=str(base_path),
+                branch=args.baseBranch,
             )
         except OSError as exc:
             print(f"Warning: could not update local.json with BASEAPP: {exc}")
