@@ -30,6 +30,11 @@ DEFAULT_PORT = 8765
 COPILOT_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "build" / "instructions" / "task.md"
 COPILOT_REVIEW_PROMPT_TEMPLATE_PATH = PROJECT_ROOT / "build" / "instructions" / "task-review.md"
 COPILOT_WORKER_LAUNCH_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "launch_task_agent.ps1"
+
+# PullBase tasks need no title — the Task Manager auto-fills "PullBase {date}".
+PULLBASE_TASK_TYPE = "PullBase"
+PULLBASE_TITLE_FORMAT = "PullBase {date}"
+PULLBASE_TITLE_DATE_FORMAT = "%Y-%m-%d"
 GIT_SYNC_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "sync_task_repo.ps1"
 STATUS_QUEUE_MCP_SCRIPT_PATH = PROJECT_ROOT / "scripts" / "status_queue_mcp.py"
 
@@ -161,7 +166,7 @@ def _local_user():
         return "Task Manager UI"
 
 
-def _create_task(tasks, payload, tasks_path=None, pullbase_type=None, pullbase_title_format=None, pullbase_date_format=None):
+def _create_task(tasks, payload, tasks_path=None):
     task = {
         key: value
         for key, value in payload.items()
@@ -171,11 +176,11 @@ def _create_task(tasks, payload, tasks_path=None, pullbase_type=None, pullbase_t
     task["uuid"] = str(payload.get("uuid") or uuid.uuid4())
     task["type"] = str(payload.get("type") or "Feature").strip() or "Feature"
     title = str(payload.get("title", "")).strip()
-    # PullBase tasks need no title: auto-fill "PullBase {date}" from config so the
-    # designer can request a base pull without inventing a title.
-    if not title and pullbase_type and task["type"] == pullbase_type:
-        date_str = dt.datetime.utcnow().strftime(pullbase_date_format or "%Y-%m-%d")
-        title = (pullbase_title_format or "PullBase {date}").format(date=date_str)
+    # PullBase tasks need no title: auto-fill "PullBase {date}" so the designer can
+    # request a base pull without inventing a title.
+    if not title and task["type"] == PULLBASE_TASK_TYPE:
+        date_str = dt.datetime.utcnow().strftime(PULLBASE_TITLE_DATE_FORMAT)
+        title = PULLBASE_TITLE_FORMAT.format(date=date_str)
     task["title"] = title
     task["description"] = _split_description(payload.get("description", ""))
     task["priority"] = str(payload.get("priority") or "Medium").strip() or "Medium"
@@ -1352,15 +1357,7 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         data = self._get_tasks()
         if parsed.path == "/api/tasks":
-            store = self.__class__.store
-            pb = getattr(getattr(getattr(store.config, "APP", None), "TASK_MANAGER", None), "pullbase", None)
-            pb_type = getattr(pb, "type", None) if pb else None
-            pb_title = getattr(pb, "title_format", None) if pb else None
-            pb_date = getattr(pb, "date_format", None) if pb else None
-            task = _create_task(
-                data["TASKS"], self._read_body(), store.tasks_path,
-                pullbase_type=pb_type, pullbase_title_format=pb_title, pullbase_date_format=pb_date,
-            )
+            task = _create_task(data["TASKS"], self._read_body(), self.__class__.store.tasks_path)
             self._write_tasks(data)
             self._send_json(201, {"task": task})
             return

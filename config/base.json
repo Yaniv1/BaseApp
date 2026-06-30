@@ -43,11 +43,6 @@
                 "Bug": "task.md",
                 "PullBase": "pullbase.md",
                 "default": "task.md"
-            },
-            "pullbase": {
-                "type": "PullBase",
-                "title_format": "PullBase {date}",
-                "date_format": "%Y-%m-%d"
             }
         }
     },

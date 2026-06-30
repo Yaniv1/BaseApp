@@ -316,7 +316,7 @@
                         },
                         "3.6.4": {
                             "name": "scripts.task_manager._create_task",
-                            "description": "Create and append a new task to the task list, always prepending an auto-generated 'Task created' comment attributed to the local or provided author. When the task type is PullBase and no title is supplied, the title is auto-filled from the CONFIG.APP.TASK_MANAGER pull-base title format (e.g. 'PullBase {YYYY-MM-DD}').",
+                            "description": "Create and append a new task to the task list, always prepending an auto-generated 'Task created' comment attributed to the local or provided author. When the task type is PullBase and no title is supplied, the title is auto-filled as 'PullBase {YYYY-MM-DD}'.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_create_task"
                         },

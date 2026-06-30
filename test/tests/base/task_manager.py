@@ -1328,7 +1328,6 @@ def test_create_task_autofills_pullbase_title():
     data = {"TASKS": []}
     created = _create_task(
         data["TASKS"], {"type": "PullBase", "description": "Pull base."},
-        pullbase_type="PullBase", pullbase_title_format="PullBase {date}", pullbase_date_format="%Y-%m-%d",
     )
     expected = "PullBase " + datetime.datetime.utcnow().strftime("%Y-%m-%d")
     assert created["type"] == "PullBase"
@@ -1340,7 +1339,6 @@ def test_create_task_keeps_explicit_title_for_pullbase():
     data = {"TASKS": []}
     created = _create_task(
         data["TASKS"], {"type": "PullBase", "title": "Custom pull", "description": "d"},
-        pullbase_type="PullBase", pullbase_title_format="PullBase {date}", pullbase_date_format="%Y-%m-%d",
     )
     assert created["title"] == "Custom pull"
 
@@ -1350,7 +1348,6 @@ def test_create_task_does_not_autofill_non_pullbase_title():
     data = {"TASKS": []}
     created = _create_task(
         data["TASKS"], {"type": "Feature", "description": "d"},
-        pullbase_type="PullBase", pullbase_title_format="PullBase {date}", pullbase_date_format="%Y-%m-%d",
     )
     assert created["title"] == ""
 

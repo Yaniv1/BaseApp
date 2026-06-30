@@ -691,7 +691,7 @@
                     "breakdown": [
                         {
                             "id": "BASE-REQ-008.7.1",
-                            "description": "Interface requirement: In the Task Manager task-creation pane, the task type selector shall appear above the title field. 'PullBase' shall be a selectable task type. When the type is PullBase, no title is required: the system shall auto-fill the title as 'PullBase {YYYY-MM-DD}' (date format from CONFIG.APP.TASK_MANAGER). No special one-off button is introduced.",
+                            "description": "Interface requirement: In the Task Manager task-creation pane, the task type selector shall appear above the title field. 'PullBase' shall be a selectable task type. When the type is PullBase, no title is required: the system shall auto-fill the title as 'PullBase {YYYY-MM-DD}'. No special one-off button is introduced.",
                             "priority": "Medium",
                             "comments": []
                         },
