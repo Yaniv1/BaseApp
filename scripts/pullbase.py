@@ -610,25 +610,23 @@ def _confirm_pull(
     script_name: str,
     source_root: Path,
     local_root: Path,
-    base_root: str | None,
-    base_branch: str | None,
+    display_root: str,
+    display_branch: str | None,
     hard: bool,
 ) -> bool:
     """Show the resolved parameters, the equivalent full command line, and ask for confirmation."""
-    branch_part = base_branch or "(none)"
     print()
-    print("Pullbase — resolved parameters:")
-    print(f"  Source  : {source_root}")
-    print(f"  Local   : {local_root}")
-    print(f"  baseRoot: {base_root or '(from config)'}")
-    print(f"  baseBranch: {branch_part}")
-    print(f"  hard    : {hard}")
+    print("Pullbase \u2014 resolved parameters:")
+    print(f"  Source     : {source_root}")
+    print(f"  Local      : {local_root}")
+    print(f"  baseRoot   : {display_root}")
+    print(f"  baseBranch : {display_branch or '(none)'}")
+    print(f"  hard       : {hard}")
     print()
-    # Build the equivalent command line so the user can copy/modify it
     cmd = [f"python {script_name}"]
-    cmd.append(f"--baseRoot \"{source_root.as_posix() if not base_branch else Path(base_root or source_root).as_posix()}\"")
-    if base_branch:
-        cmd.append(f"--baseBranch {base_branch}")
+    cmd.append(f'--baseRoot "{display_root}"')
+    if display_branch:
+        cmd.append(f'--baseBranch "{display_branch}"')
     if hard:
         cmd.append("--hard")
     print("  " + " ".join(cmd))
