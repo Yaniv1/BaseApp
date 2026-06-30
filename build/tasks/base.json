@@ -2093,7 +2093,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Deployed",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2139,6 +2139,11 @@
                     "author": "BASE-TASK-260627-0003 worker",
                     "content": "Finalized and deployed at version 26.06.29.03. Saved Task Manager views feature (BASE-REQ-014.16 saved views flat multi-tab model; BASE-REQ-014.17 multi-column sort + multi-value filters) implemented, tested, and documented. Version bumped (base.txt/app.txt/config COMMON), docs/readme/base.md and README.md updated. Changes committed and pushed to main (1092251); feature branch previously merged (e5de255). User approved the push.",
                     "timestamp": "2026-06-30T03:17:59Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Integrated: task branch task/BASE-TASK-260627-0003 merged into main (merge e5de255, finalization 1092251) at version 26.06.29.03. Short-lived task branch and its worktree dissolved. Task complete.",
+                    "timestamp": "2026-06-30T03:19:18Z"
                 }
             ],
             "worker_session": {
