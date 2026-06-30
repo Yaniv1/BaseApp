@@ -113,7 +113,7 @@ def _write_baseapp(local_config_path: Path, root: str, branch: str | None) -> No
     if not isinstance(data.get("COMMON"), dict):
         data["COMMON"] = {}
     data["COMMON"]["BASEAPP"] = {
-        "root": root.replace("\\", "/"),
+        "root": root,
         "branch": branch,
     }  # branch=None means no-worktree mode
     local_config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -735,7 +735,7 @@ def main() -> int:
             base_path = resolve_source(script_root, args.baseRoot)
             _write_baseapp(
                 local_root / "config" / "local.json",
-                root=str(base_path),
+                root=base_path.as_posix(),
                 branch=args.baseBranch,
             )
         except OSError as exc:
