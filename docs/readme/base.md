@@ -1,4 +1,4 @@
-# BaseApp V-26.06.29.02
+# BaseApp V-26.06.29.03
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.29.03)
+
+- **Task Manager UI saved views — flat, multi-tab sort/filter configurations** (Feature 3.6; Requirements BASE-REQ-014.16, BASE-REQ-014.17): The Task Manager UI (`resources/templates/task_manager.html`) gains a **views bar** directly below the status tabs that lets you save and re-apply named sort/filter configurations. Views are modelled as a single **flat array** of view objects `{ id, name, tabs:[...], sort:{col:dir,...}, filter:{col:[vals],...} }`: a view's `tabs` list associates it with one or more tabs (the `ALL` tab is just another tab name), `sort` is a compact ordered map enabling **multi-column** sort (key order = precedence), and `filter` is a compact map of column → array of values enabling **multi-value** filtering. On each tab every view renders as a chip but is **enabled** only when the current tab is in its `tabs` list (non-matching views are grayed out); a grayed user view offers a "+" to include the current tab, an enabled user view a toggle to remove it, and a grayed **built-in** view's "+" **clones** it into a new user view (built-ins are never modified). A **Save view** button stores the live sort/filters as a new user view auto-named from its filters and sort, and clicking an enabled chip applies its multi-column sort and multi-value filters and marks it active for that tab (double-click renames a user view, X deletes it). The Type/Priority filters became **checkbox multi-selects** that always offer the canonical values regardless of the data (`Feature/Bug/Chore/Doc`, `Critical/High/Medium/Low`), and the table now supports true multi-column sort with precedence indicators. Views persist **server-side**: built-in defaults ship in committed `config/base.json` under `APP.TASK_MANAGER.views` (flat array, tagged `builtin=true`, fully read-only), and the server layers the user's own views from `config/local.json` (app-local, git-tracked placeholder) then `config/machine.json` (machine-specific, git-ignored). `GET /api/views` returns `{ views:[builtins, then user views], active:{tab:viewId} }`; `PUT /api/views` persists only user views plus the per-tab active-view map to `config/machine.json` (atomic write, preserving all other keys). Switching tabs restores that tab's last active view. New Python helpers in `scripts/task_manager.py` (`_load_views`/`_save_views` and friends) and a suite of JS helpers in the template. Tests in `test/tests/base/task_manager.py` cover the flat model, multi-column/multi-value behaviour, canonical filter values, built-in read-only protection, and the GET/PUT endpoints.
 
 ## Release Highlights (26.06.29.02)
 

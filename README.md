@@ -129,7 +129,11 @@ How a task flows through the system:
   search box and tabs: an **`ALL`** tab (the default) shows every task in one view, and
   one tab per status narrows the list to that status. Each column (ID, Title, Type,
   Priority — plus Status in the `ALL` tab) can be sorted and filtered, and the search box
-  jumps straight to a task by id.
+  jumps straight to a task by id. Sorting supports **multiple columns** at once, and the
+  Type/Priority filters are **multi-select** and always offer the canonical values. Any
+  combination of sort and filters can be saved as a named **view** and re-applied later;
+  views can be shared across tabs, a set of built-in views ships by default, and your own
+  views and the active view per tab persist across sessions.
 - **Isolation per task.** The repository uses a bare shared object store with every
   branch — including `main` — checked out as its own git worktree under one container.
   Each task is worked on a short-lived `task/<id>` branch in its own dedicated worktree,
