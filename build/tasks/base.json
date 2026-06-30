@@ -1952,7 +1952,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Specified",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "ymordecai",
@@ -1983,6 +1983,11 @@
                     "author": "BASE-TASK-260626-0004 worker",
                     "content": "Agreed — dropped the trivial _instruction_template_for_task wrapper. The type->template selection is now a simple inline CONFIG.APP.TASK_MANAGER.templates lookup (with 'default' task.md) inside the existing _build_copilot_prompt, which I inventoried as architecture feature 3.6.15 (it was previously un-inventoried, unlike _build_review_prompt 3.6.6). Updated BASE-REQ-008.7.2 and the solution link accordingly. No new helper added. Spec rev.3 otherwise unchanged; awaiting approval to implement.",
                     "timestamp": "2026-06-30T02:20:22Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Implemented the PullBase task type and committed on the task branch (53a315a): config templates map + pullbase block; type-routed instruction template and PullBase title auto-fill in task_manager.py; new build/instructions/pullbase.md; task_manager.html (Type above Title, PullBase option, relaxed title); pull.json registration; tests for routing + auto-fill (7/7 passing via targeted pytest). HTML report refreshed. Note: my worktree was emptied/deregistered after running test/tests/build.py (its migration step rebuilds the bare/worktree layout); fully recovered. Ready for engineer review.",
+                    "timestamp": "2026-06-30T02:49:57Z"
                 }
             ],
             "worker_session": {
