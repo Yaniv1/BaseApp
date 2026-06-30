@@ -144,8 +144,8 @@ def test_start_copilot_for_task_requests_dedicated_branch_via_launcher(monkeypat
     task_manager._start_copilot_for_task(work_task, tasks_path, DummyStore(), mode="work")
     argv = launched["argv"]
     assert "-TaskBranch" in argv
-    assert argv[argv.index("-TaskBranch") + 1] == "task/BASE-TASK-BRANCH-0001"
-    assert work_task["worker_session"]["branch"] == "task/BASE-TASK-BRANCH-0001"
+    assert argv[argv.index("-TaskBranch") + 1] == "BASE-TASK-BRANCH-0001"
+    assert work_task["worker_session"]["branch"] == "BASE-TASK-BRANCH-0001"
     assert str(argv[3]).endswith("launch_task_agent.ps1")
 
     # Review mode runs against the existing branch, so no branch is requested.
@@ -198,7 +198,7 @@ def test_launch_task_agent_script_creates_dedicated_branch(tmp_path):
             "-CopilotCli", str(stub),
             "-SessionName", "Branch worker test",
             "-WindowTitle", "",
-            "-TaskBranch", "task/BASE-TASK-BRANCH-0001",
+            "-TaskBranch", "BASE-TASK-BRANCH-0001",
         ],
         capture_output=True, text=True, check=False,
     )
@@ -208,7 +208,7 @@ def test_launch_task_agent_script_creates_dedicated_branch(tmp_path):
         capture_output=True, text=True, check=True,
     ).stdout.strip()
     # The launcher must have switched the working tree onto the task branch.
-    assert current_branch == "task/BASE-TASK-BRANCH-0001", (result.stdout + result.stderr)
+    assert current_branch == "BASE-TASK-BRANCH-0001", (result.stdout + result.stderr)
 
 
 def test_launch_task_agent_script_creates_dedicated_worktree(tmp_path):
@@ -255,7 +255,7 @@ def test_launch_task_agent_script_creates_dedicated_worktree(tmp_path):
             "-CopilotCli", str(stub),
             "-SessionName", "Worktree worker test",
             "-WindowTitle", "",
-            "-TaskBranch", "task/BASE-TASK-WT-0001",
+            "-TaskBranch", "BASE-TASK-WT-0001",
             "-Worktree", str(worktree),
         ],
         capture_output=True, text=True, check=False,
@@ -274,7 +274,7 @@ def test_launch_task_agent_script_creates_dedicated_worktree(tmp_path):
         ["git", "-C", str(worktree), "rev-parse", "--abbrev-ref", "HEAD"],
         capture_output=True, text=True, check=True,
     ).stdout.strip()
-    assert worktree_branch == "task/BASE-TASK-WT-0001", (result.stdout + result.stderr)
+    assert worktree_branch == "BASE-TASK-WT-0001", (result.stdout + result.stderr)
 
 
 def test_start_copilot_for_task_records_worker_session(monkeypatch, tmp_path):
@@ -924,7 +924,7 @@ def test_activate_endpoint_focuses_or_starts_review(monkeypatch, tmp_path):
 
 
 def test_task_branch_exists_detects_existing_branch(tmp_path):
-    """_task_branch_exists is True only once a task/<id> branch has been created."""
+    """_task_branch_exists is True only once a <task-id> branch has been created."""
     import subprocess as sp
 
     repo = tmp_path
@@ -941,7 +941,7 @@ def test_task_branch_exists_detects_existing_branch(tmp_path):
     git("commit", "-m", "init")
 
     assert task_manager._task_branch_exists(repo, "BASE-TASK-EXISTS-0001") is False
-    git("branch", "task/BASE-TASK-EXISTS-0001")
+    git("branch", "BASE-TASK-EXISTS-0001")
     assert task_manager._task_branch_exists(repo, "BASE-TASK-EXISTS-0001") is True
     # A non-repository path is reported as having no branch.
     assert task_manager._task_branch_exists(repo / "missing", "BASE-TASK-EXISTS-0001") is False
@@ -980,7 +980,7 @@ def test_start_agent_requires_confirmation_when_branch_exists(monkeypatch, tmp_p
         status, payload = _request_json(base, method="POST", payload={})
         assert status == 409
         assert payload.get("requires_confirmation") is True
-        assert payload.get("branch") == "task/" + todo["id"]
+        assert payload.get("branch") == todo["id"]
         assert started == []
 
         # With confirmation: the worker is launched.
@@ -1732,7 +1732,7 @@ def test_sync_task_repo_isolates_ledger_commit_from_worker_tree(tmp_path):
 
     The headless status-sync must commit ONLY the task ledger to the ledger
     branch (``main``) without touching the worker's primary working tree. This
-    reproduces the bug scenario: the primary tree is on a ``task/<id>`` branch
+    reproduces the bug scenario: the primary tree is on a ``<task-id>`` branch
     with uncommitted edits to both the ledger and an unrelated worker file, and
     asserts the sync (1) pushes exactly one ledger-only commit to ``origin/main``,
     (2) leaves the worker's uncommitted file edit intact byte-for-byte, (3) keeps
@@ -1783,7 +1783,7 @@ def test_sync_task_repo_isolates_ledger_commit_from_worker_tree(tmp_path):
     git("push", "-u", "origin", "main")
 
     # Worker starts: primary tree is checked out on the task branch.
-    git("checkout", "-b", "task/BASE-TASK-260626-0001")
+    git("checkout", "-b", "BASE-TASK-260626-0001")
     task_head_before = git("rev-parse", "HEAD").stdout.strip()
 
     # Server applies a ledger status update into the primary working tree
@@ -1814,7 +1814,7 @@ def test_sync_task_repo_isolates_ledger_commit_from_worker_tree(tmp_path):
     # (3) The primary tree stays on the task branch with no new commit, so the
     # ledger commit never landed on the task branch.
     current_branch = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
-    assert current_branch == "task/BASE-TASK-260626-0001"
+    assert current_branch == "BASE-TASK-260626-0001"
     assert git("rev-parse", "HEAD").stdout.strip() == task_head_before
 
     # (1) Exactly one new commit on origin/main, changing ONLY the ledger.

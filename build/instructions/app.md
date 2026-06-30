@@ -29,7 +29,7 @@ Follow all the instructions in `build/instructions/base.md` but notice that wher
 
 Follow the same task lifecycle as the base app: `ToDo` -> `InProgress` -> `Ready` -> `Deployed` -> `Done`. When you finish the work, set the task to `Ready`, commit the changes to the architecture, requirements, tests, implementation but do not update the versioning and documentation yet.
 After engineer approval move it to `Deployed`: finalize, commit, and push to the task's own short-lived branch (not merged into `main` yet).
-Work each task on its own short-lived, ad-hoc branch (e.g. `task/{task_id}`) created off the latest `main`, never directly on `main`. A task reaches `Done` only after its branch is merged into `main` and dissolved, with the integration engineer supervising the merge to make sure there are no unresolved conflicts; `Done` therefore means fully integrated into `main`.
+Work each task on its own short-lived, ad-hoc branch named after the task id (e.g. `{task_id}`, with no `task/` prefix so the branch name matches its worktree folder) created off the latest `main`, never directly on `main`. A task reaches `Done` only after its branch is merged into `main` and dissolved, with the integration engineer supervising the merge to make sure there are no unresolved conflicts; `Done` therefore means fully integrated into `main`.
 
 Avoid modifications to base app artifacts, these should not be modified by the app. If behavior changes are needed, inherit and override in app artifacts (`app.py`,`apputils.py`, `app.json`, etc.)
 

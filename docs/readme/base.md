@@ -1,4 +1,4 @@
-# BaseApp V-26.06.29.03
+# BaseApp V-26.06.30.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.30.01)
+
+- **Robust flat & nested worktree migration, persisted layout flag, and one-step GitHub publishing** (Feature 3.8; Requirements BASE-REQ-014.18, BASE-REQ-014.20): The existing-deployment migration in `scripts/init_worktree.ps1` is hardened and gains optional remote publishing. `scripts/instantiate.py` now persists the deployment layout as `COMMON.WORKTREE` (a boolean) in the gitignored `config/local.json` (`true` for `--worktree on`, `false` for `off`), so migration can deterministically tell a flat deployment (`{APP}`) from a nested one (`{APP}/{branch}`). `init_worktree.ps1` reads that flag (absent ⇒ legacy flat; `.bare` presence as a secondary nested signal, with a structural fallback) and `Convert-ExistingDeployment` now separates the per-branch content directory from the `{APP}` container, so the **default** nested instantiate output (`{APP}/{branch}` with no `.bare`) migrates into the canonical `{APP}/.bare` + `{APP}/{branch}` layout instead of being double-nested; `WORKTREE=true` is recorded after a successful init. A rename-in-use fix moves both the PowerShell location and the Win32 current directory out of the content tree before relocating it (restoring them in a `finally`), eliminating the `Cannot rename … in use` failure when the script is run from inside the deployment's own `scripts` folder. A new optional `-remote` parameter publishes the migrated repo to GitHub via the `gh` CLI — verifying auth, creating the **private** repo when absent, wiring `origin` with the standard fetch refspec, and pushing all branches with upstream tracking — and accepts an `owner/name`, a bare name, or a full `https`/`ssh` clone URL (normalized to `owner/name` for `gh`). Note: an editor or Explorer window rooted at the `{APP}` container holds a recursive file-watch handle on the container directory and will make the rename step fail with access denied, so close the app folder in your editor before migrating. Verified end-to-end on flat and nested deployments, a no-remote regression run, and a real flat app migrated locally and synced to a throwaway private repo with the production remote untouched; init + instantiate pytests pass and full `app/base.py` EXIT=0.
 
 ## Release Highlights (26.06.29.03)
 
@@ -19,6 +23,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 ## Release Highlights (26.06.29.01)
 
 - **Task Manager UI task search** (Feature 3.6; Requirement BASE-REQ-014.14): The Task Manager UI (`resources/templates/task_manager.html`) gains a task-search bar positioned **above the status tabs** that locates a task by its id. Submitting a query (via the Search button or Enter) matches task ids case-insensitively — an exact id match takes precedence, and otherwise a unique substring match is accepted, while an ambiguous substring match prompts the user to enter a more specific id. When a task is found, the UI switches the active status tab to the matched task's status, renders that list, selects and scrolls the matched row into view, and opens the task's details in the details pane; a no-match query reports an inline message and leaves the view unchanged. The search reuses the existing `normalizeStatus`/`renderTable`/`showDetail`/`refreshRows` logic via new `searchTask`/`findTaskById`/`activateStatusTab`/`initSearch` helpers. Architecture feature `11.2.2 resources.templates.task_manager` records the (previously un-architected) single-page UI template. New test `test_task_manager_template_has_task_search` in `test/tests/base/task_manager.py`. Build tests verified: 1 run, 0 failures.
+
+## Release Highlights (26.06.26.07)
+
+- **Task branches are named after the task id (no `task/` prefix)** (Feature 3.6.9; Requirement BASE-REQ-014.9): A task's short-lived branch is now named after the task id exactly (e.g. `BASE-TASK-260624-0001`) instead of `task/<id>`. Because a worktree's folder is derived from the branch's last path segment, the slash in `task/<id>` could instantiate the branch as nested sub-folders (a `task` folder containing `<id>`) and no longer matched the task's worktree folder (`{APP}/<task-id>`, which already had no prefix). `scripts/task_manager.py::_branch_name_for_task` now returns the sanitized task id directly — the same value used for the worktree folder — so the branch name, the worktree folder, and the task id are all identical, which also keeps branch folder names consistent in instantiated variant apps. `_task_branch_exists` derives its local/remote ref from the same helper, and the UI confirm dialog, `init_worktree.ps1` docs/examples, `sync_task_repo.ps1` comments, agent instructions (`base.md`, `app.md`), and the relevant tests were updated to match. Build tests verified: `task_manager` pytest suite passes; full `app/base.py` suite EXIT=0.
 
 ## Release Highlights (26.06.26.04)
 
@@ -92,7 +100,7 @@ BaseApp is a reusable Python foundation for app projects that need:
 ## Release Highlights (26.06.09.01)
 
 - **Caller lineage depth from CSV** — Added `caller_depth` column to all four message code CSVs. Blank = default 2 levels; WARN/ERROR/FAIL codes = 4 levels. `Logger._lookup_entry` returns a `(text, type, caller_depth)` triple; `log()` uses the per-code depth automatically.
-- **`instantiate.py` `--source` flag** — Added optional `--source <path>` argument so a copied `instantiate.py` can explicitly point at the BaseApp root. Improved the same-path error message to include both resolved paths and a clear usage hint.
+- **`instantiate.py` `--baseSource` flag** — Added optional `--baseSource <path>` argument so a copied `instantiate.py` can explicitly point at the BaseApp root. Improved the same-path error message to include both resolved paths and a clear usage hint.
 - **`test_tasks_by_status` post test** (Feature 5.3.1.1.2) — Reads `results/results.json` and verifies every task appears in the correct status bucket of `tasks_by_status`. `AppManager.close()` now publishes `output_path` to the monitor so the test can resolve the results file location at runtime.
 - **HTML hyperlinks** (Feature 5.3.1.3.5) — `HtmlDoc._as_hyperlink()` detects Windows absolute paths (`C:\…`), POSIX absolute paths (`/…`), and explicit URL schemes (`http://`, `https://`, `file:///`). `_render_cell()` wraps detected values in `<a href=…>` anchor tags with properly escaped display text. New `test_html_hyperlinks` prep test covers 9 criteria.
 - Removed stray `from pandas import col` import from `utils/baseutils.py`.
@@ -603,7 +611,7 @@ Script: `scripts/instantiate.py`
 Usage from `BaseApp` root:
 
 ```powershell
-python scripts/instantiate.py ../MyNewApp
+python scripts/instantiate.py --root .. --appName MyNewApp
 ```
 
 Behavior:
@@ -632,7 +640,7 @@ Script in the instantiated app: `scripts/pullbase.py`
 ```powershell
 python scripts/pullbase.py                      # normal: manifest-driven
 python scripts/pullbase.py --hard               # hard: overwrite everything
-python scripts/pullbase.py --source ../../BaseApp  # explicit source path
+python scripts/pullbase.py --baseSource ../../BaseApp  # explicit source path
 ```
 
 ### Normal mode
@@ -692,7 +700,7 @@ Use this to fully reset an app to the base.
 
 ## Builder Workflow (Recommended)
 
-1. Instantiate once: `python scripts/instantiate.py ../MyNewApp`
+1. Instantiate once: `python scripts/instantiate.py --root .. --appName MyNewApp`
 2. Edit only app-dedicated files: `app/app.py`, `config/app.json`,
    `utils/apputils.py`, `docs/readme/app.md`
 3. In `config/app.json` override only `COMMON.APP_NAME` (and any other keys

@@ -146,6 +146,129 @@ def populate_app_config(app_config_path: Path, target_value: str, overrides: dic
         json.dump(data, f, indent=4)
 
 
+# Feature 3.1.14
+def resolve_app_root(root: str, app_name: str, branch: str, script_dir: Path, worktree: bool = True) -> Path:
+    """Resolve the branch-aware app root as {abspath(root)}/{app_name}/{branch}.
+
+    The root may be absolute or relative. Relative roots are resolved against
+    the script's directory, so the default '../../../' from a
+    {APP}/{branch}/scripts location points at the parent of the {APP} container
+    (e.g. scripts in c:/code/BaseApp/main/scripts -> root c:/code/).
+
+    Args:
+        root: Parent directory that will contain {app_name}/{branch}.
+        app_name: App (container folder) name placed under the root.
+        branch: Branch sub-folder placed under {app_name} (ignored when worktree=False).
+        script_dir: Directory of the running script, used to resolve a relative root.
+        worktree: When True (default), use the multi-branch layout
+            {abspath(root)}/{app_name}/{branch}. When False (legacy mode), use a
+            flat layout {abspath(root)}/{app_name} with no branch sub-folder.
+
+    Returns:
+        Absolute path {abspath(root)}/{app_name}/{branch} (or {abspath(root)}/{app_name}
+        when worktree is False).
+    """
+    root_path = Path(root).expanduser()
+    if not root_path.is_absolute():
+        root_path = script_dir / root_path
+    root_path = root_path.resolve()
+    if worktree:
+        return (root_path / app_name / branch).resolve()
+    return (root_path / app_name).resolve()
+
+
+# Feature 3.1.15
+def populate_local_config(app_root: Path, baseapp_path: Path, worktree: bool = True) -> Path:
+    """Record the BaseApp source location in the app's gitignored config/local.json.
+
+    Writes COMMON.BASEAPP = absolute path of the BaseApp source branch folder so
+    that pullbase.py can later resolve where to pull updates from. Also records
+    COMMON.WORKTREE = the worktree-mode setting this deployment was instantiated
+    with (True = multi-branch nested layout {APP}/{branch}; False = legacy flat
+    layout {APP}). scripts/init_worktree.ps1 reads this flag to tell a nested
+    deployment from a flat one when migrating to the bare/worktree layout (a
+    missing flag is assumed flat), and sets it True once the worktree layout is
+    in place. The COMMON section (and the file itself) is created when missing;
+    all other existing keys are preserved. config/local.json is a 'once' manifest
+    entry and gitignored, so these values survive subsequent base-update pulls.
+
+    Args:
+        app_root: Root of the instantiated app variant.
+        baseapp_path: Absolute path of the BaseApp source branch folder.
+        worktree: Whether this deployment uses the multi-branch worktree layout
+            (the --worktree on|off setting). Persisted as COMMON.WORKTREE.
+
+    Returns:
+        Path to the local.json file that was written.
+    """
+    local_path = app_root / "config" / "local.json"
+    data: dict = {}
+    if local_path.exists():
+        try:
+            with open(local_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            data = {}
+    if not isinstance(data, dict):
+        data = {}
+
+    common = data.get("COMMON")
+    if not isinstance(common, dict):
+        common = {}
+        data["COMMON"] = common
+    common["BASEAPP"] = str(baseapp_path)
+    common["WORKTREE"] = bool(worktree)
+
+    local_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(local_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=4)
+    ensure_local_gitignore(app_root)
+    return local_path
+
+
+def ensure_local_gitignore(app_root: Path) -> Path:
+    """Ensure the app's .gitignore excludes local-only / regenerable paths.
+
+    Guarantees that config/local.json (which carries the machine-specific
+    COMMON.BASEAPP absolute path), .venv/, and __pycache__/ are gitignored, so a
+    later post-hoc git initialization (e.g. scripts/init_worktree.ps1) never
+    commits them into history. Creates the .gitignore when missing and appends
+    only the patterns that are not already present. Idempotent.
+
+    Args:
+        app_root: Root of the instantiated app variant.
+
+    Returns:
+        Path to the .gitignore file.
+    """
+    gitignore_path = app_root / ".gitignore"
+    required = ["config/local.json", ".venv/", "__pycache__/"]
+    header = "# instantiate.py: local-only / regenerable paths"
+
+    existing_lines: list[str] = []
+    if gitignore_path.exists():
+        try:
+            existing_lines = gitignore_path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            existing_lines = []
+
+    existing_set = {line.strip() for line in existing_lines}
+    missing = [pat for pat in required if pat not in existing_set]
+    if not missing:
+        return gitignore_path
+
+    lines = list(existing_lines)
+    if lines and lines[-1].strip() != "":
+        lines.append("")
+    if header not in existing_set:
+        lines.append(header)
+    lines.extend(missing)
+
+    gitignore_path.parent.mkdir(parents=True, exist_ok=True)
+    gitignore_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return gitignore_path
+
+
 def ensure_app_instruction_file(target_root: Path, app_name: str) -> bool:
     """Create build/instructions/{APP_NAME}.md for app-specific guidance if missing."""
     app_instructions_path = target_root / "build" / "instructions" / f"{app_name}.md"
@@ -315,13 +438,43 @@ def instantiate(source_root: Path, target_root: Path, target_value: str, logger:
 def parse_args():
     parser = argparse.ArgumentParser(description="Instantiate BaseApp into a target path.")
     parser.add_argument(
-        "target",
-        help="Target folder where BaseApp should be instantiated.",
+        "--root",
+        default="../../../",
+        help=(
+            "Parent directory that will contain {app-name}/{branch}. Relative paths "
+            "are resolved against this script's directory. Default: '../../../' "
+            "(so scripts in <app>/<branch>/scripts target the parent of the app "
+            "container, e.g. c:/code/BaseApp/main/scripts -> c:/code/)."
+        ),
     )
     parser.add_argument(
-        "--source",
+        "--appName",
         default=None,
-        help="Path to the BaseApp source root. Defaults to the parent of this script's directory.",
+        help="App (container folder) name. Default: 'MyApp{YYYYMMDD}' (UTC date).",
+    )
+    parser.add_argument(
+        "--branch",
+        default="main",
+        help="Branch sub-folder placed under {app-name}. Default: 'main'.",
+    )
+    parser.add_argument(
+        "--worktree",
+        choices=["on", "off"],
+        default="on",
+        help=(
+            "Multi-branch (bare/worktree) layout. 'on' (default): deploy into the "
+            "branch-aware layout {root}/{app-name}/{branch}. 'off' (legacy): deploy "
+            "flat into {root}/{app-name} with no branch sub-folder (useful for "
+            "testing the post-hoc migration path)."
+        ),
+    )
+    parser.add_argument(
+        "--baseSource",
+        default="auto",
+        help=(
+            "Path to the BaseApp source root. Default: 'auto' (the parent of this "
+            "script's directory)."
+        ),
     )
     parser.add_argument(
         "--overrides",
@@ -341,9 +494,17 @@ def main():
     args = parse_args()
 
     script_root = Path(__file__).resolve().parent
-    source_root = Path(args.source).expanduser().resolve() if args.source else script_root.parent
-    target_root = Path(args.target).expanduser().resolve()
-    target_value = Path(args.target).name or target_root.name
+    source_root = (
+        Path(args.baseSource).expanduser().resolve()
+        if args.baseSource and args.baseSource != "auto"
+        else script_root.parent
+    )
+
+    app_name = args.appName or f"MyApp{dt.datetime.utcnow().strftime('%Y%m%d')}"
+    target_root = resolve_app_root(
+        args.root, app_name, args.branch, script_root, worktree=(args.worktree == "on")
+    )
+    target_value = app_name
     timestamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 
     logger = None
@@ -363,8 +524,8 @@ def main():
             f"Target path must be different from the BaseApp source path.\n"
             f"  source: {source_root}\n"
             f"  target: {target_root}\n"
-            f"If you are running this script from a copied location, use --source to point at BaseApp:\n"
-            f"  python instantiate.py <target> --source <path/to/BaseApp>"
+            f"If you are running this script from a copied location, use --baseSource to point at BaseApp:\n"
+            f"  python instantiate.py --root <parent-dir> --appName <app> --baseSource <path/to/BaseApp>"
         )
         if logger:
             logger.log(message_code="INST007", message_type="ERROR", data={"error": str(error)})
@@ -387,6 +548,11 @@ def main():
         print(f"Core files copied/updated: {result['copied_core']}")
         print(f"App placeholders created: {result['created_placeholders']}")
         print(f"App placeholders preserved: {result['kept_placeholders']}")
+
+        local_config_path = populate_local_config(
+            target_root, source_root, worktree=(args.worktree == "on")
+        )
+        print(f"Recorded BaseApp source in: {local_config_path} (COMMON.BASEAPP={source_root})")
 
         if logger:
             logger.log(message_code="INST999", message_type="GOOD", data={"target_app": target_value}, populate=True)

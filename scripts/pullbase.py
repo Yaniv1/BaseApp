@@ -15,6 +15,7 @@ import datetime as dt
 import json
 import os
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -61,6 +62,58 @@ def hard_pull(local_root: Path, source_root: Path) -> tuple[int, list[str]]:
     return copied, missing_sources
 
 
+def _read_baseapp(local_config_path: Path):
+    """Read COMMON.BASEAPP from a local.json file; return None when absent/unreadable."""
+    if not local_config_path.is_file():
+        return None
+    try:
+        with open(local_config_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    common = data.get("COMMON")
+    if not isinstance(common, dict):
+        return None
+    value = common.get("BASEAPP")
+    if isinstance(value, str) and value.strip():
+        return value
+    return None
+
+
+# Feature 3.2.19
+def resolve_baseapp_source(script_root: Path, local_root: Path, branch: str, source_arg: str) -> Path:
+    """Resolve the BaseApp source folder for a base-update pull.
+
+    Resolution order:
+      1. COMMON.BASEAPP from THIS worktree's config/local.json.
+      2. COMMON.BASEAPP from the app's main worktree:
+         {container}/main/config/local.json (where {container} is the parent of
+         local_root). This lets a task-branch worktree reuse main's recorded
+         BaseApp reference before the task worktree's own local.json exists, and
+         avoids mutating main's local.json from a task worktree (read-only).
+      3. The existing --baseSource / auto behavior (resolve_source).
+
+    When a BASEAPP path is found, --branch selects the BaseApp worktree by swapping
+    the BASEAPP leaf to {parent-of-BASEAPP}/{branch}. If that branch folder does not
+    exist, the recorded BASEAPP path is used as-is.
+    """
+    baseapp = _read_baseapp(local_root / "config" / "local.json")
+    if not baseapp:
+        container = local_root.parent
+        baseapp = _read_baseapp(container / "main" / "config" / "local.json")
+
+    if baseapp:
+        baseapp_path = Path(baseapp).expanduser()
+        candidate = baseapp_path.parent / branch
+        if candidate.exists():
+            return candidate.resolve()
+        return baseapp_path.resolve()
+
+    return resolve_source(script_root, source_arg)
+
+
 def resolve_source(script_root: Path, source_arg: str) -> Path:
     """Resolve source path from argument, defaulting relative to script root."""
     if source_arg == "auto":
@@ -80,6 +133,62 @@ def resolve_source(script_root: Path, source_arg: str) -> Path:
     if candidate.is_absolute():
         return candidate.resolve()
     return (script_root / candidate).resolve()
+
+
+def _git_common_dir(path: Path) -> str | None:
+    """Return the absolute, normalized git common dir (shared object store) for a
+    worktree, or None when the path is not a git worktree / git is unavailable.
+
+    Two worktrees of the same repository share the same common dir (e.g. the
+    container's .bare), which is how a BaseApp task worktree is recognized as the
+    same repo as another BaseApp branch worktree.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(path), "rev-parse", "--path-format=absolute", "--git-common-dir"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except (OSError, ValueError):
+        return None
+    if result.returncode != 0:
+        return None
+    out = result.stdout.strip()
+    if not out:
+        return None
+    try:
+        return str(Path(out).resolve()).lower()
+    except OSError:
+        return None
+
+
+def is_self_pull(local_root: Path, source_root: Path) -> bool:
+    """True when pulling from source_root into local_root would overwrite the
+    local app with content from the SAME deployment/repository.
+
+    Guards against the destructive case where pullbase is run inside a BaseApp
+    (or any app) worktree and the source resolves to a sibling branch worktree,
+    the shared container, or otherwise the same git repository -- which would
+    clobber the running branch's in-progress changes with another branch's files.
+    """
+    lr = local_root.resolve()
+    sr = source_root.resolve()
+    # exact same folder
+    if lr == sr:
+        return True
+    # one path is an ancestor of the other (e.g. source resolved to the container)
+    if lr in sr.parents or sr in lr.parents:
+        return True
+    # sibling worktrees of the same bare repo ({container}/.bare + peer worktrees)
+    if lr.parent == sr.parent and (lr.parent / ".bare").exists():
+        return True
+    # robust backstop: both are worktrees sharing the same git object store
+    lcd = _git_common_dir(lr)
+    scd = _git_common_dir(sr)
+    if lcd and scd and lcd == scd:
+        return True
+    return False
 
 
 def sync_manifests(source_root: Path, local_root: Path) -> list[Path]:
@@ -430,9 +539,17 @@ def parse_args() -> argparse.Namespace:
         description="Pull and overwrite local base files from a BaseApp source.",
     )
     parser.add_argument(
-        "--source",
+        "--baseSource",
         default="auto",
-        help="Path to BaseApp source root. Default: auto-detect from script location",
+        help="Path to BaseApp source root. Default: 'auto' (detect from script location).",
+    )
+    parser.add_argument(
+        "--branch",
+        default="main",
+        help=(
+            "BaseApp branch worktree to pull from. Selects {parent-of-BASEAPP}/{branch} "
+            "when COMMON.BASEAPP is recorded in config/local.json. Default: 'main'."
+        ),
     )
     parser.add_argument(
         "--hard",
@@ -448,7 +565,7 @@ def main() -> int:
 
     script_root = Path(__file__).resolve().parent
     local_root = script_root.parent
-    source_root = resolve_source(script_root, args.source)
+    source_root = resolve_baseapp_source(script_root, local_root, args.branch, args.baseSource)
     timestamp = dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
 
     local_app_name = local_root.name
@@ -476,6 +593,30 @@ def main() -> int:
             if html_path:
                 print(f"Pullbase log html: {html_path}")
         print(f"Source not found: {source_root}")
+        return 1
+
+    if is_self_pull(local_root, source_root):
+        msg = (
+            f"Refusing to pull: source and local app are the same repository "
+            f"(source={source_root}, local={local_root}). Pullbase syncs a "
+            f"variant app FROM BaseApp; it must not run inside a BaseApp worktree "
+            f"or pull from a sibling branch worktree, which would overwrite this "
+            f"branch's changes."
+        )
+        if logger:
+            logger.log(
+                message_code="PULLE11",
+                message_type="ERROR",
+                data={"source": str(source_root), "local": str(local_root)},
+                populate=True,
+            )
+            html_path = logger.save_html(
+                title=f"Base Pull for {local_app_name} from {source_root}",
+                template=template,
+            )
+            if html_path:
+                print(f"Pullbase log html: {html_path}")
+        print(msg)
         return 1
 
     once_copied = once_skipped = 0

@@ -739,7 +739,7 @@ def _worktree_path_for_task(store, task_id):
     Each task is worked in its own git worktree at ``<container>/<task-id>``
     (a sibling of the ``main`` worktree, sharing the bare object store) so that
     concurrent task agents each get an isolated checkout of their own
-    ``task/<id>`` branch and never share (or stomp on) a single working tree.
+    ``<task-id>`` branch and never share (or stomp on) a single working tree.
     """
     root = _worktree_root(store)
     safe = re.sub(r"[^A-Za-z0-9._-]+", "-", str(task_id).strip()).strip("-") or "task"
@@ -749,25 +749,28 @@ def _worktree_path_for_task(store, task_id):
 def _branch_name_for_task(task_id):
     """Return the short-lived branch name used to work a task in isolation.
 
-    Each task is worked on in its own short-lived, ad-hoc branch (e.g.
-    ``task/<task-id>``) rather than directly on the long-lived ``main`` branch,
-    so that concurrent tasks never mix their changes. The branch is actually
+    Each task is worked on in its own short-lived, ad-hoc branch (named after
+    the task id, e.g. ``<task-id>``) rather than directly on the long-lived
+    ``main`` branch, so that concurrent tasks never mix their changes. The
+    branch name deliberately carries no ``task/`` prefix so it matches the
+    task's worktree folder name exactly (``{APP}/<task-id>``) and never nests
+    into sub-folders when materialised as a worktree. The branch is actually
     created and checked out by ``launch_task_agent.ps1`` (via its ``-TaskBranch``
     parameter) when the worker session starts; this helper only computes the
     deterministic branch name so the task manager can pass it to the launcher
     and record it on the worker session.
     """
     safe = re.sub(r"[^A-Za-z0-9._-]+", "-", str(task_id).strip()).strip("-") or "task"
-    return f"task/{safe}"
+    return safe
 
 
 def _task_branch_exists(base_dir, task_id):
     """Return ``True`` when a branch for the task already exists.
 
-    A pre-existing ``task/<id>`` branch means the task may already be (or have
+    A pre-existing ``<task-id>`` branch means the task may already be (or have
     been) worked on, so the caller must not silently start a new worker on it.
     Both the local branch and an already-fetched remote-tracking branch
-    (``origin/task/<id>``) are considered. Returns ``False`` when the working
+    (``origin/<task-id>``) are considered. Returns ``False`` when the working
     directory is not a git repository.
     """
     repo_info = _detect_git_repo(base_dir)
@@ -788,7 +791,7 @@ def _resolve_ledger_branch(store):
 
     The Task Manager is the sole writer of the authoritative ledger and tracks
     the long-lived ledger branch (``main``), while each task is worked on in its
-    own short-lived ``task/<id>`` branch. The headless status-sync must therefore
+    own short-lived ``<task-id>`` branch. The headless status-sync must therefore
     commit the ledger to this configured branch (``APP.TASK_MANAGER.ledger_branch``,
     default ``main``) -- never onto the worker's task branch. Returns the
     configured value when set, otherwise ``"main"``.
@@ -1265,7 +1268,7 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     # Each task is worked in its own dedicated git worktree (a separate checkout
     # directory at <container>/<task-id>, a sibling of the main worktree that
     # shares the bare object store) so that concurrent task agents each operate
-    # on their own task/<id> branch without sharing - or stomping on - a single
+    # on their own ``<task-id>`` branch without sharing - or stomping on - a single
     # working tree. The launch script materialises the worktree (via -Worktree)
     # and runs the session there. Reviews reuse the task's existing worktree.
     worktree_path = _worktree_path_for_task(store, safe_task_id)

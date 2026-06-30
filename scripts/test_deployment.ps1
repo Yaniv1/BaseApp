@@ -116,7 +116,7 @@ $instOutput = ""
 $instExit   = -1
 
 try {
-    $instOutput = & $Python $instScript $testAppDir 2>&1 | Out-String
+    $instOutput = & $Python $instScript --root $tempParent --appName $expectedAppName --worktree off 2>&1 | Out-String
     $instExit   = $LASTEXITCODE
 } catch {
     $instOutput = $_.Exception.Message
@@ -180,7 +180,7 @@ $pullExit   = -1
 
 if (Test-Path $pullScript) {
     try {
-        $pullOutput = & $Python $pullScript --source $BaseAppRoot 2>&1 | Out-String
+        $pullOutput = & $Python $pullScript --baseSource $BaseAppRoot 2>&1 | Out-String
         $pullExit   = $LASTEXITCODE
     } catch {
         $pullOutput = $_.Exception.Message
