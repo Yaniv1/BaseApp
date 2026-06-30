@@ -1893,7 +1893,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Deployed",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1939,6 +1939,11 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Re-deployed (commit fa774f6, branch BASE-TASK-260626-0003). Renamed the task-branch naming convention to drop the 'task/' prefix: a task branch is now named after the task id exactly (e.g. BASE-TASK-260624-0001) so the branch name matches its worktree folder ({APP}/<task-id>) and no longer instantiates as nested sub-folders from the slash; this also keeps branch folder names consistent in instantiated variant apps. Updated _branch_name_for_task (and _task_branch_exists follows it), the UI confirm fallback, init_worktree.ps1/sync_task_repo.ps1, requirement BASE-REQ-014.9 + 3.6.9 role, instructions base.md/app.md, README, and the task_manager tests. Also renamed the live task branch task/BASE-TASK-260626-0003 -> BASE-TASK-260626-0003 (remote updated). Version bumped to 26.06.26.05. Verified: task_manager pytest passes (2 pre-existing baseline failures unrelated); full app/base.py suite EXIT=0.",
                     "timestamp": "2026-06-30T05:22:15Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Merged BASE-TASK-260626-0003 into main (merge commit 4095b8b, pushed to origin/main 581cee8..4095b8b). Integration-engineer-supervised conflict resolution: versions resolved to 26.06.30.01; task's init-script requirement renumbered BASE-REQ-014.17 -> 014.21 to avoid colliding with main's multi-column-sort 014.17 (task's 014.18/019/020 retained); 3.6.9 role combined task's '<task-id>' branch naming with main's ALL-tab text; changelog unified with task's clashing entries renumbered 26.06.26.03->.05 (repo init), .04->.06 (deploy variant), .05->.07 (branch naming); README kept overview-only form. Full build app/base.py EXIT=0, 0 WARN, 0 ERROR; all JSON valid. Next: dissolve task branch + worktree.",
+                    "timestamp": "2026-06-30T07:53:50Z"
                 }
             ],
             "worker_session": {
