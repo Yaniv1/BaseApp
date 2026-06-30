@@ -161,6 +161,38 @@
                 }
             },
             {
+                "id": "prep_instantiate_branch_aware_layout",
+                "name": "Prep instantiate branch-aware layout",
+                "callable": "test.tests.base.instantiate.test_instantiate_branch_aware_layout",
+                "inputs": {
+                    "message": "Validated branch-aware deployment layout: resolve_app_root derives {container}/{app-name}/{branch} and populate_local_config records COMMON.BASEAPP while preserving existing keys"
+                }
+            },
+            {
+                "id": "prep_instantiate_layout_survives_git_init",
+                "name": "Prep instantiate layout survives git init",
+                "callable": "test.tests.base.instantiate.test_instantiate_layout_survives_git_init",
+                "inputs": {
+                    "message": "Validated instantiate writes no git metadata and its layout survives a post-hoc git init with template files preserved and tracked"
+                }
+            },
+            {
+                "id": "prep_pullbase_baseapp_resolution",
+                "name": "Prep pullbase BaseApp resolution",
+                "callable": "test.tests.base.pullbase.test_pullbase_baseapp_resolution_with_main_fallback",
+                "inputs": {
+                    "message": "Validated resolve_baseapp_source: task worktree falls back to main local.json, --branch swaps the BASEAPP leaf, and explicit --baseSource is used when no BASEAPP is recorded"
+                }
+            },
+            {
+                "id": "prep_pullbase_refuses_self_pull",
+                "name": "Prep pullbase self-pull guard",
+                "callable": "test.tests.base.pullbase.test_pullbase_refuses_self_pull",
+                "inputs": {
+                    "message": "Validated is_self_pull: pullbase refuses when source and local app are the same repository (sibling worktrees, shared container, or same folder) and allows a distinct variant container"
+                }
+            },
+            {
                 "id": "prep_local_config_override",
                 "name": "Prep local config override",
                 "callable": "test.tests.base.config.test_local_config_override",

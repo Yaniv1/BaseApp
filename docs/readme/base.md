@@ -72,7 +72,7 @@ BaseApp is a reusable Python foundation for app projects that need:
 ## Release Highlights (26.06.09.01)
 
 - **Caller lineage depth from CSV** — Added `caller_depth` column to all four message code CSVs. Blank = default 2 levels; WARN/ERROR/FAIL codes = 4 levels. `Logger._lookup_entry` returns a `(text, type, caller_depth)` triple; `log()` uses the per-code depth automatically.
-- **`instantiate.py` `--source` flag** — Added optional `--source <path>` argument so a copied `instantiate.py` can explicitly point at the BaseApp root. Improved the same-path error message to include both resolved paths and a clear usage hint.
+- **`instantiate.py` `--baseSource` flag** — Added optional `--baseSource <path>` argument so a copied `instantiate.py` can explicitly point at the BaseApp root. Improved the same-path error message to include both resolved paths and a clear usage hint.
 - **`test_tasks_by_status` post test** (Feature 5.3.1.1.2) — Reads `results/results.json` and verifies every task appears in the correct status bucket of `tasks_by_status`. `AppManager.close()` now publishes `output_path` to the monitor so the test can resolve the results file location at runtime.
 - **HTML hyperlinks** (Feature 5.3.1.3.5) — `HtmlDoc._as_hyperlink()` detects Windows absolute paths (`C:\…`), POSIX absolute paths (`/…`), and explicit URL schemes (`http://`, `https://`, `file:///`). `_render_cell()` wraps detected values in `<a href=…>` anchor tags with properly escaped display text. New `test_html_hyperlinks` prep test covers 9 criteria.
 - Removed stray `from pandas import col` import from `utils/baseutils.py`.
@@ -583,7 +583,7 @@ Script: `scripts/instantiate.py`
 Usage from `BaseApp` root:
 
 ```powershell
-python scripts/instantiate.py ../MyNewApp
+python scripts/instantiate.py --root .. --appName MyNewApp
 ```
 
 Behavior:
@@ -612,7 +612,7 @@ Script in the instantiated app: `scripts/pullbase.py`
 ```powershell
 python scripts/pullbase.py                      # normal: manifest-driven
 python scripts/pullbase.py --hard               # hard: overwrite everything
-python scripts/pullbase.py --source ../../BaseApp  # explicit source path
+python scripts/pullbase.py --baseSource ../../BaseApp  # explicit source path
 ```
 
 ### Normal mode
@@ -672,7 +672,7 @@ Use this to fully reset an app to the base.
 
 ## Builder Workflow (Recommended)
 
-1. Instantiate once: `python scripts/instantiate.py ../MyNewApp`
+1. Instantiate once: `python scripts/instantiate.py --root .. --appName MyNewApp`
 2. Edit only app-dedicated files: `app/app.py`, `config/app.json`,
    `utils/apputils.py`, `docs/readme/app.md`
 3. In `config/app.json` override only `COMMON.APP_NAME` (and any other keys

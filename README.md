@@ -101,7 +101,7 @@ BaseApp is a reusable Python application template for configuration-driven runti
 ## Highlights (26.06.09.01)
 
 - The user can control the `caller_depth` stack size for logged messages (default is 2, WARN/ERROR/FAIL = 4).
-- The **`instantiate.py`** script supports optional instantiation from a different `--source` folder of the original BaseApp root; improved same-path error message.
+- The **`instantiate.py`** script supports optional instantiation from a different `--baseSource` folder of the original BaseApp root; improved same-path error message.
 - Task report is grouped by task type and status.
 - HTML outputs now support file paths and URLs as **HTML hyperlinks**.
 

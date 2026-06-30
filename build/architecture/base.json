@@ -146,7 +146,7 @@
                         },
                         "3.1.14": {
                             "name": "scripts.instantiate.resolve_app_root",
-                            "description": "Resolve the variant app root as {abspath(container)}/{app-name}/{branch} from the --container (default '../../../' resolved relative to the script directory), --app-name (default 'MyApp{YYYYMMDD}'), and --branch (default 'main') CLI arguments.",
+                            "description": "Resolve the variant app root as {abspath(root)}/{app-name}/{branch} from the --root (default '../../../' resolved relative to the script directory), --appName (default 'MyApp{YYYYMMDD}'), --branch (default 'main'), and --worktree (on|off, default 'on') CLI arguments; when --worktree is 'off' the legacy flat layout {abspath(root)}/{app-name} (no branch sub-folder) is used instead.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/instantiate.py::resolve_app_root"
                         },
@@ -262,9 +262,15 @@
                         },
                         "3.2.19": {
                             "name": "scripts.pullbase.resolve_baseapp_source",
-                            "description": "Resolve the BaseApp source from COMMON.BASEAPP via a fallback chain (current worktree config/local.json -> app main worktree {container}/main/config/local.json -> existing --source/auto) and apply the --branch selector by swapping the BASEAPP leaf ({parent-of-BASEAPP}/{branch}). Read-only on main's local.json from a task-branch worktree.",
+                            "description": "Resolve the BaseApp source from COMMON.BASEAPP via a fallback chain (current worktree config/local.json -> app main worktree {container}/main/config/local.json -> existing --baseSource/auto) and apply the --branch selector by swapping the BASEAPP leaf ({parent-of-BASEAPP}/{branch}). Read-only on main's local.json from a task-branch worktree.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::resolve_baseapp_source"
+                        },
+                        "3.2.20": {
+                            "name": "scripts.pullbase.is_self_pull",
+                            "description": "Safety guard that returns True when the resolved source and the local app are the same deployment/repository, so pullbase refuses to copy and cannot overwrite a branch's in-progress changes with a sibling worktree's files. Detects: identical resolved paths; one path an ancestor of the other (e.g. source resolved to the shared {container}); sibling worktrees under the same bare repo ({container}/.bare with peer worktrees); and, as a git-based backstop, two worktrees sharing the same --git-common-dir. A genuine variant app in a separate container pulling from BaseApp is not flagged.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::is_self_pull"
                         }
                     }
                 },
@@ -427,22 +433,22 @@
                     "path": "scripts/sync_task_repo.ps1"
                 },
                 "3.8": {
-                    "name": "scripts.init_bare_worktree_repo",
-                    "description": "Machine-agnostic, idempotent PowerShell script that provisions the multi-branch bare/worktree layout for BaseApp or any variant app, auto-selecting between two modes from the state of the resolved {APP} container. Clone mode (target empty/new) bare-clones -Url into {APP}/.bare, writes a rename-safe relative .git pointer (gitdir: ./.bare), normalizes the fetch refspec and fetches all branches, then checks the default branch out as the {APP}/<default-branch> worktree and optionally adds a -TaskBranch worktree. Migration mode (target already has app content but no {APP}/.bare) converts that existing branch-agnostic single-tree deployment in place into the same canonical layout (see Convert-ExistingDeployment), preserving history and untracked/gitignored files. Parametrized by -Url with optional -Root/-Name/-DefaultBranch/-Branch/-TaskBranch/-TaskFolder, so the same script serves BaseApp and any variant app; the Add-Worktree helper adds each branch worktree idempotently. Distributed to variant apps automatically because the whole scripts/ folder is propagated via resources/manifests/pull.json.",
+                    "name": "scripts.init_worktree",
+                    "description": "Machine-agnostic, idempotent PowerShell script that provisions the multi-branch bare/worktree layout for BaseApp or any variant app, auto-selecting between two modes from the state of the resolved {APP} container. Clone mode (target empty/new) bare-clones -baseRepo into {APP}/.bare, writes a rename-safe relative .git pointer (gitdir: ./.bare), normalizes the fetch refspec and fetches all branches, then checks the default branch out as the {APP}/<default-branch> worktree and optionally adds a -taskBranch worktree. Migration mode (target already has app content but no {APP}/.bare) converts that existing branch-agnostic single-tree deployment in place into the same canonical layout (see Convert-ExistingDeployment), preserving history and untracked/gitignored files. Parametrized by -baseRepo with optional -root/-appName/-branch/-taskBranch/-taskFolder, so the same script serves BaseApp and any variant app; the Add-Worktree helper adds each branch worktree idempotently. Distributed to variant apps automatically because the whole scripts/ folder is propagated via resources/manifests/pull.json.",
                     "type": "Folder.Ps1File",
-                    "path": "scripts/init_bare_worktree_repo.ps1",
+                    "path": "scripts/init_worktree.ps1",
                     "features": {
                         "3.8.1": {
-                            "name": "scripts.init_bare_worktree_repo.Add-Worktree",
+                            "name": "scripts.init_worktree.Add-Worktree",
                             "description": "Idempotent helper that adds a git worktree subfolder under the {APP} container for a given branch: it skips paths already registered as worktrees, leaves untracked existing folders untouched, checks out an existing local or remote-tracking branch, and (when -CreateIfMissing is set) creates a new branch off origin/<default-branch>.",
                             "type": "Folder.Ps1File.Function",
-                            "path": "scripts/init_bare_worktree_repo.ps1::Add-Worktree"
+                            "path": "scripts/init_worktree.ps1::Add-Worktree"
                         },
                         "3.8.2": {
-                            "name": "scripts.init_bare_worktree_repo.Convert-ExistingDeployment",
+                            "name": "scripts.init_worktree.Convert-ExistingDeployment",
                             "description": "Migrates an existing branch-agnostic single-tree app deployment (flat instantiate output or plain git checkout) in place into the canonical {APP}/.bare + {APP}/{branch} layout. Invoked automatically by the script when the resolved {APP} container has content but no {APP}/.bare. It ensures git history exists (git init -b {branch} + initial commit when the source is not a repo; otherwise reuses the current branch unless -Branch overrides), records untracked/gitignored working files via 'git status --ignored --porcelain' (preserving config/local.json and other non-tracked files, excluding .venv/__pycache__/.git), relocates the existing tree to a temporary sibling, bare-clones its history into {APP}/.bare, writes the relative .git pointer, registers {APP}/{branch} via 'git worktree add' into the empty container slot, restores the preserved untracked/gitignored files into the worktree, and removes the temporary copy. Idempotent (skips when {APP}/.bare already exists) and non-destructive (never deletes or overwrites app files outright).",
                             "type": "Folder.Ps1File.Function",
-                            "path": "scripts/init_bare_worktree_repo.ps1::Convert-ExistingDeployment"
+                            "path": "scripts/init_worktree.ps1::Convert-ExistingDeployment"
                         }
                     }
                 }
@@ -668,6 +674,12 @@
                                             "description": "Regression test for feature 3.2.19 / BASE-REQ-014.19: asserts pullbase resolves COMMON.BASEAPP from the current worktree's config/local.json, falls back to the app's main worktree config/local.json when the task worktree has none, and applies --branch by swapping the BASEAPP leaf.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/pullbase.py::test_pullbase_baseapp_resolution_with_main_fallback"
+                                        },
+                                        "5.3.1.4.3": {
+                                            "name": "test.tests.base.pullbase.test_pullbase_refuses_self_pull",
+                                            "description": "Regression test for feature 3.2.20 / BASE-REQ-014.19: asserts is_self_pull flags sibling worktrees of the same container, a source resolved to the shared container (ancestor), and an identical folder, while NOT flagging a variant app in a separate container -- so pullbase refuses to overwrite a branch's changes when run inside a BaseApp worktree.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/pullbase.py::test_pullbase_refuses_self_pull"
                                         }
                                     }
                                 },
@@ -685,7 +697,7 @@
                                         },
                                         "5.3.1.5.2": {
                                             "name": "test.tests.base.instantiate.test_instantiate_branch_aware_layout",
-                                            "description": "Regression test for features 3.1.14/3.1.15 / BASE-REQ-014.18: asserts instantiate places content under {container}/{app-name}/{branch} (default main and a custom --branch), sets app.json COMMON.APP_NAME from --app-name, writes COMMON.BASEAPP into config/local.json, and emits no git metadata.",
+                                            "description": "Regression test for features 3.1.14/3.1.15 / BASE-REQ-014.18: asserts instantiate places content under {container}/{app-name}/{branch} (default main and a custom --branch), sets app.json COMMON.APP_NAME from --appName, writes COMMON.BASEAPP into config/local.json, and emits no git metadata.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/instantiate.py::test_instantiate_branch_aware_layout"
                                         },
@@ -739,13 +751,13 @@
                                     "features": {
                                         "5.3.1.8.1": {
                                             "name": "test.tests.base.init_bare_worktree_repo.test_init_bare_worktree_repo_builds_bare_and_worktrees",
-                                            "description": "Regression test for feature 3.8 (BASE-REQ-014.17): cloning from a purely local source repo (no network), runs scripts/init_bare_worktree_repo.ps1 and asserts it creates the shared bare store at {APP}/.bare, writes the rename-safe relative pointer {APP}/.git -> 'gitdir: ./.bare', checks the default branch out as the {APP}/<default-branch> worktree with repo content present, adds a second worktree for a brand-new -TaskBranch created off the default branch, and is idempotent on re-run.",
+                                            "description": "Regression test for feature 3.8 (BASE-REQ-014.17): cloning from a purely local source repo (no network), runs scripts/init_worktree.ps1 and asserts it creates the shared bare store at {APP}/.bare, writes the rename-safe relative pointer {APP}/.git -> 'gitdir: ./.bare', checks the default branch out as the {APP}/<default-branch> worktree with repo content present, adds a second worktree for a brand-new -TaskBranch created off the default branch, and is idempotent on re-run.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/init_bare_worktree_repo.py::test_init_bare_worktree_repo_builds_bare_and_worktrees"
                                         },
                                         "5.3.1.8.2": {
                                             "name": "test.tests.base.init_bare_worktree_repo.test_init_bare_worktree_repo_migrates_existing_deployment",
-                                            "description": "Regression test for feature 3.8.2 (BASE-REQ-014.20): builds a flat branch-agnostic app directory containing a tracked file and a gitignored config/local.json (with COMMON.BASEAPP), runs scripts/init_bare_worktree_repo.ps1 pointed at that already-populated container (no {APP}/.bare, triggering auto-migration), and asserts the canonical layout (porcelain shows {APP}/.bare bare + {APP}/{branch} linked worktree), the .git pointer 'gitdir: ./.bare', a clean working tree, that every original file -- including the gitignored config/local.json with its BASEAPP value -- is preserved in the worktree, that a -TaskBranch worktree can be attached afterwards, and that a re-run is idempotent.",
+                                            "description": "Regression test for feature 3.8.2 (BASE-REQ-014.20): builds a flat branch-agnostic app directory containing a tracked file and a gitignored config/local.json (with COMMON.BASEAPP), runs scripts/init_worktree.ps1 pointed at that already-populated container (no {APP}/.bare, triggering auto-migration), and asserts the canonical layout (porcelain shows {APP}/.bare bare + {APP}/{branch} linked worktree), the .git pointer 'gitdir: ./.bare', a clean working tree, that every original file -- including the gitignored config/local.json with its BASEAPP value -- is preserved in the worktree, that a -TaskBranch worktree can be attached afterwards, and that a re-run is idempotent.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/init_bare_worktree_repo.py::test_init_bare_worktree_repo_migrates_existing_deployment"
                                         }

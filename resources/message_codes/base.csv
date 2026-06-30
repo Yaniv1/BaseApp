@@ -43,5 +43,6 @@ PULL007,INFO,Loaded once entries
 PULL008,INFO,"Once pull: {copied} copied. {skipped} skipped"
 PULL009,INFO,Loaded {entry_count} drop entries
 PULL010,INFO,"Dropped deprecated paths: {moved} moved. {removed} removed. {skipped} skipped"
+PULLE11,ERROR,"Refusing self-pull: source {source} and local {local} are the same repository"
 PULL999,GOOD,Pullbase completed successfully
 DATAE01,ERROR,Conversion step failed: {error},4
