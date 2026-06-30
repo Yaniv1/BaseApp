@@ -1967,7 +1967,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Ready",
+            "status": "Approved",
             "comments": [
                 {
                     "author": "ymordecai",
@@ -2003,6 +2003,11 @@
                     "author": "BASE-TASK-260626-0004 worker",
                     "content": "Implemented the PullBase task type and committed on the task branch (53a315a): config templates map + pullbase block; type-routed instruction template and PullBase title auto-fill in task_manager.py; new build/instructions/pullbase.md; task_manager.html (Type above Title, PullBase option, relaxed title); pull.json registration; tests for routing + auto-fill (7/7 passing via targeted pytest). HTML report refreshed. Note: my worktree was emptied/deregistered after running test/tests/build.py (its migration step rebuilds the bare/worktree layout); fully recovered. Ready for engineer review.",
                     "timestamp": "2026-06-30T02:49:57Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Builder approval: implementation of the first-class PullBase task type is complete and verified. Type selector sits above the title with a PullBase option; PullBase tasks auto-fill the title as \"PullBase {YYYY-MM-DD}\"; instruction templates are routed by type via CONFIG.APP.TASK_MANAGER.templates (Feature/Bug->task.md, PullBase->pullbase.md, default task.md); new build/instructions/pullbase.md drives the supervised pull/review/deploy/merge lifecycle and is registered in resources/manifests/pull.json. Merged latest main (commit 10ed111) with conflicts resolved (config keeps both templates and views; arch renumbered to 3.6.16). Targeted task_manager pytest green.",
+                    "timestamp": "2026-06-30T08:25:47Z"
                 }
             ],
             "worker_session": {
