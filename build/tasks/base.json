@@ -2119,6 +2119,11 @@
                     "author": "BASE-TASK-260627-0003 worker",
                     "content": "Refined saved-views to protect built-in views: the predefined views shipped in config/base.json are now read-only built-ins (tagged builtin=true) — the UI hides their delete control and disables rename, and the server (_save_views) strips built-ins so only the user's own views persist to config/machine.json. _load_views always re-sources built-ins from base.json and layers user views (local/machine, machine wins) on top, so built-ins can never be deleted. Updated requirement 014.15, architecture 3.6.15/11.2.2, build/updates entry, and result HTML. Tests: 64 passed (incl. test_builtin_views_cannot_be_deleted, test_views_load_merges_builtin_and_user_views, test_views_save_persists_only_user_views_to_machine, test_views_endpoints_get_and_put); the only 2 failures are pre-existing and unrelated. No commit/push made — awaiting review.",
                     "timestamp": "2026-06-30T00:53:38Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Refinement #4 complete: redesigned saved views to a single flat array of view objects {id,name,tabs:[...],sort:{col:dir},filter:{col:[vals]}} with multi-tab association, multi-column sort, and multi-value (checkbox) Type/Priority filters. Built-in views ship read-only in config/base.json (flat array, base-priority/critical/bugs/features); user views + per-tab active_views persist to git-ignored config/machine.json via GET/PUT /api/views returning {views,active}. Grayed/enabled chip model: views show on every tab, enabled only when current tab is in tabs; user views can include/remove the current tab, a grayed built-in clones into a user view. Updated server helpers, frontend, base.json, specs (BASE-REQ-014.15 rewritten, 014.16 added, 014.13 updated), architecture 3.6.15/11.2.2, updates entry, and result HTML. Tests rewritten: task_manager module 66 passed (2 pre-existing unrelated failures). Awaiting review; no commit/push yet.",
+                    "timestamp": "2026-06-30T02:24:07Z"
                 }
             ],
             "worker_session": {
