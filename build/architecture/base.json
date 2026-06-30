@@ -316,7 +316,7 @@
                         },
                         "3.6.4": {
                             "name": "scripts.task_manager._create_task",
-                            "description": "Create and append a new task to the task list, always prepending an auto-generated 'Task created' comment attributed to the local or provided author.",
+                            "description": "Create and append a new task to the task list, always prepending an auto-generated 'Task created' comment attributed to the local or provided author. When the task type is PullBase and no title is supplied, the title is auto-filled from the CONFIG.APP.TASK_MANAGER pull-base title format (e.g. 'PullBase {YYYY-MM-DD}').",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_create_task"
                         },
@@ -402,15 +402,9 @@
                         },
                         "3.6.15": {
                             "name": "scripts.task_manager._instruction_template_for_task",
-                            "description": "Resolve which instruction template a task's worker prompt is built from, based on the task type: BaseUpdate tasks use build/instructions/base-update.md (the dedicated base-update lifecycle), all other types use build/instructions/task.md. The mapping of type to instruction file is read from APP.TASK_MANAGER config (no hard-coded type names).",
+                            "description": "Resolve which instruction template a task's worker prompt is built from, based on the task type, using the CONFIG.APP.TASK_MANAGER.templates mapping (e.g. Feature->task.md, Bug->task.md, PullBase->pullbase.md) with a 'default' fallback of task.md. No task-type strings or template filenames are hard-coded in logic.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_instruction_template_for_task"
-                        },
-                        "3.6.16": {
-                            "name": "scripts.task_manager._create_base_update_task",
-                            "description": "Create the built-in 'Pull BaseApp Changes' task (type BaseUpdate, status ToDo) in the selected variant app's task ledger using the canned title/description and type name from APP.TASK_MANAGER.base_update config; served by the POST /api/tasks/pull-base endpoint, which is offered by the UI only for variant apps (not BaseApp itself).",
-                            "type": "Folder.PyFile.Function",
-                            "path": "scripts/task_manager.py::_create_base_update_task"
                         }
                     }
                 },
@@ -1171,10 +1165,10 @@
                             "path": "build/instructions/base.md"
                         },
                         "10.1.2": {
-                            "name": "build.instructions.base-update",
-                            "description": "Dedicated instruction file for BaseUpdate tasks: run pullbase on the task branch, collect and review the incoming BaseApp updates, summarize them to the user as an HTML report, reach Ready, then deploy and/or merge per engineer approval (deploy+merge, or deploy-only then merge after a separate approval).",
+                            "name": "build.instructions.pullbase",
+                            "description": "Dedicated instruction file for PullBase tasks: using the task details, run pullbase on the task branch (auto-detecting the BaseApp source unless the task description specifies otherwise), collect and review the incoming BaseApp updates, summarize them to the user as an HTML report, reach Ready, then deploy and merge under explicit engineer approval following base.md's supervised-merge model (deploy+merge, or deploy-only then merge after a separate approval).",
                             "type": "Folder.Folder.MdFile",
-                            "path": "build/instructions/base-update.md"
+                            "path": "build/instructions/pullbase.md"
                         }
                     }
                 },
