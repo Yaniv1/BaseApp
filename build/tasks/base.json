@@ -1978,6 +1978,11 @@
                     "author": "BASE-TASK-260626-0004 worker",
                     "content": "Spec rev.3 incorporating your refinements. Dropped the special button. New task type is 'PullBase' (matches the pullbase script). Task-creation pane: type selector placed above the title; when type is PullBase no title is required and it is auto-filled as 'PullBase {YYYY-MM-DD}'. Instruction templates are selected by type from CONFIG.APP.TASK_MANAGER.templates (Feature->task.md, Bug->task.md, PullBase->pullbase.md; default task.md). New dedicated build/instructions/pullbase.md uses the task details, runs pullbase on the task branch with auto-detected BaseApp source by default (overridable via the task description), collects + HTML-summarizes the incoming updates to reach Ready, then deploys and merges under base.md's supervised-merge model (deploy+merge, or deploy-only then merge after separate approval). Updated BASE-REQ-008.7 and architecture 3.6.4 (_create_task title auto-fill), 3.6.15 (_instruction_template_for_task), 10.1.2 (pullbase.md). Report refreshed at C:/data/MyApp/task_results/BASE-TASK-260626-0004/BASE-TASK-260626-0004.html. Awaiting approval to implement.",
                     "timestamp": "2026-06-30T02:13:07Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Agreed — dropped the trivial _instruction_template_for_task wrapper. The type->template selection is now a simple inline CONFIG.APP.TASK_MANAGER.templates lookup (with 'default' task.md) inside the existing _build_copilot_prompt, which I inventoried as architecture feature 3.6.15 (it was previously un-inventoried, unlike _build_review_prompt 3.6.6). Updated BASE-REQ-008.7.2 and the solution link accordingly. No new helper added. Spec rev.3 otherwise unchanged; awaiting approval to implement.",
+                    "timestamp": "2026-06-30T02:20:22Z"
                 }
             ],
             "worker_session": {
