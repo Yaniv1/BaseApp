@@ -6,7 +6,7 @@ This file provides instructions for requirements engineering:
 3. Specify requirements according to the following structure:
     {
         "id": "TEMPLATE-001",
-        "title": "Template Requirement",
+        "title": "Very Important, Must Be Concise Requirement Name",
         "description": "Impreative statement about what the system must do, without specifying how it should be done.",
         "priority": "Low|Medium|High|Critical",
         "comments": [

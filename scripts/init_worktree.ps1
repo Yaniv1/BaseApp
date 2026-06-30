@@ -1,0 +1,695 @@
+<#
+.SYNOPSIS
+    Feature 3.8. Initialize a repository in the bare "{APP}/{branch}" worktree layout,
+    where the shared object store lives in .bare and every branch is a peer worktree
+    subfolder.
+
+    Resulting layout for a container named MyRepo:
+
+        MyRepo\
+          .bare\                 <- shared bare object store (the real clone)
+          .git                   <- file: "gitdir: ./.bare" (relative, rename-safe)
+          main\                  <- worktree for the default branch
+          <task-id>\             <- (optional) worktree for an extra branch
+
+.DESCRIPTION
+    Machine-agnostic and idempotent. Nothing here is hard-coded to a particular
+    user, drive, or absolute path: you pass the clone URL and (optionally) where to
+    put it. Re-running against an existing container is safe -- it skips work that is
+    already done and just (re)verifies. Designed so any machine adopting this
+    framework can run it locally.
+
+    This is the multi-branch-aware way to clone the repository: a plain `git clone`
+    produces a single working tree that can only have one branch checked out at a
+    time, which prevents the per-task worktree workflow the framework relies on (see
+    launch_task_agent.ps1, which adds task worktrees as siblings of main under the
+    {APP} container). The same script works for BaseApp and for any variant app --
+    just pass that app's clone URL -- so variant apps developed on top of BaseApp
+    benefit from the identical bare/worktree layout. Because the whole scripts/
+    folder is propagated to variant apps via resources/manifests/pull.json, every
+    variant app receives this script automatically on its next base-update pull.
+
+.PARAMETER baseRepo
+    Clone URL of the remote repository (https or ssh). Required for CLONE mode.
+    Optional in MIGRATION mode (see below): when omitted the existing local
+    deployment is converted in place as a LOCAL-ONLY repo and no remote is
+    contacted; when supplied it is attached as 'origin' on the migrated repo (the
+    standard fetch refspec is configured) so you can `git push -u origin <branch>`
+    later. No push is performed by this script.
+
+.PARAMETER remote
+    Optional. When non-empty, publish the resulting bare/worktree repository to a
+    NEW GitHub repository using the GitHub CLI ('gh'). The value is the repo spec
+    passed to 'gh repo create' -- either "owner/name" or just "name" (created under
+    your account). The sequence is: ensure 'gh' auth (runs 'gh auth login' only when
+    not already authenticated), create the repo as PRIVATE if it does not yet exist
+    (an existing repo is reused), set it as 'origin' (the standard fetch refspec is
+    configured), and push ALL local branches with upstream tracking. Defaults to
+    empty (no remote is created or pushed). Requires the GitHub CLI on PATH.
+
+.PARAMETER root
+    Parent directory that will CONTAIN the {APP} container folder. Defaults to the
+    parent of the {APP} this script is deployed under: this script lives at
+    {APP}/{branch}/scripts, so the default root is that {APP}'s parent directory
+    (NOT the current working directory).
+
+.PARAMETER appName
+    Container folder name ({APP}). Defaults to the repo name inferred from -baseRepo
+    when -baseRepo is given (e.g. https://github.com/Yaniv1/BaseApp.git -> "BaseApp");
+    otherwise defaults to the {APP} folder name this script is deployed under
+    (its grandparent's parent), so a no-argument run targets the script's own app.
+
+.PARAMETER branch
+    The primary worktree branch. In CLONE mode it is the branch checked out as the
+    first worktree, defaulting to the remote's HEAD (falling back to "main"). In
+    MIGRATION mode it is the branch for the first worktree created from the existing
+    deployment's history, defaulting to the deployment's current branch (or "main"
+    when the deployment has no git history yet).
+
+.PARAMETER taskBranch
+    Optional. Also create a second worktree for this branch.
+      * If the branch exists on the remote it is checked out.
+      * Otherwise it is created (branched off the primary branch).
+    The worktree folder name defaults to the branch name (e.g. branch
+    "BASE-TASK-1" -> folder "BASE-TASK-1"); task branches are named after the
+    task id with no "task/" prefix so the folder never nests into sub-folders.
+    Pass -taskFolder to override.
+
+.PARAMETER taskFolder
+    Folder name for the -taskBranch worktree. Defaults to the branch's last segment.
+
+.EXAMPLE
+    # Clone BaseApp into the current directory, container auto-named from the URL:
+    pwsh -File .\scripts\init_worktree.ps1 -baseRepo https://github.com/Yaniv1/BaseApp.git
+
+.EXAMPLE
+    # Clone a variant app elsewhere, custom container name, and spin up a task worktree:
+    pwsh -File .\scripts\init_worktree.ps1 `
+        -baseRepo https://github.com/Yaniv1/MyVariantApp.git `
+        -root     D:\work `
+        -appName  MyVariantApp `
+        -taskBranch APP-TASK-260624-0001
+
+.EXAMPLE
+    # MIGRATION: convert an existing branch-agnostic single-tree deployment
+    # (D:\work\MyApp with app files directly inside) into the bare/worktree layout.
+    # Auto-detected because MyApp has content but no .bare; no -baseRepo needed:
+    pwsh -File .\scripts\init_worktree.ps1 -root D:\work -appName MyApp
+
+.EXAMPLE
+    # MIGRATION + publish: convert in place AND create a private GitHub repo, then
+    # push all branches to it (runs 'gh auth login' only if not already signed in):
+    pwsh -File .\scripts\init_worktree.ps1 -root D:\work -appName MyApp `
+        -remote Yaniv1/MyApp
+
+.EXAMPLE
+    # MIGRATION + attach a remote: convert in place AND wire up 'origin' so the
+    # migrated repo can be pushed later (no push is performed here):
+    pwsh -File .\scripts\init_worktree.ps1 `
+        -root D:\work -appName MyApp `
+        -baseRepo https://github.com/Yaniv1/MyApp.git
+#>
+
+# Feature 3.8
+[CmdletBinding()]
+param(
+    [string]$baseRepo,
+
+    [string]$root,
+    [string]$appName,
+    [string]$branch,
+    [string]$taskBranch,
+    [string]$taskFolder,
+    [string]$remote
+)
+
+$ErrorActionPreference = "Stop"
+
+function Info  { param([string]$m) Write-Host "[init] $m" -ForegroundColor Cyan }
+function Ok    { param([string]$m) Write-Host "[ ok ] $m" -ForegroundColor Green }
+function Warn  { param([string]$m) Write-Host "[warn] $m" -ForegroundColor Yellow }
+function Die   { param([string]$m) Write-Host "[fail] $m" -ForegroundColor Red; exit 1 }
+
+function Add-MigrationExcludes {
+    # Append regenerable / local-only patterns to the repo's LOCAL exclude file
+    # (.git/info/exclude) so a migrated app never commits its virtualenv, bytecode
+    # caches, or the machine-specific config/local.json into history -- even when the
+    # deployment carries no .gitignore of its own. Local-only (not a tracked
+    # .gitignore) and idempotent; it only affects still-untracked files.
+    param([string]$RepoPath)
+    $excludeFile = Join-Path $RepoPath ".git\info\exclude"
+    $excludeDir  = Split-Path -Parent $excludeFile
+    if (-not (Test-Path -LiteralPath $excludeDir)) {
+        New-Item -ItemType Directory -Force -Path $excludeDir | Out-Null
+    }
+    $existing = if (Test-Path -LiteralPath $excludeFile) { @(Get-Content -LiteralPath $excludeFile) } else { @() }
+    foreach ($pat in @('.venv/', '__pycache__/', 'config/local.json')) {
+        if ($existing -notcontains $pat) { Add-Content -LiteralPath $excludeFile -Value $pat }
+    }
+}
+
+function Get-DeployedWorktreeFlag {
+    # Best-effort read of COMMON.WORKTREE from a deployed app's gitignored
+    # config/local.json. instantiate.py records there whether the deployment uses
+    # the multi-branch nested layout ({APP}/{branch}) or the legacy flat layout
+    # ({APP}). Returns $true / $false, or $null when the file or flag is absent
+    # (callers treat a missing flag as flat, since legacy deployments predate it).
+    param([string]$ContentDir)
+    if (-not $ContentDir) { return $null }
+    $cfg = Join-Path $ContentDir "config\local.json"
+    if (-not (Test-Path -LiteralPath $cfg)) { return $null }
+    try {
+        $json = Get-Content -LiteralPath $cfg -Raw | ConvertFrom-Json
+        $val = $json.COMMON.WORKTREE
+        if ($null -ne $val) { return [bool]$val }
+    } catch { }
+    return $null
+}
+
+function Set-DeployedWorktreeFlag {
+    # Record that a deployment is now in the multi-branch worktree (nested) layout
+    # by writing COMMON.WORKTREE = $true into the given worktree's gitignored
+    # config/local.json. Creates the file/section when missing and preserves all
+    # other keys. Best-effort: never throws (the file is local-only metadata).
+    param([string]$WorktreeDir)
+    if (-not $WorktreeDir) { return }
+    try {
+        $cfgDir = Join-Path $WorktreeDir "config"
+        if (-not (Test-Path -LiteralPath $cfgDir)) { return }
+        $cfg = Join-Path $cfgDir "local.json"
+        $data = [ordered]@{}
+        if (Test-Path -LiteralPath $cfg) {
+            $existing = Get-Content -LiteralPath $cfg -Raw | ConvertFrom-Json
+            if ($existing) {
+                $data = [ordered]@{}
+                foreach ($p in $existing.PSObject.Properties) { $data[$p.Name] = $p.Value }
+            }
+        }
+        $common = [ordered]@{}
+        if ($data.Contains('COMMON') -and $data['COMMON']) {
+            foreach ($p in $data['COMMON'].PSObject.Properties) { $common[$p.Name] = $p.Value }
+        }
+        $common['WORKTREE'] = $true
+        $data['COMMON'] = $common
+        ($data | ConvertTo-Json -Depth 20) | Set-Content -LiteralPath $cfg -Encoding utf8
+    } catch { }
+}
+
+function Publish-ToRemote {
+    # Create a GitHub repository with the GitHub CLI and push the local
+    # bare/worktree repo to it. Ensures auth, creates the repo (PRIVATE) when it
+    # does not exist, wires it up as 'origin', and pushes all local branches with
+    # upstream tracking. $RemoteSpec is 'owner/name', 'name', or a full clone URL
+    # (https/ssh) -- a URL is normalized to 'owner/name' for the gh calls.
+    param(
+        [string]$AppPath,
+        [string]$RemoteSpec
+    )
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        Die "remote setup requested (-remote) but the GitHub CLI 'gh' is not on PATH."
+    }
+
+    # 0. normalize the spec: accept 'owner/name', 'name', or a full https/ssh URL.
+    $spec = $RemoteSpec.Trim()
+    if ($spec -match '^(https?://|git@|ssh://)') {
+        $m = [regex]::Match($spec, '[:/]([^/:]+)/([^/]+?)(\.git)?/?$')
+        if (-not $m.Success) { Die "remote: could not parse owner/name from URL '$spec'." }
+        $spec = "$($m.Groups[1].Value)/$($m.Groups[2].Value)"
+        Info "remote: parsed '$spec' from URL"
+    }
+
+    # 1. ensure authenticated (only prompt when not already signed in)
+    gh auth status 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Info "remote: not authenticated -> launching 'gh auth login' ..."
+        gh auth login
+        if ($LASTEXITCODE -ne 0) { Die "remote: 'gh auth login' failed or was cancelled." }
+    } else {
+        Info "remote: gh already authenticated"
+    }
+
+    # 2. create the repository if it does not already exist
+    gh repo view $spec 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Info "remote: repository '$spec' already exists -> reusing"
+    } else {
+        Info "remote: creating private repository '$spec' ..."
+        gh repo create $spec --private 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Die "remote: 'gh repo create $spec' failed." }
+        Ok "remote: created '$spec'"
+    }
+
+    # 3. resolve the repository URL
+    $url = (gh repo view $spec --json url -q .url 2>$null)
+    if (-not $url) { Die "remote: could not resolve a URL for '$spec'." }
+    $url = $url.Trim()
+    if ($url -notmatch '\.git$') { $url = "$url.git" }
+
+    # 4. set as 'origin' (replacing any existing origin) + standard fetch refspec
+    $hasOrigin = @(git -C $AppPath remote 2>$null) -contains 'origin'
+    if ($hasOrigin) {
+        git -C $AppPath remote set-url origin $url | Out-Null
+    } else {
+        git -C $AppPath remote add origin $url | Out-Null
+    }
+    if ($LASTEXITCODE -ne 0) { Die "remote: failed to set origin to '$url'." }
+    git -C $AppPath config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" | Out-Null
+    Ok "remote: origin -> $url"
+
+    # 5. push all local branches and set upstream tracking
+    Info "remote: pushing all local branches to origin ..."
+    git -C $AppPath push -u origin --all 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { Die "remote: 'git push -u origin --all' failed." }
+    Ok "remote: pushed all branches to origin"
+}
+
+# --- sanity: git present ------------------------------------------------------
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+    Die "git is not on PATH."
+}
+
+# --- derive container name + paths -------------------------------------------
+# This script lives at <content-dir>/scripts. The deployed content (config,
+# scripts, app, ...) always sits in scripts' parent ($myTreeRoot). Whether that
+# folder IS the {APP} container (legacy flat deployment, {APP}/scripts) or a
+# per-branch sub-folder of it (multi-branch layout {APP}/{branch}/scripts, as
+# produced by 'instantiate --worktree on') is recorded by instantiate.py in
+# config/local.json -> COMMON.WORKTREE. A missing flag is assumed flat (legacy
+# deployments predate it). An already-bare layout ({APP}/.bare at the
+# grandparent) is likewise treated as nested. These provide the script-location
+# defaults for -root / -appName.
+$scriptDir   = $PSScriptRoot
+$myTreeRoot  = if ($scriptDir)  { Split-Path -Parent $scriptDir }  else { $null }   # scripts' parent = deployed content dir
+$myTreeAbove = if ($myTreeRoot) { Split-Path -Parent $myTreeRoot } else { $null }   # {APP} in the nested layout
+$myContentDir = $myTreeRoot
+$deployNested = Get-DeployedWorktreeFlag -ContentDir $myTreeRoot
+$inBareLayout = $myTreeAbove -and (Test-Path -LiteralPath (Join-Path $myTreeAbove ".bare"))
+if (($deployNested -eq $true) -or $inBareLayout) {
+    $myAppDir = $myTreeAbove          # nested: {APP} is the grandparent
+} else {
+    $myAppDir = $myTreeRoot           # flat (or unknown): scripts' parent is {APP}
+}
+$myAppName   = if ($myAppDir) { Split-Path -Leaf   $myAppDir } else { $null }
+$myRoot      = if ($myAppDir) { Split-Path -Parent $myAppDir } else { (Get-Location).Path }
+
+if (-not $appName) {
+    if ($baseRepo) {
+        # last path segment of the URL, minus a trailing .git
+        $leaf = ($baseRepo.TrimEnd('/').Split('/')[-1])
+        $appName = $leaf -replace '\.git$', ''
+    } elseif ($myAppName) {
+        # no -baseRepo and no -appName -> target the {APP} this script is deployed under
+        $appName = $myAppName
+    }
+}
+if (-not $appName) { Die "Could not determine a container name; pass -appName." }
+
+if (-not $root) { $root = $myRoot }
+$root = (Resolve-Path -LiteralPath $root).Path
+$app  = Join-Path $root $appName
+$bare = Join-Path $app ".bare"
+
+Info "Container : $app"
+if ($baseRepo) { Info "Remote    : $baseRepo" }
+
+# --- migration helper: convert an existing single-tree deployment -------------
+function Convert-ExistingDeployment {
+    <#
+        Feature 3.8.2. Convert an existing branch-agnostic single-tree deployment
+        at $AppPath into the canonical "{APP}/.bare" + "{APP}/{branch}" layout,
+        non-destructively. Preserves git history (or seeds one when absent) and
+        restores untracked/gitignored files (e.g. config/local.json carrying
+        COMMON.BASEAPP) into the new worktree. Idempotent: no-op if .bare exists.
+        Returns the branch name of the worktree it created.
+    #>
+    param(
+        [string]$AppPath,
+        [string]$ContentDir,
+        [string]$branchName,
+        [string]$RemoteUrl
+    )
+
+    $bareLocal = Join-Path $AppPath ".bare"
+    if (Test-Path -LiteralPath $bareLocal) {
+        Info "migration: .bare already present -> skipping conversion"
+        if (-not $branchName) { $branchName = "main" }
+        return $branchName
+    }
+
+    # 0. locate the deployable content. In a flat deployment the content lives
+    #    directly in {APP}; in a nested deployment ('instantiate --worktree on')
+    #    it lives in a single {APP}/{branch} sub-folder. The caller passes the
+    #    recorded layout (COMMON.WORKTREE) and a content-dir hint; fall back to
+    #    structural detection (config/app.json marker) when the hint is unusable.
+    $contentDir = $null
+    if ($ContentDir -and (Test-Path -LiteralPath $ContentDir)) {
+        # Trusted hint from the caller (script-location derivation): the deployed
+        # content dir, already known to be $app (flat) or a $app/{branch} child.
+        $contentDir = (Resolve-Path -LiteralPath $ContentDir).Path
+    } else {
+        # Structural detection. A flat {APP} holds the deployment directly (top-level
+        # files and/or recognizable content dirs); a nested {APP} (pre-bare worktree
+        # layout) holds nothing but a single {APP}/{branch} sub-folder.
+        $topFiles = @(Get-ChildItem -LiteralPath $AppPath -File -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -ne '.git' })
+        $topDirs  = @(Get-ChildItem -LiteralPath $AppPath -Directory -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notin '.bare','.git' })
+        $hasFlatMarker = (Test-Path -LiteralPath (Join-Path $AppPath "config\app.json")) -or
+                         ($topFiles.Count -gt 0) -or
+                         [bool](@($topDirs | Where-Object { $_.Name -in 'scripts','config','app','build' }))
+        if ($hasFlatMarker) {
+            $contentDir = $AppPath                       # flat: content directly in {APP}
+        } elseif ($topDirs.Count -eq 1) {
+            $contentDir = $topDirs[0].FullName           # nested: single {APP}/{branch} content folder
+        } elseif ($topDirs.Count -gt 1) {
+            Die ("migration: multiple branch folders under {0}: {1}; cannot pick a migration source." -f $AppPath, (($topDirs | ForEach-Object Name) -join ', '))
+        } else {
+            Die "migration: no deployable content found under $AppPath."
+        }
+    }
+    $isNested = ($contentDir -ne $AppPath)
+    if ($isNested -and -not $branchName) {
+        $branchName = Split-Path -Leaf $contentDir   # nested: branch folder name == branch
+    }
+    if ($isNested) { Info "migration: nested layout -> content in '$(Split-Path -Leaf $contentDir)'" }
+
+    # 1. ensure history
+    $hasRepo = Test-Path -LiteralPath (Join-Path $contentDir ".git")
+    if (-not $hasRepo) {
+        if (-not $branchName) { $branchName = "main" }
+        git -C $contentDir init -b $branchName | Out-Null
+        if ($LASTEXITCODE -ne 0) { Die "migration: git init failed." }
+        Add-MigrationExcludes -RepoPath $contentDir
+        git -C $contentDir add -A | Out-Null
+        git -C $contentDir -c user.email=baseapp@local -c user.name=baseapp commit -m "Initial commit (migrated to bare/worktree layout)" --quiet | Out-Null
+        if ($LASTEXITCODE -ne 0) { Die "migration: initial commit failed." }
+        Ok "migration: initialized history on '$branchName'"
+    } else {
+        $current = (git -C $contentDir rev-parse --abbrev-ref HEAD 2>$null)
+        if (-not $branchName) {
+            $branchName = if ($current -and $current -ne "HEAD") { $current } else { "main" }
+        }
+        Add-MigrationExcludes -RepoPath $contentDir
+        git -C $contentDir add -A 2>$null | Out-Null
+        $pending = git -C $contentDir status --porcelain
+        if ($pending) {
+            git -C $contentDir -c user.email=baseapp@local -c user.name=baseapp commit -m "Snapshot before migration to bare/worktree layout" --quiet | Out-Null
+        }
+        Ok "migration: using existing history on '$branchName'"
+    }
+
+    # 2. record untracked + ignored files to preserve (e.g. config/local.json)
+    $preserve = @()
+    $statusLines = git -C $contentDir status --ignored --porcelain
+    foreach ($line in $statusLines) {
+        if ($line -match '^(\?\?|!!)\s+(.*)$') {
+            $rel = $Matches[2].Trim('"')
+            if ($rel -match '(^|/)(\.venv|__pycache__|\.git)(/|$)') { continue }
+            $preserve += $rel
+        }
+    }
+
+    # 3. rename the content dir -> temp sibling
+    #    flat: content dir IS {APP}; nested: content dir is {APP}/{branch}.
+    $parent = Split-Path -Parent $contentDir
+    $leaf   = Split-Path -Leaf   $contentDir
+    $tempLeaf = "{0}.migrate-{1}" -f $leaf, (Get-Date -Format "yyyyMMddHHmmss")
+    $temp   = Join-Path $parent $tempLeaf
+    # The script is commonly run from inside the content dir (e.g. .../scripts),
+    # which pins the directory and makes the rename fail with "in use". Move the
+    # process working directory out to the content dir's parent first -- both
+    # PowerShell's location and the Win32 current directory
+    # ([Environment]::CurrentDirectory), which is what actually holds the handle.
+    Set-Location -LiteralPath $parent
+    [Environment]::CurrentDirectory = $parent
+    Rename-Item -LiteralPath $contentDir -NewName $tempLeaf
+    Ok "migration: staged existing tree at $temp"
+
+    try {
+        # ensure the {APP} container exists (flat: it was just renamed away;
+        # nested: it already exists as the content dir's parent)
+        if (-not (Test-Path -LiteralPath $AppPath)) {
+            New-Item -ItemType Directory -Force -Path $AppPath | Out-Null
+        }
+
+        # 4. bare clone from the staged working tree
+        $bareTarget = Join-Path $AppPath ".bare"
+        git clone --bare -- $temp $bareTarget 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Die "migration: bare clone from existing tree failed." }
+
+        # 5. relative .git pointer (written before any further git -C $AppPath call so
+        #    that git resolves via the pointer, honouring safe.bareRepository=explicit)
+        Set-Content -LiteralPath (Join-Path $AppPath ".git") -Value "gitdir: ./.bare" -NoNewline -Encoding ascii
+
+        # The cloned bare's 'origin' points at the temporary staged tree (removed
+        # below), so drop it -- a migrated repo is local-only until a real remote
+        # is added. This keeps subsequent re-runs from trying to fetch a dead path.
+        git -C $AppPath remote remove origin 2>$null | Out-Null
+
+        # If a real remote URL was supplied, attach it as 'origin' and configure
+        # the standard fetch refspec so all branches track as origin/*. No fetch or
+        # push is performed here (the remote may be empty / unreachable); the user
+        # can `git -C <app> push -u origin <branch>` when ready.
+        if ($RemoteUrl) {
+            git -C $AppPath remote add origin $RemoteUrl 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0) { Die "migration: failed to add origin remote '$RemoteUrl'." }
+            git -C $AppPath config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" | Out-Null
+            Ok "migration: attached remote origin -> $RemoteUrl"
+        }
+
+        # 6. worktree add into the empty {branch} slot
+        $wt = Join-Path $AppPath $branchName
+        git -C $AppPath worktree add -- $wt $branchName 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Die "migration: git worktree add failed." }
+        Ok "migration: worktree '$branchName' created"
+
+        # 7. restore preserved untracked/ignored files into the worktree
+        $restored = 0
+        foreach ($rel in $preserve) {
+            $relClean = $rel -replace '/','\'
+            $src = Join-Path $temp $relClean
+            if (-not (Test-Path -LiteralPath $src)) { continue }
+            $dst = Join-Path $wt $relClean
+            $dstDir = Split-Path -Parent $dst
+            if ($dstDir) { New-Item -ItemType Directory -Force -Path $dstDir | Out-Null }
+            if ((Get-Item -LiteralPath $src).PSIsContainer) {
+                Copy-Item -LiteralPath $src -Destination $dst -Recurse -Force
+            } else {
+                Copy-Item -LiteralPath $src -Destination $dst -Force
+            }
+            $restored++
+        }
+        Ok "migration: restored $restored untracked/ignored item(s)"
+    }
+    finally {
+        # 8. remove the staged temp tree
+        if (Test-Path -LiteralPath $temp) {
+            Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        # 9. restore a valid working directory (the caller's original location was
+        #    inside {APP} and has been moved/removed): prefer the new worktree,
+        #    then {APP}, then its parent.
+        $restoreTo = Join-Path $AppPath $branchName
+        if (-not (Test-Path -LiteralPath $restoreTo)) {
+            $restoreTo = if (Test-Path -LiteralPath $AppPath) { $AppPath } else { $parent }
+        }
+        Set-Location -LiteralPath $restoreTo
+        [Environment]::CurrentDirectory = $restoreTo
+    }
+
+    return $branchName
+}
+
+# --- mode detection: MIGRATION (existing tree, no .bare) vs CLONE -------------
+$bareExists = Test-Path -LiteralPath $bare
+$appHasContent = $false
+if (Test-Path -LiteralPath $app) {
+    $children = Get-ChildItem -LiteralPath $app -Force -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -ne '.bare' -and $_.Name -ne '.git' }
+    $appHasContent = [bool]$children
+}
+
+$migrated = $false
+if (-not $bareExists -and $appHasContent) {
+    Info "existing deployment detected at $app with no .bare -> MIGRATION mode"
+    # Pass the deployed content dir as a hint when it sits within (or is) $app, so
+    # the converter knows the flat-vs-nested source without re-detection. The
+    # converter falls back to structural detection when the hint is unusable.
+    $contentHint = $null
+    if ($myContentDir) {
+        $cp = Split-Path -Parent $myContentDir
+        if (($myContentDir -eq $app) -or ($cp -eq $app)) { $contentHint = $myContentDir }
+    }
+    $branch = Convert-ExistingDeployment -AppPath $app -ContentDir $contentHint -BranchName $branch -RemoteUrl $baseRepo
+    $migrated = $true
+}
+
+if (-not $migrated) {
+    if (-not $bareExists -and -not $baseRepo) {
+        Die "No existing deployment to migrate and -Url not provided; pass -Url to clone."
+    }
+
+    # --- 1. create container --------------------------------------------------
+    if (-not (Test-Path -LiteralPath $app)) {
+        New-Item -ItemType Directory -Force -Path $app | Out-Null
+        Ok "created container folder"
+    } else {
+        Info "container folder already exists -> reusing"
+    }
+
+    # --- 2. bare clone into .bare ---------------------------------------------
+    if (-not (Test-Path -LiteralPath $bare)) {
+        Info "cloning (bare) into .bare ..."
+        git clone --bare -- $baseRepo $bare
+        if ($LASTEXITCODE -ne 0) { Die "git clone --bare failed." }
+        Ok "bare clone created"
+    } else {
+        Info ".bare already present -> skipping clone"
+    }
+
+    # --- 3. relative .git pointer (rename-safe) -------------------------------
+    $gitFile = Join-Path $app ".git"
+    Set-Content -LiteralPath $gitFile -Value "gitdir: ./.bare" -NoNewline -Encoding ascii
+    Ok ".git -> gitdir: ./.bare"
+
+    # --- 4. normal fetch refspec + fetch --------------------------------------
+    # Only fetch when an 'origin' remote exists. A migrated, local-only repo has no
+    # remote; and a re-run against an existing .bare should not fail hard if the
+    # remote is unreachable.
+    $hasOrigin = @(git -C $app remote 2>$null) -contains 'origin'
+    # Allow attaching a remote to an already-migrated local-only repo on a later
+    # re-run: if no origin yet but a -Url was supplied, add it before fetching.
+    if (-not $hasOrigin -and $baseRepo) {
+        git -C $app remote add origin $baseRepo 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Die "failed to add origin remote '$baseRepo'." }
+        Ok "attached remote origin -> $baseRepo"
+        $hasOrigin = $true
+    }
+    if ($hasOrigin) {
+        # A --bare clone defaults to a single-branch / mirror-ish refspec; normalize it
+        # so all remote branches are tracked as origin/*.
+        git -C $app config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" | Out-Null
+        Info "fetching all branches ..."
+        git -C $app fetch --prune origin 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            if ($bareExists) {
+                Warn "fetch failed (offline or stale remote) -> continuing with local refs"
+            } else {
+                Die "git fetch failed."
+            }
+        } else {
+            Ok "fetched"
+        }
+    } else {
+        Info "no 'origin' remote configured -> skipping fetch (local-only repo)"
+    }
+
+    # --- 5. resolve default branch --------------------------------------------
+    if (-not $branch) {
+        $headRef = (git -C $app symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null)
+        if ($headRef) {
+            $branch = $headRef -replace '^origin/', ''
+        } else {
+            # try to set it, then re-read; finally fall back to the bare repo's local
+            # HEAD branch (local-only repos), then to 'main'.
+            git -C $app remote set-head origin -a 2>$null | Out-Null
+            $headRef = (git -C $app symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>$null)
+            if ($headRef) {
+                $branch = $headRef -replace '^origin/', ''
+            } else {
+                $localHead = (git -C $app symbolic-ref --quiet --short HEAD 2>$null)
+                $branch = if ($localHead) { $localHead } else { "main" }
+            }
+        }
+    }
+}
+Info "default branch: $branch"
+
+# --- helper: add a worktree for a branch (idempotent) -------------------------
+function Add-Worktree {
+    param(
+        [string]$Folder,           # folder name under the container
+        [string]$WorktreeBranch,   # local branch name to be on
+        [switch]$CreateIfMissing
+    )
+    $path = Join-Path $app $Folder
+
+    # already a registered worktree at this path?
+    $listed = git -C $app worktree list --porcelain 2>$null
+    $norm       = ($path -replace '\\','/').ToLower()
+    $listedNorm = (($listed -join "`n") -replace '\\','/').ToLower()
+    if ($listedNorm -match [regex]::Escape($norm)) {
+        Ok "worktree '$Folder' already present"
+        return
+    }
+    if (Test-Path -LiteralPath $path) {
+        Warn "'$path' exists but is not a registered worktree; leaving it untouched."
+        return
+    }
+
+    $localExists  = $false
+    git -C $app rev-parse --verify --quiet "refs/heads/$WorktreeBranch" *> $null
+    if ($LASTEXITCODE -eq 0) { $localExists = $true }
+
+    $remoteExists = $false
+    git -C $app rev-parse --verify --quiet "refs/remotes/origin/$WorktreeBranch" *> $null
+    if ($LASTEXITCODE -eq 0) { $remoteExists = $true }
+
+    if ($localExists) {
+        git -C $app worktree add -- $path $WorktreeBranch
+    } elseif ($remoteExists) {
+        # new local branch tracking the remote one
+        git -C $app worktree add --track -b $WorktreeBranch -- $path "origin/$WorktreeBranch"
+    } elseif ($CreateIfMissing) {
+        # Prefer origin/<primary> when a remote exists (CLONE mode); otherwise base
+        # off the local primary branch (MIGRATION mode has no origin).
+        $base = "origin/$branch"
+        git -C $app rev-parse --verify --quiet "refs/remotes/origin/$branch" *> $null
+        if ($LASTEXITCODE -ne 0) { $base = $branch }
+        git -C $app worktree add -b $WorktreeBranch -- $path $base
+    } else {
+        Die "branch '$WorktreeBranch' not found locally or on origin (and -CreateIfMissing not set)."
+    }
+    if ($LASTEXITCODE -ne 0) { Die "git worktree add for '$Folder' failed." }
+    Ok "worktree '$Folder' -> branch '$WorktreeBranch'"
+}
+
+# --- 6. default-branch worktree ----------------------------------------------
+# In MIGRATION mode the default-branch worktree was already created by
+# Convert-ExistingDeployment, so skip the redundant (and noisy) re-add here.
+if (-not $migrated) {
+    Add-Worktree -Folder $branch -WorktreeBranch $branch
+}
+
+# --- 7. optional task worktree -----------------------------------------------
+if ($taskBranch) {
+    if (-not $taskFolder) { $taskFolder = $taskBranch.Split('/')[-1] }
+    Add-Worktree -Folder $taskFolder -WorktreeBranch $taskBranch -CreateIfMissing
+}
+
+# --- 8. verify ----------------------------------------------------------------
+Info "worktree layout:"
+git -C $app worktree list
+
+# Record that this deployment now uses the multi-branch worktree (nested) layout
+# so a later re-run / migration treats it as nested (COMMON.WORKTREE = true).
+Set-DeployedWorktreeFlag -WorktreeDir (Join-Path $app $branch)
+
+# --- 9. optional remote setup (create GitHub repo + push all branches) --------
+if ($remote) {
+    Publish-ToRemote -AppPath $app -RemoteSpec $remote
+}
+
+Ok "DONE. Container ready at: $app"
+Write-Host ""
+Write-Host "Open a specific worktree (not the container) in your editor, e.g.:" -ForegroundColor Gray
+Write-Host "    $app\$branch" -ForegroundColor Gray
+Write-Host ""
+Write-Host "Add more branches later with:" -ForegroundColor Gray
+Write-Host "    git -C `"$app`" worktree add <folder> <existing-branch>" -ForegroundColor Gray
+Write-Host "    git -C `"$app`" worktree add <folder> -b <new-branch> origin/$branch" -ForegroundColor Gray
+Write-Host "Remove one cleanly with:" -ForegroundColor Gray
+Write-Host "    git -C `"$app`" worktree remove <folder>;  git -C `"$app`" worktree prune" -ForegroundColor Gray
+Write-Host "After ANY rename of the container, repair the (absolute) pointers:" -ForegroundColor Gray
+Write-Host "    Set-Content `"$app\.git`" 'gitdir: ./.bare' -NoNewline" -ForegroundColor Gray
+Write-Host "    git -C `"$app`" worktree repair <each-worktree-path>" -ForegroundColor Gray

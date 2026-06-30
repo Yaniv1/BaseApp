@@ -62,7 +62,7 @@
             "features": {
                 "3.1": {
                     "name": "scripts.instantiate",
-                    "description": "Instantiate BaseApp into a target path using manifest-driven copy rules and initial app customization.",
+                    "description": "Instantiate BaseApp into a variant app using manifest-driven copy rules and initial app customization, deploying the variant directly into the multi-branch bare/worktree layout at {abspath(container)}/{app-name}/{branch} and recording the BaseApp source path in the app's gitignored config/local.json (COMMON.BASEAPP). Writes no git metadata so a later git init can adopt the directory non-destructively.",
                     "type": "Folder.PyFile",
                     "path": "scripts/instantiate.py",
                     "features": {
@@ -143,12 +143,24 @@
                             "description": "Recursively merge override values into a base dict in-place, supporting nested key merging.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/instantiate.py::_deep_merge"
+                        },
+                        "3.1.14": {
+                            "name": "scripts.instantiate.resolve_app_root",
+                            "description": "Resolve the variant app root as {abspath(root)}/{app-name}/{branch} from the --root (default '../../../' resolved relative to the script directory), --appName (default 'MyApp{YYYYMMDD}'), --branch (default 'main'), and --worktree (on|off, default 'on') CLI arguments; when --worktree is 'off' the legacy flat layout {abspath(root)}/{app-name} (no branch sub-folder) is used instead.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::resolve_app_root"
+                        },
+                        "3.1.15": {
+                            "name": "scripts.instantiate.populate_local_config",
+                            "description": "Write COMMON.BASEAPP (the absolute path of the BaseApp source branch folder instantiate ran from) into the app's gitignored, once-deployed config/local.json maintained in the app's main worktree, so pull-back tooling can locate the base without re-discovery.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/instantiate.py::populate_local_config"
                         }
                     }
                 },
                 "3.2": {
                     "name": "scripts.pullbase",
-                    "description": "Pull base updates from a BaseApp source into an instantiated app using manifest-driven or hard-copy behavior.",
+                    "description": "Pull base updates from a BaseApp source into an instantiated app using manifest-driven or hard-copy behavior. Locates the BaseApp source from the persisted COMMON.BASEAPP (config/local.json) with a worktree->main-worktree->auto fallback chain and a --branch selector for which BaseApp worktree to pull from.",
                     "type": "Folder.PyFile",
                     "path": "scripts/pullbase.py",
                     "features": {
@@ -247,6 +259,18 @@
                             "description": "Migrate or remove deprecated paths in the local app. For each (source, target) pair: if target is absent, move source to target preserving data; if target exists, delete source. Returns (moved, removed, skipped).",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::drop_deprecated_paths"
+                        },
+                        "3.2.19": {
+                            "name": "scripts.pullbase.resolve_baseapp_source",
+                            "description": "Resolve the BaseApp source from COMMON.BASEAPP via a fallback chain (current worktree config/local.json -> app main worktree {container}/main/config/local.json -> existing --baseSource/auto) and apply the --branch selector by swapping the BASEAPP leaf ({parent-of-BASEAPP}/{branch}). Read-only on main's local.json from a task-branch worktree.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::resolve_baseapp_source"
+                        },
+                        "3.2.20": {
+                            "name": "scripts.pullbase.is_self_pull",
+                            "description": "Safety guard that returns True when the resolved source and the local app are the same deployment/repository, so pullbase refuses to copy and cannot overwrite a branch's in-progress changes with a sibling worktree's files. Detects: identical resolved paths; one path an ancestor of the other (e.g. source resolved to the shared {container}); sibling worktrees under the same bare repo ({container}/.bare with peer worktrees); and, as a git-based backstop, two worktrees sharing the same --git-common-dir. A genuine variant app in a separate container pulling from BaseApp is not flagged.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/pullbase.py::is_self_pull"
                         }
                     }
                 },
@@ -401,6 +425,12 @@
                             "path": "scripts/task_manager.py::_write_agent_mcp_config"
                         },
                         "3.6.15": {
+                            "name": "scripts.task_manager._load_views",
+                            "description": "Built-in + user views model for the Task Manager UI saved views, modelled as a single FLAT ARRAY of view objects { id, name, tabs:[...], sort:{col:dir,...}, filter:{col:[vals],...} } (multi-tab association; compact ordered multi-column sort; compact multi-value filters). _load_views returns the effective payload { views:[...], active:{tab:viewId} }: 'views' is the read-only built-in views shipped in config/base.json under APP.TASK_MANAGER.views (each tagged builtin=true via _builtin_views/_tag_views) followed by the user's saved views read from the override layers config/local.json then config/machine.json (machine taking precedence via _user_views, tagged builtin=false), with user views whose id collides with a built-in dropped so built-ins always win; 'active' is the per-tab active-view map (_active_views) from those layers. Helpers _config_file_path/_load_config_file_raw/_nested_get/_views_array_from_config_file/_active_from_config_file/_builtin_view_ids support the read. _save_views accepts { views, active } and persists ONLY user views (built-ins, identified by _builtin_view_ids or a builtin=true flag, are stripped along with the builtin flag and never written) plus the active map (filtered to view ids that actually exist) to config/machine.json under APP.TASK_MANAGER.views (flat array) and APP.TASK_MANAGER.active_views via _set_nested, creating the nested sections and preserving every other key, written atomically (os.replace), and returns the freshly merged effective payload. The handler exposes them as GET /api/views (effective payload) and PUT /api/views (validates a dict body, persists user views + active map, returns the effective payload), so the predefined built-in views ship in committed config and cannot be deleted, renamed, or re-tabbed by the user, while a user's personal views and active-view selections stay machine-local (git-ignored) and survive sessions and browsers.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_load_views"
+                        },
+                        "3.6.16": {
                             "name": "scripts.task_manager._build_copilot_prompt",
                             "description": "Build a task's worker Copilot prompt by populating the instruction template with task details and store/workspace placeholders. The instruction template is selected inline by task type via the CONFIG.APP.TASK_MANAGER.templates mapping (e.g. PullBase->pullbase.md) with a 'default' of task.md, so PullBase tasks are driven by build/instructions/pullbase.md while Feature/Bug tasks use task.md.",
                             "type": "Folder.PyFile.Function",
@@ -413,6 +443,26 @@
                     "description": "PowerShell helper that commits and pushes ONLY the task ledger (build/tasks/<app>.json) to the linked git remote, fully isolated from the worker's primary working tree. It takes an optional -Branch parameter (the ledger branch; defaults to the current HEAD branch, and the headless status-inbox sync passes the configured APP.TASK_MANAGER.ledger_branch, default main). It reads the server-updated ledger content from the primary working tree and applies it inside a dedicated, reusable DETACHED git worktree built from the latest origin/<branch> tip, where it path-scopes the change with 'git add -- <ledger>', commits with the provided message, and pushes to refs/heads/<branch>; on a non-fast-forward push it fetches and rebases the single ledger commit inside that isolated worktree (which only ever contains the ledger change) and retries. It never runs 'git add -A'/'commit -a' and never stages, commits, stashes, rebases (autostash), or otherwise touches the worker's primary working tree, so it cannot sweep the worker's uncommitted code into the server's commits, push worker code ahead of the approval gate, or drop uncommitted worker changes. Invoked by the task manager UI Sync Git button, the automatic startup sync, and the headless status-inbox sync.",
                     "type": "Folder.Ps1File",
                     "path": "scripts/sync_task_repo.ps1"
+                },
+                "3.8": {
+                    "name": "scripts.init_worktree",
+                    "description": "Machine-agnostic, idempotent PowerShell script that provisions the multi-branch bare/worktree layout for BaseApp or any variant app, auto-selecting between two modes from the state of the resolved {APP} container. Clone mode (target empty/new) bare-clones -baseRepo into {APP}/.bare, writes a rename-safe relative .git pointer (gitdir: ./.bare), normalizes the fetch refspec and fetches all branches, then checks the default branch out as the {APP}/<default-branch> worktree and optionally adds a -taskBranch worktree. Migration mode (target already has app content but no {APP}/.bare) converts that existing branch-agnostic single-tree deployment in place into the same canonical layout (see Convert-ExistingDeployment), preserving history and untracked/gitignored files. Parametrized by -baseRepo with optional -root/-appName/-branch/-taskBranch/-taskFolder, so the same script serves BaseApp and any variant app; the Add-Worktree helper adds each branch worktree idempotently. Distributed to variant apps automatically because the whole scripts/ folder is propagated via resources/manifests/pull.json.",
+                    "type": "Folder.Ps1File",
+                    "path": "scripts/init_worktree.ps1",
+                    "features": {
+                        "3.8.1": {
+                            "name": "scripts.init_worktree.Add-Worktree",
+                            "description": "Idempotent helper that adds a git worktree subfolder under the {APP} container for a given branch: it skips paths already registered as worktrees, leaves untracked existing folders untouched, checks out an existing local or remote-tracking branch, and (when -CreateIfMissing is set) creates a new branch off origin/<default-branch>.",
+                            "type": "Folder.Ps1File.Function",
+                            "path": "scripts/init_worktree.ps1::Add-Worktree"
+                        },
+                        "3.8.2": {
+                            "name": "scripts.init_worktree.Convert-ExistingDeployment",
+                            "description": "Migrates an existing branch-agnostic single-tree app deployment (flat instantiate output or plain git checkout) in place into the canonical {APP}/.bare + {APP}/{branch} layout. Invoked automatically by the script when the resolved {APP} container has content but no {APP}/.bare. It ensures git history exists (git init -b {branch} + initial commit when the source is not a repo; otherwise reuses the current branch unless -Branch overrides), records untracked/gitignored working files via 'git status --ignored --porcelain' (preserving config/local.json and other non-tracked files, excluding .venv/__pycache__/.git), relocates the existing tree to a temporary sibling, bare-clones its history into {APP}/.bare, writes the relative .git pointer, registers {APP}/{branch} via 'git worktree add' into the empty container slot, restores the preserved untracked/gitignored files into the worktree, and removes the temporary copy. Idempotent (skips when {APP}/.bare already exists) and non-destructive (never deletes or overwrites app files outright).",
+                            "type": "Folder.Ps1File.Function",
+                            "path": "scripts/init_worktree.ps1::Convert-ExistingDeployment"
+                        }
+                    }
                 }
             }
         },
@@ -636,6 +686,18 @@
                                             "description": "Pre/live/post test that validates load_once_entries reads manifest entries and pull_once_files copies missing files while skipping existing ones.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/pullbase.py::test_pullbase_once_sync"
+                                        },
+                                        "5.3.1.4.2": {
+                                            "name": "test.tests.base.pullbase.test_pullbase_baseapp_resolution_with_main_fallback",
+                                            "description": "Regression test for feature 3.2.19 / BASE-REQ-014.19: asserts pullbase resolves COMMON.BASEAPP from the current worktree's config/local.json, falls back to the app's main worktree config/local.json when the task worktree has none, and applies --branch by swapping the BASEAPP leaf.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/pullbase.py::test_pullbase_baseapp_resolution_with_main_fallback"
+                                        },
+                                        "5.3.1.4.3": {
+                                            "name": "test.tests.base.pullbase.test_pullbase_refuses_self_pull",
+                                            "description": "Regression test for feature 3.2.20 / BASE-REQ-014.19: asserts is_self_pull flags sibling worktrees of the same container, a source resolved to the shared container (ancestor), and an identical folder, while NOT flagging a variant app in a separate container -- so pullbase refuses to overwrite a branch's changes when run inside a BaseApp worktree.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/pullbase.py::test_pullbase_refuses_self_pull"
                                         }
                                     }
                                 },
@@ -650,6 +712,18 @@
                                             "description": "Pre-test validating load_overrides (JSON file and inline string), populate_app_config deep-merge, and _deep_merge sibling-key preservation. 8 criteria.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/instantiate.py::test_instantiate_config_overrides"
+                                        },
+                                        "5.3.1.5.2": {
+                                            "name": "test.tests.base.instantiate.test_instantiate_branch_aware_layout",
+                                            "description": "Regression test for features 3.1.14/3.1.15 / BASE-REQ-014.18: asserts instantiate places content under {container}/{app-name}/{branch} (default main and a custom --branch), sets app.json COMMON.APP_NAME from --appName, writes COMMON.BASEAPP into config/local.json, and emits no git metadata.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/instantiate.py::test_instantiate_branch_aware_layout"
+                                        },
+                                        "5.3.1.5.3": {
+                                            "name": "test.tests.base.instantiate.test_instantiate_layout_survives_git_init",
+                                            "description": "Regression test for the git-init-safety property of BASE-REQ-014.18: instantiates an app, performs a post-hoc in-place git init/adopt into the bare/worktree layout, and asserts every instantiated file is preserved byte-for-byte.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/instantiate.py::test_instantiate_layout_survives_git_init"
                                         }
                                     }
                                 },
@@ -684,6 +758,26 @@
                                             "description": "Regression test for feature 3.7 (BASE-REQ-014.12): runs scripts/sync_task_repo.ps1 -Branch main against a clone whose primary working tree is on a task branch with uncommitted edits to both the ledger and an unrelated worker file, and asserts the sync commits ONLY the ledger to origin/main (exactly one new commit, changing only build/tasks/<app>.json), leaves the worker's uncommitted file edit intact byte-for-byte, keeps the primary HEAD on the task branch, and never pushes the ledger commit onto the task branch.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/task_manager.py::test_sync_task_repo_isolates_ledger_commit_from_worker_tree"
+                                        }
+                                    }
+                                },
+                                "5.3.1.8": {
+                                    "name": "test.tests.base.init_bare_worktree_repo",
+                                    "description": "Test module for the bare/worktree repository initializer (feature 3.8).",
+                                    "type": "Folder.Folder.Folder.PyFile",
+                                    "path": "test/tests/base/init_bare_worktree_repo.py",
+                                    "features": {
+                                        "5.3.1.8.1": {
+                                            "name": "test.tests.base.init_bare_worktree_repo.test_init_bare_worktree_repo_builds_bare_and_worktrees",
+                                            "description": "Regression test for feature 3.8 (BASE-REQ-014.21): cloning from a purely local source repo (no network), runs scripts/init_worktree.ps1 and asserts it creates the shared bare store at {APP}/.bare, writes the rename-safe relative pointer {APP}/.git -> 'gitdir: ./.bare', checks the default branch out as the {APP}/<default-branch> worktree with repo content present, adds a second worktree for a brand-new -TaskBranch created off the default branch, and is idempotent on re-run.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/init_bare_worktree_repo.py::test_init_bare_worktree_repo_builds_bare_and_worktrees"
+                                        },
+                                        "5.3.1.8.2": {
+                                            "name": "test.tests.base.init_bare_worktree_repo.test_init_bare_worktree_repo_migrates_existing_deployment",
+                                            "description": "Regression test for feature 3.8.2 (BASE-REQ-014.20): builds a flat branch-agnostic app directory containing a tracked file and a gitignored config/local.json (with COMMON.BASEAPP), runs scripts/init_worktree.ps1 pointed at that already-populated container (no {APP}/.bare, triggering auto-migration), and asserts the canonical layout (porcelain shows {APP}/.bare bare + {APP}/{branch} linked worktree), the .git pointer 'gitdir: ./.bare', a clean working tree, that every original file -- including the gitignored config/local.json with its BASEAPP value -- is preserved in the worktree, that a -TaskBranch worktree can be attached afterwards, and that a re-run is idempotent.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/init_bare_worktree_repo.py::test_init_bare_worktree_repo_migrates_existing_deployment"
                                         }
                                     }
                                 }
@@ -1300,7 +1394,7 @@
                         },
                         "11.2.2": {
                             "name": "resources.templates.task_manager",
-                            "description": "Single-page HTML/CSS/JS template served by scripts/task_manager.py for the Task Manager UI: status tabs with count badges, a task list / task-details split-pane, create and edit forms, and a task-search bar above the status tabs that locates a task by its id (exact then unique-substring, case-insensitive), switches to the matched task's status tab, and opens its details.",
+                            "description": "Single-page HTML/CSS/JS template served by scripts/task_manager.py for the Task Manager UI: status tabs with count badges, a task list / task-details split-pane, create and edit forms, a task-search bar above the status tabs that locates a task by its id (exact then unique-substring, case-insensitive), and a saved-views bar below the status tabs. Views are a single flat array of objects { id, name, tabs:[...], sort:{col:dir,...}, filter:{col:[vals],...} } that store the current sort/filter configuration as named views (auto-named from the filters/sort). On a tab, every view renders as a chip but is enabled only when the current tab is in its 'tabs' list (others are grayed out); enabled user views can be applied, renamed, deleted, or have the current tab toggled off, a grayed user view can have the current tab included, and a grayed built-in view's include control clones it into a new user view. The table supports multi-column sort (ordered live sort state) and multi-value Type/Priority checkbox filters; applying a view restores its multi-column sort and multi-value filters. A set of read-only built-in default views ships in config/base.json under APP.TASK_MANAGER.views and is always presented (distinguished, with no delete/rename/tab-edit) so the user cannot delete, rename, or re-tab them; on top of the built-ins the server layers the user's own views from config/local.json (app-local) and config/machine.json (machine-specific) and serves the effective { views, active } payload via the /api/views endpoint, persisting only the user's views and the per-tab active-view map to config/machine.json so they survive sessions/browsers and are restored per tab on tab switch. The Type/Priority column filters always offer the canonical values (Feature/Bug/Chore/Doc; Critical/High/Medium/Low) regardless of the data.",
                             "type": "Folder.Folder.HtmlFile",
                             "path": "resources/templates/task_manager.html"
                         }

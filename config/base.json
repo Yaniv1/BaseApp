@@ -5,7 +5,7 @@
             "$}"
         ],
         "APP_NAME": "BaseApp",
-        "VERSION": "26.06.29.01",
+        "VERSION": "26.06.30.01",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -43,7 +43,37 @@
                 "Bug": "task.md",
                 "PullBase": "pullbase.md",
                 "default": "task.md"
-            }
+            },
+            "views": [
+                {
+                    "id": "base-priority",
+                    "name": "By Priority",
+                    "tabs": ["ToDo", "InProgress", "Specified", "Ready"],
+                    "sort": {"priority": "desc"},
+                    "filter": {}
+                },
+                {
+                    "id": "base-critical",
+                    "name": "Critical",
+                    "tabs": ["ToDo", "Ready"],
+                    "sort": {"priority": "desc"},
+                    "filter": {"priority": ["Critical"]}
+                },
+                {
+                    "id": "base-bugs",
+                    "name": "Bugs",
+                    "tabs": ["ToDo", "InProgress", "Ready", "Deployed"],
+                    "sort": {"priority": "desc"},
+                    "filter": {"type": ["Bug"]}
+                },
+                {
+                    "id": "base-features",
+                    "name": "Features",
+                    "tabs": ["ToDo", "InProgress"],
+                    "sort": {"priority": "desc"},
+                    "filter": {"type": ["Feature"]}
+                }
+            ]
         }
     },
     "LOG": {

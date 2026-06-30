@@ -144,8 +144,8 @@ def test_start_copilot_for_task_requests_dedicated_branch_via_launcher(monkeypat
     task_manager._start_copilot_for_task(work_task, tasks_path, DummyStore(), mode="work")
     argv = launched["argv"]
     assert "-TaskBranch" in argv
-    assert argv[argv.index("-TaskBranch") + 1] == "task/BASE-TASK-BRANCH-0001"
-    assert work_task["worker_session"]["branch"] == "task/BASE-TASK-BRANCH-0001"
+    assert argv[argv.index("-TaskBranch") + 1] == "BASE-TASK-BRANCH-0001"
+    assert work_task["worker_session"]["branch"] == "BASE-TASK-BRANCH-0001"
     assert str(argv[3]).endswith("launch_task_agent.ps1")
 
     # Review mode runs against the existing branch, so no branch is requested.
@@ -198,7 +198,7 @@ def test_launch_task_agent_script_creates_dedicated_branch(tmp_path):
             "-CopilotCli", str(stub),
             "-SessionName", "Branch worker test",
             "-WindowTitle", "",
-            "-TaskBranch", "task/BASE-TASK-BRANCH-0001",
+            "-TaskBranch", "BASE-TASK-BRANCH-0001",
         ],
         capture_output=True, text=True, check=False,
     )
@@ -208,7 +208,7 @@ def test_launch_task_agent_script_creates_dedicated_branch(tmp_path):
         capture_output=True, text=True, check=True,
     ).stdout.strip()
     # The launcher must have switched the working tree onto the task branch.
-    assert current_branch == "task/BASE-TASK-BRANCH-0001", (result.stdout + result.stderr)
+    assert current_branch == "BASE-TASK-BRANCH-0001", (result.stdout + result.stderr)
 
 
 def test_launch_task_agent_script_creates_dedicated_worktree(tmp_path):
@@ -255,7 +255,7 @@ def test_launch_task_agent_script_creates_dedicated_worktree(tmp_path):
             "-CopilotCli", str(stub),
             "-SessionName", "Worktree worker test",
             "-WindowTitle", "",
-            "-TaskBranch", "task/BASE-TASK-WT-0001",
+            "-TaskBranch", "BASE-TASK-WT-0001",
             "-Worktree", str(worktree),
         ],
         capture_output=True, text=True, check=False,
@@ -274,7 +274,7 @@ def test_launch_task_agent_script_creates_dedicated_worktree(tmp_path):
         ["git", "-C", str(worktree), "rev-parse", "--abbrev-ref", "HEAD"],
         capture_output=True, text=True, check=True,
     ).stdout.strip()
-    assert worktree_branch == "task/BASE-TASK-WT-0001", (result.stdout + result.stderr)
+    assert worktree_branch == "BASE-TASK-WT-0001", (result.stdout + result.stderr)
 
 
 def test_start_copilot_for_task_records_worker_session(monkeypatch, tmp_path):
@@ -412,6 +412,301 @@ def test_task_manager_template_has_column_sorting_and_filtering():
     assert "function initColumnControls()" in template
     # Priority sorts by severity rank rather than alphabetically.
     assert "PRIORITY_RANK" in template
+
+
+def test_task_manager_template_has_all_tab():
+    """BASE-REQ-014.15: a single 'ALL' tab, positioned before the status tabs and
+    active by default, lists every task without status division and adds a
+    Status column (sortable + filterable) available only in the ALL tab."""
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    # The ALL tab markup is present, with a total-count badge.
+    assert 'data-status="ALL"' in template
+    assert 'id="cnt-ALL"' in template
+    # The ALL tab is positioned before (to the left of) the ToDo status tab and
+    # is the active tab by default.
+    assert template.index('data-status="ALL"') < template.index('data-status="ToDo"')
+    assert '<button class="tab active" data-status="ALL">' in template
+    # 'ALL' is the default selected view and is not normalized to a real status.
+    assert "currentStatus = 'ALL'" in template
+    # The Status column header is sortable with its own indicator, and offers a filter.
+    assert 'data-col="status"' in template
+    assert 'id="sort-ind-status"' in template
+    assert 'id="filter-status"' in template
+    # The Status column is hidden outside the ALL tab via the show-status toggle.
+    assert ".task-table .col-status{display:none}" in template
+    assert ".task-table.show-status .col-status" in template
+    assert "classList.toggle('show-status', currentStatus === 'ALL')" in template
+    # Status sorts by lifecycle order (the canonical status-tab order).
+    assert "STATUS_TABS.indexOf(normalizeStatus(a.status))" in template
+
+
+def test_task_manager_template_has_saved_views():
+    """Feature 3.6 / BASE-REQ-014.16: a saved-views bar below the status tabs
+    stores the current sort/filter configuration as named views. Each view is a
+    single flat-list entry associated with one or more tabs; views are persisted
+    server-side via /api/views (built-ins in config/base.json are read-only; the
+    user's own views and the per-tab active map go to config/machine.json)."""
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    # Views bar markup with a save control is present.
+    assert 'class="views-bar"' in template
+    assert 'id="views-chips"' in template
+    assert 'id="save-view-btn"' in template
+    # The views bar sits below (after) the status tabs bar.
+    assert template.index('class="tab-bar"') < template.index('class="views-bar"')
+    # Views are persisted server-side via /api/views (not localStorage).
+    assert "/api/views" in template
+    assert "tm_views" not in template
+    # Single flat list of views + per-tab active map (not a per-status dict).
+    assert "let allViews" in template
+    assert "const activeByTab" in template
+    assert "function viewEnabledOn(" in template
+    # Save / apply / rename / delete / tab-association and per-tab restore wired.
+    assert "function saveCurrentView(" in template
+    assert "function applyView(" in template
+    assert "function renameView(" in template
+    assert "function deleteView(" in template
+    assert "function toggleViewTab(" in template
+    assert "function restoreView(" in template
+    assert "function renderViewsBar(" in template
+    assert "async function initViews()" in template
+    assert "await initViews();" in template
+    assert "async function loadViews()" in template
+    # Auto-naming derives a name from the active filters/sort (type pluralized).
+    assert "function defaultViewName(" in template
+    assert "function pluralizeType(" in template
+    # Manual filter/sort changes deselect the active view unless still matching.
+    assert "function onManualConfigChange(" in template
+    # Built-in (base.json) views are read-only: not deletable or renamable.
+    assert "view.builtin" in template
+    assert "allViews[idx].builtin" in template
+    assert "filter(v => !v.builtin)" in template
+    # Each view chip carries a tab-toggle and (for user views) a delete control.
+    assert "'view-del'" in template
+    assert "'view-name'" in template
+    assert "'view-tab'" in template
+    assert ".view-del{" in template and ".view-chip{" in template
+    # Grayed-out (not-in-this-tab) chip styling.
+    assert ".view-chip.disabled" in template
+
+
+def test_task_manager_template_multi_column_sort_and_multi_select():
+    """BASE-REQ-014.16: the table supports MULTI-COLUMN sort and MULTI-VALUE
+    Type/Priority filters (checkbox multi-selects)."""
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    # Ordered, multi-column live sort.
+    assert "let liveSort" in template
+    assert "for (const { column, dir } of liveSort)" in template
+    # Multi-value column filters held as arrays.
+    assert "type: [], priority: []" in template
+    # Checkbox-dropdown multi-select component.
+    assert "function buildMultiSelect(" in template
+    assert "buildMultiSelect('filter-type'" in template
+    assert "buildMultiSelect('filter-priority'" in template
+    assert ".ms-menu{" in template
+    assert 'id="filter-type" class="ms"' in template
+    assert 'id="filter-priority" class="ms"' in template
+
+
+def test_task_manager_template_filters_offer_canonical_values():
+    """BASE-REQ-014.13: the Type/Priority column filters always offer the
+    canonical values regardless of whether they appear in the loaded data."""
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    # Canonical type/priority value lists drive the filter dropdowns.
+    assert "const TYPE_ORDER = ['Feature', 'Bug', 'Chore', 'Doc']" in template
+    assert "const PRIORITY_ORDER = ['Critical', 'High', 'Medium', 'Low']" in template
+    # populateColumnFilters seeds the multi-selects from the canonical lists first.
+    assert "merge(TYPE_ORDER, 'type')" in template
+    assert "merge(PRIORITY_ORDER, 'priority')" in template
+
+
+def _write_config(base_dir, name, data):
+    config_dir = base_dir / "config"
+    config_dir.mkdir(exist_ok=True)
+    (config_dir / name).write_text(json.dumps(data, indent=4), encoding="utf-8")
+
+
+def _sample_views(view_id="v1", tabs=("ToDo",), name="High Priority Bugs"):
+    """A single view in the flat-array shape (multi-tab, compact sort/filter)."""
+    return [{
+        "id": view_id,
+        "name": name,
+        "tabs": list(tabs),
+        "sort": {"priority": "desc"},
+        "filter": {"type": ["Bug"], "priority": ["High"]},
+    }]
+
+
+def test_views_load_merges_builtin_and_user_views(tmp_path):
+    """BASE-REQ-014.15 / Feature 3.6.15: _load_views returns a flat list of
+    read-only built-in views from config/base.json (tagged builtin=true) followed
+    by the user's saved views from the override layers (tagged builtin=false),
+    plus the per-tab active-view map."""
+    base_dir = tmp_path
+
+    builtin = _sample_views("pd-todo", tabs=["ToDo"], name="By Priority")
+    _write_config(base_dir, "base.json", {"APP": {"TASK_MANAGER": {"views": builtin}}})
+
+    eff = task_manager._load_views(base_dir)
+    assert [v["id"] for v in eff["views"]] == ["pd-todo"]
+    assert eff["views"][0]["builtin"] is True
+    assert eff["views"][0]["tabs"] == ["ToDo"]
+    assert eff["active"] == {}
+
+    # config/machine.json adds a user view (built-ins first, then user) + active.
+    user = _sample_views("user-1", tabs=["Ready"], name="My View")
+    _write_config(base_dir, "machine.json",
+                  {"APP": {"TASK_MANAGER": {"views": user, "active_views": {"Ready": "user-1"}}}})
+    eff = task_manager._load_views(base_dir)
+    assert [v["id"] for v in eff["views"]] == ["pd-todo", "user-1"]
+    assert eff["views"][0]["builtin"] is True and eff["views"][1]["builtin"] is False
+    assert eff["active"] == {"Ready": "user-1"}
+
+    # A user view that collides with a built-in id is dropped (built-in wins).
+    collide = [{"id": "pd-todo", "name": "Hijack", "tabs": ["ToDo"], "sort": {}, "filter": {}}]
+    _write_config(base_dir, "machine.json", {"APP": {"TASK_MANAGER": {"views": collide}}})
+    eff = task_manager._load_views(base_dir)
+    assert [v["id"] for v in eff["views"]] == ["pd-todo"]
+    assert eff["views"][0]["name"] == "By Priority" and eff["views"][0]["builtin"] is True
+
+
+def test_views_save_persists_only_user_views_to_machine(tmp_path):
+    """BASE-REQ-014.15/.16: _save_views writes only user views (with multi-column
+    sort and multi-value filters) plus a cleaned active map to config/machine.json
+    (built-ins never persisted), preserving other keys."""
+    base_dir = tmp_path
+    builtin = _sample_views("pd-todo", tabs=["ToDo"], name="By Priority")
+    _write_config(base_dir, "base.json", {"APP": {"TASK_MANAGER": {"views": builtin}}})
+    _write_config(base_dir, "machine.json", {"APP": {"TASK_MANAGER": {"enable": False}}, "LOG": {"x": 1}})
+
+    posted = {
+        "views": [
+            {"id": "pd-todo", "name": "By Priority", "builtin": True, "tabs": ["ToDo"],
+             "sort": {"priority": "desc"}, "filter": {}},
+            {"id": "user-1", "name": "My View", "builtin": False, "tabs": ["ToDo", "Ready"],
+             "sort": {"title": "asc", "id": "desc"}, "filter": {"type": ["Bug", "Doc"]}},
+        ],
+        "active": {"ToDo": "user-1", "Bad": "ghost"},
+    }
+    eff = task_manager._save_views(base_dir, posted)
+    assert [v["id"] for v in eff["views"]] == ["pd-todo", "user-1"]
+
+    stored = json.loads((base_dir / "config" / "machine.json").read_text(encoding="utf-8"))
+    saved = stored["APP"]["TASK_MANAGER"]["views"]
+    # Only the user view is persisted; the built-in is stripped (and so is its flag).
+    assert [v["id"] for v in saved] == ["user-1"]
+    assert "builtin" not in saved[0]
+    assert saved[0]["tabs"] == ["ToDo", "Ready"]
+    # Multi-column sort order is preserved; multi-value filter retained.
+    assert list(saved[0]["sort"].keys()) == ["title", "id"]
+    assert saved[0]["filter"] == {"type": ["Bug", "Doc"]}
+    # Active map: the entry referencing an unknown view id ("ghost") is dropped.
+    assert stored["APP"]["TASK_MANAGER"]["active_views"] == {"ToDo": "user-1"}
+    # Pre-existing keys are preserved.
+    assert stored["APP"]["TASK_MANAGER"]["enable"] is False
+    assert stored["LOG"] == {"x": 1}
+
+
+def test_builtin_views_cannot_be_deleted(tmp_path):
+    """BASE-REQ-014.15: a user 'delete' of a built-in view (omitting it from the
+    saved payload) does not remove it — built-ins always come from base.json."""
+    base_dir = tmp_path
+    builtin = _sample_views("pd-todo", tabs=["ToDo"], name="By Priority")
+    _write_config(base_dir, "base.json", {"APP": {"TASK_MANAGER": {"views": builtin}}})
+
+    # The UI tries to "delete" the built-in by saving an empty views list.
+    task_manager._save_views(base_dir, {"views": [], "active": {}})
+
+    eff = task_manager._load_views(base_dir)
+    assert [v["id"] for v in eff["views"]] == ["pd-todo"]
+    assert eff["views"][0]["builtin"] is True
+    machine = base_dir / "config" / "machine.json"
+    if machine.is_file():
+        stored = json.loads(machine.read_text(encoding="utf-8"))
+        saved = task_manager._nested_get(stored, ("APP", "TASK_MANAGER", "views"))
+        assert "pd-todo" not in json.dumps(saved or [])
+
+
+def test_builtin_view_tabs_are_read_only(tmp_path):
+    """BASE-REQ-014.15: built-in tabs come from base.json and cannot be changed —
+    a UI attempt to re-tab a built-in is ignored, while a separate user 'clone'
+    (different id) is persisted as its own view."""
+    base_dir = tmp_path
+    builtin = _sample_views("pd-todo", tabs=["ToDo"], name="By Priority")
+    _write_config(base_dir, "base.json", {"APP": {"TASK_MANAGER": {"views": builtin}}})
+
+    posted = {"views": [
+        {"id": "pd-todo", "name": "By Priority", "builtin": True, "tabs": ["ToDo", "Ready", "Done"],
+         "sort": {"priority": "desc"}, "filter": {}},
+        {"id": "clone-1", "name": "By Priority", "builtin": False, "tabs": ["Done"],
+         "sort": {"priority": "desc"}, "filter": {}},
+    ], "active": {}}
+    task_manager._save_views(base_dir, posted)
+    eff = {v["id"]: v for v in task_manager._load_views(base_dir)["views"]}
+    # The built-in keeps its base.json tabs (the posted re-tabbing is ignored).
+    assert eff["pd-todo"]["tabs"] == ["ToDo"]
+    # The clone is a separate, persisted user view tabbed to the new tab.
+    assert eff["clone-1"]["tabs"] == ["Done"] and eff["clone-1"]["builtin"] is False
+
+
+def test_views_endpoints_get_and_put(tmp_path):
+    """BASE-REQ-014.15: GET /api/views returns {views, active} (built-ins from
+    base.json tagged builtin=true); PUT persists user views + active map to
+    machine.json and rejects a non-object body."""
+    source_tasks = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    temp_tasks = tmp_path / "base.json"
+    shutil.copyfile(source_tasks, temp_tasks)
+
+    builtin = _sample_views("pd-ready", tabs=["Ready"], name="By Priority")
+    _write_config(tmp_path, "base.json", {"APP": {"TASK_MANAGER": {"views": builtin}}})
+
+    store = task_manager._TaskStore(base_dir=tmp_path, tasks_dir=tmp_path, tasks_path=temp_tasks)
+    server = _create_server("127.0.0.1", 0, store)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    time.sleep(0.2)
+    port = server.server_address[1]
+    base = f"http://127.0.0.1:{port}/api/views"
+    try:
+        # GET returns the built-in views shipped in config/base.json (read-only).
+        status, payload = _request_json(base)
+        assert status == 200
+        assert [v["id"] for v in payload["views"]] == ["pd-ready"]
+        assert payload["views"][0]["builtin"] is True
+        assert payload["active"] == {}
+
+        # PUT a new user view alongside the built-in, with an active entry.
+        body = {"views": [
+            {"id": "pd-ready", "name": "By Priority", "builtin": True, "tabs": ["Ready"],
+             "sort": {"priority": "desc"}, "filter": {}},
+            {"id": "vA", "name": "All Ready Tasks", "builtin": False, "tabs": ["Ready"],
+             "sort": {}, "filter": {}},
+        ], "active": {"Ready": "vA"}}
+        status, payload = _request_json(base, method="PUT", payload=body)
+        assert status == 200
+        assert [v["id"] for v in payload["views"]] == ["pd-ready", "vA"]
+        assert payload["active"] == {"Ready": "vA"}
+
+        # Only the user view landed in config/machine.json (built-in stripped).
+        stored = json.loads((tmp_path / "config" / "machine.json").read_text(encoding="utf-8"))
+        saved = stored["APP"]["TASK_MANAGER"]["views"]
+        assert [v["id"] for v in saved] == ["vA"]
+        assert stored["APP"]["TASK_MANAGER"]["active_views"] == {"Ready": "vA"}
+
+        # A follow-up GET still returns the built-in plus the user view.
+        status, payload = _request_json(base)
+        assert [v["id"] for v in payload["views"]] == ["pd-ready", "vA"]
+
+        # A non-object (top-level) body is rejected.
+        status, payload = _request_json(base, method="PUT", payload=["not", "an", "object"])
+        assert status == 400
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_delete_task_soft_deletes_then_removes():
@@ -629,7 +924,7 @@ def test_activate_endpoint_focuses_or_starts_review(monkeypatch, tmp_path):
 
 
 def test_task_branch_exists_detects_existing_branch(tmp_path):
-    """_task_branch_exists is True only once a task/<id> branch has been created."""
+    """_task_branch_exists is True only once a <task-id> branch has been created."""
     import subprocess as sp
 
     repo = tmp_path
@@ -646,7 +941,7 @@ def test_task_branch_exists_detects_existing_branch(tmp_path):
     git("commit", "-m", "init")
 
     assert task_manager._task_branch_exists(repo, "BASE-TASK-EXISTS-0001") is False
-    git("branch", "task/BASE-TASK-EXISTS-0001")
+    git("branch", "BASE-TASK-EXISTS-0001")
     assert task_manager._task_branch_exists(repo, "BASE-TASK-EXISTS-0001") is True
     # A non-repository path is reported as having no branch.
     assert task_manager._task_branch_exists(repo / "missing", "BASE-TASK-EXISTS-0001") is False
@@ -685,7 +980,7 @@ def test_start_agent_requires_confirmation_when_branch_exists(monkeypatch, tmp_p
         status, payload = _request_json(base, method="POST", payload={})
         assert status == 409
         assert payload.get("requires_confirmation") is True
-        assert payload.get("branch") == "task/" + todo["id"]
+        assert payload.get("branch") == todo["id"]
         assert started == []
 
         # With confirmation: the worker is launched.
@@ -1493,7 +1788,7 @@ def test_sync_task_repo_isolates_ledger_commit_from_worker_tree(tmp_path):
 
     The headless status-sync must commit ONLY the task ledger to the ledger
     branch (``main``) without touching the worker's primary working tree. This
-    reproduces the bug scenario: the primary tree is on a ``task/<id>`` branch
+    reproduces the bug scenario: the primary tree is on a ``<task-id>`` branch
     with uncommitted edits to both the ledger and an unrelated worker file, and
     asserts the sync (1) pushes exactly one ledger-only commit to ``origin/main``,
     (2) leaves the worker's uncommitted file edit intact byte-for-byte, (3) keeps
@@ -1544,7 +1839,7 @@ def test_sync_task_repo_isolates_ledger_commit_from_worker_tree(tmp_path):
     git("push", "-u", "origin", "main")
 
     # Worker starts: primary tree is checked out on the task branch.
-    git("checkout", "-b", "task/BASE-TASK-260626-0001")
+    git("checkout", "-b", "BASE-TASK-260626-0001")
     task_head_before = git("rev-parse", "HEAD").stdout.strip()
 
     # Server applies a ledger status update into the primary working tree
@@ -1575,7 +1870,7 @@ def test_sync_task_repo_isolates_ledger_commit_from_worker_tree(tmp_path):
     # (3) The primary tree stays on the task branch with no new commit, so the
     # ledger commit never landed on the task branch.
     current_branch = git("rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
-    assert current_branch == "task/BASE-TASK-260626-0001"
+    assert current_branch == "BASE-TASK-260626-0001"
     assert git("rev-parse", "HEAD").stdout.strip() == task_head_before
 
     # (1) Exactly one new commit on origin/main, changing ONLY the ledger.

@@ -1035,8 +1035,33 @@
             "description": "The task manager should be able to sync task statuses from local work to the central gip repository.",
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
-            "comments": []
+            "status": "Done",
+            "comments": [
+                {
+                    "author": "BASE-TASK-260621-0003 worker",
+                    "content": "Started work. Investigation finding: the described capability (Task Manager UI pushing task status updates to the central git repo) already exists on main — the \"Sync Git\" UI button -> POST /api/tasks/sync-git -> _sync_task_store_to_git() + scripts/sync_task_repo.ps1 (isolated-worktree commit + push to origin), plus startup auto-sync and the status-queue inbox that headlessly applies worker status updates to the ledger on main and pushes. These were introduced by earlier tasks (BASE-TASK-260619-0002 onward) predating this ToDo. Seeking engineer guidance on the intended remaining gap before specifying/implementing.",
+                    "timestamp": "2026-06-29T20:44:18Z"
+                },
+                {
+                    "author": "BASE-TASK-260621-0003 worker",
+                    "content": "Engineer decision: close as already-implemented, no code change. Verified the requested capability already exists on main: UI \"Sync Git\" button (resources/templates/task_manager.html) -> POST /api/tasks/sync-git -> _sync_task_store_to_git() + scripts/sync_task_repo.ps1 (isolated-worktree commit + push to origin), plus startup auto-sync (_sync_selected_app_on_startup) and the headless status-queue inbox that applies worker status updates to the ledger on main and pushes. Relevant requirements (startup sync, file-store task status channel, status-sync ledger isolation) already captured in build/requirements/base.json. No repository files changed. Work-summary written to task result store: C:/data/MyApp/task_results/BASE-TASK-260621-0003/BASE-TASK-260621-0003.html. Awaiting engineer direction on final task status.",
+                    "timestamp": "2026-06-29T22:25:14Z"
+                },
+                {
+                    "author": "BASE-TASK-260621-0003 worker",
+                    "content": "Closed as already-implemented per engineer decision; no code change required. Status set to Done.",
+                    "timestamp": "2026-06-29T22:26:40Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 23108,
+                "window_title": "Task Manager UI to push task updates to git repo (BASE-TASK-260621-0003)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260621-0003",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260621-0003",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260621-0003.md",
+                "started_at": "2026-06-29T20:41:01Z"
+            }
         },
         {
             "id": "BASE-TASK-260621-0004",
@@ -1107,7 +1132,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Deleted",
             "comments": []
         },
         {
@@ -1725,7 +1750,7 @@
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
             "id": "BASE-TASK-260624-0005",
             "uuid": "85d2bfc1-b36a-4920-bc9d-7d4c1061496b",
-            "title": "Rebuilt Task Manager as a dedicated app that builds on BaseApp",
+            "title": "Rebuild Task Manager as a dedicated app that builds on BaseApp",
             "description": [
                 "Currently task manager is a combination of items stitched into BaseApp.",
                 "I want to rebuild it as its own app that you woud run by calling TaskManager/app/app.py rather then BaseApp/scripts/task_manager.py",
@@ -1868,7 +1893,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Specified",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1899,6 +1924,26 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Specification complete for the expanded scope. Requirements: added BASE-REQ-014.16 (instantiate deploys variant apps into the {container}/{app-name}/{branch} multi-branch layout; writes COMMON.BASEAPP into gitignored config/local.json; emits no git metadata so post-hoc git init can adopt non-destructively) and BASE-REQ-014.17 (pullbase resolves BaseApp source from COMMON.BASEAPP with worktree->main-worktree->auto fallback and a --branch selector); broadened 014.15. Architecture: added instantiate features 3.1.14 resolve_app_root and 3.1.15 populate_local_config, pullbase feature 3.2.17 resolve_baseapp_source, and tests 5.3.1.5.2/5.3.1.5.3 (instantiate layout + git-init safety) and 5.3.1.4.2 (pullbase resolution). Awaiting engineer approval of the specification before implementation.",
                     "timestamp": "2026-06-29T20:40:30Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Implementation complete and validated (awaiting review; code not yet pushed). Variant apps now deploy into the multi-branch bare/worktree architecture: (1) instantiate.py adds --container/--app-name/--branch with resolve_app_root (3.1.14) computing {abspath(container)}/{app-name}/{branch} and populate_local_config (3.1.15) recording COMMON.BASEAPP in config/local.json; (2) pullbase.py adds --branch and resolve_baseapp_source (3.2.19) with worktree->main->auto fallback and BASEAPP leaf-swap; (3) init_bare_worktree_repo.ps1 adds auto-detected MIGRATION mode Convert-ExistingDeployment (3.8.2) converting an existing single-tree deployment in place into {APP}/.bare + {APP}/{branch}, preserving git history and gitignored files (e.g. local.json), excluding .venv, dropping the dangling origin, idempotent. Tests 5.3.1.5.2, 5.3.1.5.3, 5.3.1.4.2 (structured) and 5.3.1.8.2 (pytest migration) added. Validation: prep phase 17 run/0 failures; init pytest 2 passed; build phase 0 failures.",
+                    "timestamp": "2026-06-29T23:21:14Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Moving to Deployed. Implementation committed and pushed to task/BASE-TASK-260626-0003 (commit 66a2ad9): variant apps deploy into the multi-branch bare/worktree architecture (instantiate.py --worktree on|off, resolve_app_root/populate_local_config), pullbase.py BaseApp-source resolution with is_self_pull guard (PULLE11) preventing branch overwrite, and init_worktree.ps1 (renamed) with auto migration mode. CLI params aligned to camelCase across all three scripts. Validation: full app/base.py suite EXIT=0; deployment integration 25/25; init pytest 2 passed.",
+                    "timestamp": "2026-06-30T04:54:08Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Re-deployed (commit fa774f6, branch BASE-TASK-260626-0003). Renamed the task-branch naming convention to drop the 'task/' prefix: a task branch is now named after the task id exactly (e.g. BASE-TASK-260624-0001) so the branch name matches its worktree folder ({APP}/<task-id>) and no longer instantiates as nested sub-folders from the slash; this also keeps branch folder names consistent in instantiated variant apps. Updated _branch_name_for_task (and _task_branch_exists follows it), the UI confirm fallback, init_worktree.ps1/sync_task_repo.ps1, requirement BASE-REQ-014.9 + 3.6.9 role, instructions base.md/app.md, README, and the task_manager tests. Also renamed the live task branch task/BASE-TASK-260626-0003 -> BASE-TASK-260626-0003 (remote updated). Version bumped to 26.06.26.05. Verified: task_manager pytest passes (2 pre-existing baseline failures unrelated); full app/base.py suite EXIT=0.",
+                    "timestamp": "2026-06-30T05:22:15Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Merged BASE-TASK-260626-0003 into main (merge commit 4095b8b, pushed to origin/main 581cee8..4095b8b). Integration-engineer-supervised conflict resolution: versions resolved to 26.06.30.01; task's init-script requirement renumbered BASE-REQ-014.17 -> 014.21 to avoid colliding with main's multi-column-sort 014.17 (task's 014.18/019/020 retained); 3.6.9 role combined task's '<task-id>' branch naming with main's ALL-tab text; changelog unified with task's clashing entries renumbered 26.06.26.03->.05 (repo init), .04->.06 (deploy variant), .05->.07 (branch naming); README kept overview-only form. Full build app/base.py EXIT=0, 0 WARN, 0 ERROR; all JSON valid. Next: dissolve task branch + worktree.",
+                    "timestamp": "2026-06-30T07:53:50Z"
                 }
             ],
             "worker_session": {
@@ -1922,14 +1967,53 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "ymordecai",
                     "content": "Task created: Figure out a solution that minimizes the impact of BaseApp updates on instance apps",
                     "timestamp": "2026-06-26T23:10:16Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Started work on BASE-TASK-260626-0004. Investigated the pullbase mechanism: each base update copies ~25 base-owned files/dirs (the manifest 'pull' set) into the instance app working tree, all git-tracked, forcing the instance designer to stage/commit base churn. Designing a solution that keeps the code structure/imports identical while removing the version-control burden.",
+                    "timestamp": "2026-06-29T20:47:26Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Specification ready for review. Recommended solution (Option A): treat manifest 'pull' (base-owned) files as a VCS-level import — present in the working tree so structure/imports stay identical to BaseApp, but excluded from the instance app's git via a manifest-derived, delimited, idempotent base-managed block written by pullbase (and seeded by instantiate). Only app-owned 'once' artifacts stay tracked, so base updates cause zero staging/commit churn. Drafted requirement BASE-REQ-008.7 (+5 sub-reqs) and architecture features 3.2.17 derive_base_managed_paths / 3.2.18 update_base_gitignore. Design (config flag COMMON.BASE_GITIGNORE, pullbase/instantiate changes, message codes, test) documented in the task result HTML. Rejected pip-package (breaks identical imports) and submodule (interleaved base/app dirs) alternatives. One decision point flagged for the engineer: with this model a fresh clone needs a bootstrap pullbase before base files exist. Awaiting review.",
+                    "timestamp": "2026-06-29T20:51:01Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Revised the specification to your directed design (rev. 2). Withdrew the earlier .gitignore \"import\" approach and reverted its artifacts. New design = a first-class BaseUpdate task workflow: (0) Task Manager shows a 'Pull BaseApp Changes' action in the create pane for variant apps only; (1) it creates a built-in BaseUpdate task in ToDo whose worker prompt is built from a dedicated build/instructions/base-update.md; (2) the task runs pullbase on its own branch; (3-4) it collects the incoming base changes and writes an HTML summary, then reaches Ready; (5) approve deploy+merge -> push branch then merge to main; (6) approve deploy-only -> push branch (Deployed), wait, then merge on separate approval. Rewrote requirement BASE-REQ-008.7 (6 sub-reqs) and architecture features 3.6.15 _instruction_template_for_task, 3.6.16 _create_base_update_task, and 10.1.2 base-update.md. Two open questions in the report: (a) BaseApp source resolution (config vs auto-detect) and (b) whether the agent performs the main merge itself or hands to integration. Report: C:/data/MyApp/task_results/BASE-TASK-260626-0004/BASE-TASK-260626-0004.html. Awaiting review/approval before implementing.",
+                    "timestamp": "2026-06-30T01:53:10Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Spec rev.3 incorporating your refinements. Dropped the special button. New task type is 'PullBase' (matches the pullbase script). Task-creation pane: type selector placed above the title; when type is PullBase no title is required and it is auto-filled as 'PullBase {YYYY-MM-DD}'. Instruction templates are selected by type from CONFIG.APP.TASK_MANAGER.templates (Feature->task.md, Bug->task.md, PullBase->pullbase.md; default task.md). New dedicated build/instructions/pullbase.md uses the task details, runs pullbase on the task branch with auto-detected BaseApp source by default (overridable via the task description), collects + HTML-summarizes the incoming updates to reach Ready, then deploys and merges under base.md's supervised-merge model (deploy+merge, or deploy-only then merge after separate approval). Updated BASE-REQ-008.7 and architecture 3.6.4 (_create_task title auto-fill), 3.6.15 (_instruction_template_for_task), 10.1.2 (pullbase.md). Report refreshed at C:/data/MyApp/task_results/BASE-TASK-260626-0004/BASE-TASK-260626-0004.html. Awaiting approval to implement.",
+                    "timestamp": "2026-06-30T02:13:07Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Agreed — dropped the trivial _instruction_template_for_task wrapper. The type->template selection is now a simple inline CONFIG.APP.TASK_MANAGER.templates lookup (with 'default' task.md) inside the existing _build_copilot_prompt, which I inventoried as architecture feature 3.6.15 (it was previously un-inventoried, unlike _build_review_prompt 3.6.6). Updated BASE-REQ-008.7.2 and the solution link accordingly. No new helper added. Spec rev.3 otherwise unchanged; awaiting approval to implement.",
+                    "timestamp": "2026-06-30T02:20:22Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0004 worker",
+                    "content": "Implemented the PullBase task type and committed on the task branch (53a315a): config templates map + pullbase block; type-routed instruction template and PullBase title auto-fill in task_manager.py; new build/instructions/pullbase.md; task_manager.html (Type above Title, PullBase option, relaxed title); pull.json registration; tests for routing + auto-fill (7/7 passing via targeted pytest). HTML report refreshed. Note: my worktree was emptied/deregistered after running test/tests/build.py (its migration step rebuilds the bare/worktree layout); fully recovered. Ready for engineer review.",
+                    "timestamp": "2026-06-30T02:49:57Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 15408,
+                "window_title": "Figure out a solution that minimizes the impact of BaseApp updates on instance apps (BASE-TASK-260626-0004)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260626-0004",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0004",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260626-0004.md",
+                "started_at": "2026-06-29T20:43:26Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1942,7 +2026,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Deleted",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1964,14 +2048,48 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager UI Add a Tab `ALL` that shows all the tasks without status division",
                     "timestamp": "2026-06-27T01:06:08Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Started implementation of the ALL tab feature for the Task Manager UI (a single view of all tasks, with sorting/filtering and an added status filter/sort).",
+                    "timestamp": "2026-06-29T20:47:09Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Design ready for review. Requirements: added BASE-REQ-014.15 (all-tasks ALL tab) and extended the feature 3.6 UI solution role. Design: new ALL tab placed before the status tabs and active by default, listing every task with no status division (count badge cnt-ALL); a Status column added to the list that is sortable (by lifecycle order) and filterable by exact normalized status, shown only in the ALL tab (hidden in per-status tabs via a show-status class). Existing ID/Title/Type/Priority sort+filter behavior is unchanged in the ALL tab. STATUS_TABS array is kept intact; ALL is handled as a virtual tab that bypasses status normalization. Files: resources/templates/task_manager.html, build/requirements/base.json, test/tests/base/task_manager.py. Summary at task_results/BASE-TASK-260627-0002/BASE-TASK-260627-0002.html.",
+                    "timestamp": "2026-06-29T20:52:23Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Implementation complete and ready for review. Added the ALL tab (active by default, before the status tabs) listing all tasks with no status division and a total-count badge, plus a Status column (sortable by lifecycle order, filterable by exact status) shown only in the ALL tab; existing ID/Title/Type/Priority sort+filter behavior is unchanged. Recorded the change in build/updates/base.json (target version 26.06.29.02). Validation: targeted template tests 7 passed; full task_manager module 59 passed (2 pre-existing baseline failures unrelated to this change); build test suite build phase 2 run / 0 failures; template JS passes node --check. No commit/push performed yet (awaiting deploy approval). Files: resources/templates/task_manager.html, build/requirements/base.json, build/updates/base.json, test/tests/base/task_manager.py.",
+                    "timestamp": "2026-06-30T01:37:00Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Engineer approved the push. Finalized and pushed to branch task/BASE-TASK-260627-0002 (commit 19a8d4c): ALL tab + Status column feature, BASE-REQ-014.15, docs/readme + README overview, updates ledger, version bumped to 26.06.29.02. Build tests: deployment 25/25, README-overview PASS, 0 failures. The task ledger (build/tasks/base.json) was intentionally excluded from the commit.",
+                    "timestamp": "2026-06-30T01:55:13Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Integration complete: task/BASE-TASK-260627-0002 merged into main with --no-ff (merge commit 7e0ea25) under engineer supervision, no conflicts (the task ledger was excluded from the feature commit, so main's ledger was untouched). main pushed to origin (87655c2..7e0ea25). Dissolving the short-lived task branch and its worktree.",
+                    "timestamp": "2026-06-30T02:32:05Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 43380,
+                "window_title": "Task Manager UI Add a Tab `ALL` that shows all the tasks without status division (BASE-TASK-260627-0002)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260627-0002",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260627-0002",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260627-0002.md",
+                "started_at": "2026-06-29T20:44:13Z"
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1990,12 +2108,89 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager UI VIEWS",
                     "timestamp": "2026-06-27T01:06:31Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Started work on BASE-TASK-260627-0003 (Task Manager UI VIEWS). Reviewed instructions, requirements (BASE-REQ-014), architecture (Feature 11.2.2), the task_manager.html template, and the existing test suite. Views are per-status saved sort/filter configurations, persisted client-side in localStorage (consistent with tm_split_ratio/tm_file), surfaced as a views bar below the status tabs.",
+                    "timestamp": "2026-06-29T22:33:08Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Specification ready. Requirements: added BASE-REQ-014.15 (Task Manager UI saved-views) under BASE-REQ-014. Architecture: updated feature 11.2.2 (resources.templates.task_manager). Design: views are per-status saved sort/filter configs in resources/templates/task_manager.html, rendered as a views bar below the status tabs, persisted in localStorage (key tm_views), with save/apply/rename/delete, per-tab restore, manual-change deselection, and search integration. No server changes.",
+                    "timestamp": "2026-06-29T22:42:07Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Implementation complete and validated. Added the saved-views bar (markup+CSS) below the status tabs and the full views JS in resources/templates/task_manager.html: load/save to localStorage, auto-naming (e.g. 'High Priority Task Manager Bugs'), apply/rename(double-click)/delete(X icon), per-tab restore on tab switch, deselect-on-manual-change, and search integration. Added test_task_manager_template_has_saved_views. Validation: node --check passes; a DOM/localStorage-stub Node harness verified save/persist/restore/rename/delete/auto-name; pytest test/tests/base/task_manager.py -> 59 passed incl. the new test (2 pre-existing unrelated failures, confirmed on clean baseline). Versioning/README deferred to Deployed per workflow. No commit/push yet — awaiting engineer review.",
+                    "timestamp": "2026-06-29T22:42:16Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Applied two requested refinements to the saved-views feature. (1) View definitions are now persisted SERVER-SIDE in the app's machine-local config/local.json (key TASK_MANAGER_VIEWS) via new GET/PUT /api/views endpoints (scripts/task_manager.py helpers _local_config_path/_load_local_config_raw/_load_views/_save_views, atomic write preserving other keys), replacing the earlier localStorage approach so views persist across sessions and browsers; the frontend loads them async on startup and writes back fire-and-forget. (2) The Type and Priority column filters now always offer their canonical values regardless of the loaded data (TYPE_ORDER = Feature/Bug/Chore/Doc; PRIORITY_ORDER = Critical/High/Medium/Low), appending any extra values found in the data. Updated BASE-REQ-014.15 and BASE-REQ-014.13, architecture features 11.2.2 and 3.6.15. Added tests test_task_manager_template_has_saved_views, test_task_manager_template_filters_offer_canonical_values, test_views_store_round_trips_through_local_config, test_views_endpoints_get_and_put. python -m pytest test/tests/base/task_manager.py -> 62 passed, 2 pre-existing unrelated failures. No commit/push made; awaiting review/approval.",
+                    "timestamp": "2026-06-29T23:19:38Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Reworked views persistence into the layered config model. (1) Predefined default views now ship in config/base.json under APP.TASK_MANAGER.views (ToDo/InProgress/Ready). (2) Added config/machine.json for machine-specific overrides (git-ignored, added to .gitignore); it is the runtime save target for user views. (3) config/local.json remains the app-local (git-tracked) override placeholder. scripts/task_manager.py now reads APP.TASK_MANAGER.views with precedence base<local<machine (_load_views via _config_file_path/_load_config_file_raw/_nested_get/_views_from_config_file) and _save_views writes user changes to config/machine.json under APP.TASK_MANAGER.views, preserving other keys atomically. GET /api/views serves the effective set; PUT persists to machine.json. Updated BASE-REQ-014.15 and architecture 11.2.2/3.6.15. Tests: added test_views_load_layers_base_local_machine_precedence and test_views_save_writes_machine_config_preserving_keys; updated test_views_endpoints_get_and_put. python -m pytest test/tests/base/task_manager.py -> 63 passed, 2 pre-existing unrelated failures; config.py override test still passes; real Config loads cleanly with machine.json present. No commit/push made; awaiting review/approval.",
+                    "timestamp": "2026-06-30T00:23:33Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Refined saved-views to protect built-in views: the predefined views shipped in config/base.json are now read-only built-ins (tagged builtin=true) — the UI hides their delete control and disables rename, and the server (_save_views) strips built-ins so only the user's own views persist to config/machine.json. _load_views always re-sources built-ins from base.json and layers user views (local/machine, machine wins) on top, so built-ins can never be deleted. Updated requirement 014.15, architecture 3.6.15/11.2.2, build/updates entry, and result HTML. Tests: 64 passed (incl. test_builtin_views_cannot_be_deleted, test_views_load_merges_builtin_and_user_views, test_views_save_persists_only_user_views_to_machine, test_views_endpoints_get_and_put); the only 2 failures are pre-existing and unrelated. No commit/push made — awaiting review.",
+                    "timestamp": "2026-06-30T00:53:38Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Refinement #4 complete: redesigned saved views to a single flat array of view objects {id,name,tabs:[...],sort:{col:dir},filter:{col:[vals]}} with multi-tab association, multi-column sort, and multi-value (checkbox) Type/Priority filters. Built-in views ship read-only in config/base.json (flat array, base-priority/critical/bugs/features); user views + per-tab active_views persist to git-ignored config/machine.json via GET/PUT /api/views returning {views,active}. Grayed/enabled chip model: views show on every tab, enabled only when current tab is in tabs; user views can include/remove the current tab, a grayed built-in clones into a user view. Updated server helpers, frontend, base.json, specs (BASE-REQ-014.15 rewritten, 014.16 added, 014.13 updated), architecture 3.6.15/11.2.2, updates entry, and result HTML. Tests rewritten: task_manager module 66 passed (2 pre-existing unrelated failures). Awaiting review; no commit/push yet.",
+                    "timestamp": "2026-06-30T02:24:07Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Finalized and deployed at version 26.06.29.03. Saved Task Manager views feature (BASE-REQ-014.16 saved views flat multi-tab model; BASE-REQ-014.17 multi-column sort + multi-value filters) implemented, tested, and documented. Version bumped (base.txt/app.txt/config COMMON), docs/readme/base.md and README.md updated. Changes committed and pushed to main (1092251); feature branch previously merged (e5de255). User approved the push.",
+                    "timestamp": "2026-06-30T03:17:59Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Integrated: task branch task/BASE-TASK-260627-0003 merged into main (merge e5de255, finalization 1092251) at version 26.06.29.03. Short-lived task branch and its worktree dissolved. Task complete.",
+                    "timestamp": "2026-06-30T03:19:18Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 23744,
+                "window_title": "Task Manager UI VIEWS (BASE-TASK-260627-0003)",
+                "mode": "work",
+                "branch": "task/BASE-TASK-260627-0003",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260627-0003",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260627-0003.md",
+                "started_at": "2026-06-29T22:27:50Z"
+            }
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260629-0001",
+            "uuid": "0dc2349c-e844-45fc-8bb5-02a35c35ebf5",
+            "title": "Task Manager Track model used by copilot and number of Tokens consumed",
+            "description": [
+                "add to worker_session in task template.",
+                "model - which model was used by the copilot.",
+                "tokens:",
+                "- TOTAL : how many tokens were consumed in total.",
+                "- per-state: how many tokens were consumed to get to each state. note that if the task has to go back to a past task, the accrued tokens will count toward getting back to that state and get added to any tokens used in the first round."
+            ],
+            "type": "Feature",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Manager Track model used by copilot and number of Tokens consumed",
+                    "timestamp": "2026-06-29T22:45:23Z"
                 }
             ]
         }
