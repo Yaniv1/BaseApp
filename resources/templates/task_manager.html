@@ -102,6 +102,51 @@ details.cli-sect{margin-top:2px}
 .badge{background:var(--sf2);border-radius:999px;padding:1px 7px;font-size:.72rem;
   margin-left:4px;font-weight:400}
 
+/* ── Views bar (saved per-status sort/filter configs, below the tabs) ── */
+.views-bar{display:flex;align-items:center;gap:9px;padding:9px 20px 0;flex-shrink:0;flex-wrap:wrap}
+.views-label{color:var(--mu);font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap}
+.views-chips{display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1 1 auto;min-width:0}
+.views-empty{color:var(--mu);font-size:.78rem;font-style:italic}
+.view-chip{display:inline-flex;align-items:center;gap:6px;background:var(--sf2);color:var(--tx);
+  border:1px solid var(--ln);border-radius:999px;padding:3px 5px 3px 11px;font-size:.78rem;
+  transition:background .12s,border-color .12s,color .12s;max-width:100%}
+.view-chip:hover{border-color:var(--ac)}
+.view-chip.active{background:rgba(56,189,248,.16);border-color:var(--ac);color:var(--ac);font-weight:600}
+.view-chip.builtin{padding-right:11px;border-style:dashed}
+.view-chip.builtin .view-name{cursor:pointer}
+.view-chip .view-name{cursor:pointer;user-select:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+.view-del{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex-shrink:0;
+  border:none;border-radius:50%;background:transparent;color:inherit;font-size:.74rem;line-height:1;
+  cursor:pointer;padding:0;opacity:.65;transition:background .12s,opacity .12s}
+.view-del:hover{background:var(--rd);color:#fff;opacity:1}
+.view-save-btn{display:inline-flex;align-items:center;gap:5px;background:transparent;border:1px dashed var(--ln);
+  color:var(--mu);border-radius:8px;padding:4px 10px;font:inherit;font-size:.78rem;cursor:pointer;white-space:nowrap}
+.view-save-btn:hover{border-color:var(--ac);color:var(--ac)}
+/* A view not associated with the current tab is shown grayed-out. */
+.view-chip.disabled{opacity:.45;border-style:dashed}
+.view-chip.disabled .view-name{cursor:default;color:var(--mu)}
+/* Per-view tab-membership toggle: "+" to include the current tab, check to exclude. */
+.view-tab{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;flex-shrink:0;
+  border:none;border-radius:50%;background:transparent;color:inherit;font-size:.82rem;line-height:1;
+  cursor:pointer;padding:0;opacity:.7;transition:background .12s,opacity .12s}
+.view-tab:hover{background:var(--ac);color:#04222e;opacity:1}
+/* Multi-select column filter (Type / Priority): button + checkbox popup. */
+.ms{position:relative}
+.ms-toggle{width:100%;box-sizing:border-box;text-align:left;background:var(--bg);color:var(--tx);
+  border:1px solid var(--ln);border-radius:7px;padding:5px 22px 5px 9px;font:inherit;font-size:.8rem;
+  cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:relative}
+.ms-toggle:after{content:'\25BE';position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--mu);font-size:.7rem}
+.ms-toggle:focus{outline:none;border-color:var(--ac)}
+.ms.open .ms-toggle{border-color:var(--ac)}
+.ms-menu{position:absolute;z-index:30;top:calc(100% + 3px);left:0;min-width:100%;background:var(--sf);
+  border:1px solid var(--ln);border-radius:8px;padding:5px;box-shadow:0 8px 22px rgba(0,0,0,.4);
+  max-height:240px;overflow:auto;display:none}
+.ms.open .ms-menu{display:block}
+.ms-opt{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:6px;font-size:.82rem;
+  color:var(--tx);cursor:pointer;white-space:nowrap;font-weight:400;text-transform:none;letter-spacing:0}
+.ms-opt:hover{background:var(--sf2)}
+.ms-opt input{margin:0;cursor:pointer}
+
 /* ── Task table ──────────────────────────────────────────────── */
 .table-wrap{padding:14px 20px;overflow-x:auto}
 .task-table{width:100%;border-collapse:collapse}
@@ -257,6 +302,11 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       <button class="tab" data-status="Deleted">Deleted <span id="cnt-Deleted" class="badge">0</span></button>
       <button class="tab" data-status="Other">Other <span id="cnt-Other" class="badge">0</span></button>
     </div>
+    <div class="views-bar" id="views-bar">
+      <span class="views-label">Views</span>
+      <div class="views-chips" id="views-chips"></div>
+      <button id="save-view-btn" class="view-save-btn" type="button" title="Save the current filters &amp; sort as a view for this status tab" aria-label="Save current view">&#128190; Save view</button>
+    </div>
     <div class="split" id="split">
       <div class="list-pane" id="list-pane">
         <div class="table-wrap">
@@ -271,8 +321,8 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
               <tr class="filter-row">
                 <th><input type="text" id="filter-id" class="col-filter" placeholder="Filter ID&hellip;" autocomplete="off"></th>
                 <th><input type="text" id="filter-title" class="col-filter" placeholder="Filter title&hellip;" autocomplete="off"></th>
-                <th><select id="filter-type" class="col-filter"><option value="">All types</option></select></th>
-                <th><select id="filter-priority" class="col-filter"><option value="">All priorities</option></select></th>
+                <th><div id="filter-type" class="ms" data-all="All types"></div></th>
+                <th><div id="filter-priority" class="ms" data-all="All priorities"></div></th>
               </tr>
             </thead>
             <tbody id="task-tbody"></tbody>
@@ -348,15 +398,43 @@ const defaultPath = SM ? SM.getAttribute('data-tasks-path') : '';
 const defaultTasksDir = SM ? SM.getAttribute('data-tasks-dir') : '';
 const defaultAppName = SM ? SM.getAttribute('data-app-name') : 'App';
 let allTasks = [], currentStatus = 'ToDo', selectedId = null;
-// Column sort state: which column (id|title|type|priority) and direction.
-// Sorting cycles none -> asc -> desc -> none per column.
-let sortColumn = null, sortDir = 'asc';
-// Per-column filters: id/title are substring text filters, type/priority are
-// exact-value selections drawn from the values present in the task list.
-const colFilters = { id: '', title: '', type: '', priority: '' };
+// Column sort state: an ordered list of { column, dir } entries supporting
+// MULTI-COLUMN sort (the first entry is the primary key). Manual header clicks
+// cycle a single column none -> asc -> desc -> none; applying a view can set
+// several columns at once.
+let liveSort = [];
+// Per-column filters: id/title are substring text filters; type/priority are
+// MULTI-VALUE selections (arrays) drawn from the canonical values plus any
+// values present in the task list.
+const colFilters = { id: '', title: '', type: [], priority: [] };
 const PRIORITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 const PRIORITY_ORDER = ['Critical', 'High', 'Medium', 'Low'];
 const STATUS_TABS = ['ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted', 'Other'];
+// Canonical filter values that are always selectable in the column filters,
+// regardless of whether they currently appear in the loaded task list. These
+// mirror the Type/Priority options offered by the create/edit forms.
+const TYPE_ORDER = ['Feature', 'Bug', 'Chore', 'Doc'];
+
+// ── Saved views (tab-associated sort/filter configurations) ───
+// A view is a named, saved sort + column-filter configuration (not a task
+// entity). Views are a single FLAT list; each view declares the status tabs it
+// applies to via its `tabs` array. A view shows on EVERY tab in the views bar
+// but is only usable ("enabled") on the tabs it lists; on other tabs it is
+// grayed-out with a "+" to associate the current tab. A set of read-only
+// BUILT-IN default views ships in config/base.json (APP.TASK_MANAGER.views,
+// builtin=true); these cannot be renamed, deleted, or re-tabbed — associating a
+// built-in with a new tab instead clones it into a separate user view. On top
+// of the built-ins the server layers the user's own views from
+// config/local.json (app-local) and config/machine.json (machine-specific) and
+// exposes the effective set (plus the per-tab active-view map) via /api/views.
+// Only the user's own views and the active map are persisted (to
+// config/machine.json), so they survive reloads/sessions/browsers.
+// View shape: { id, name, builtin, tabs:[...],
+//               sort:[{column,dir},...], filter:{id,title,type:[],priority:[]} }
+let allViews = [];               // flat list of all (built-in + user) views
+const activeByTab = {};          // tab -> active view id
+let applyingView = false;        // suppresses active-view deselection during programmatic apply
+let viewsReady = false;          // true once initViews has run
 
 function normalizeStatus(value) {
   const raw = String(value ?? '').trim();
@@ -414,6 +492,7 @@ function ensureGitSidebar() {
   initCreateForm();
   initTabs();
   initColumnControls();
+  await initViews();
   initSearch();
   initDetail();
   initSplit();
@@ -625,6 +704,7 @@ async function loadTasks() {
   populateColumnFilters();
   renderTable();
   updateBadges();
+  if (viewsReady) renderViewsBar();
   if (selectedId) {
     const t = allTasks.find(x => x.id === selectedId);
     if (t) showDetail(t); else hideDetail();
@@ -646,7 +726,7 @@ function renderTable() {
   const noEl = document.getElementById('no-tasks');
   tbody.innerHTML = '';
   if (!tasks.length) {
-    const filtersActive = colFilters.id || colFilters.title || colFilters.type || colFilters.priority;
+    const filtersActive = colFilters.id || colFilters.title || colFilters.type.length || colFilters.priority.length;
     const hasUnfiltered = allTasks.some(t => normalizeStatus(t.status) === currentStatus);
     noEl.textContent = (filtersActive && hasUnfiltered)
       ? 'No tasks match the current filters.'
@@ -674,20 +754,23 @@ function renderTable() {
 
 // ── Sorting & filtering ───────────────────────────────────────
 // Returns tasks for the current status tab with column filters applied
-// and the active column sort, if any.
+// and the active multi-column sort, if any.
 function getVisibleTasks() {
   let tasks = allTasks.filter(t => normalizeStatus(t.status) === currentStatus);
   tasks = tasks.filter(t => {
     if (colFilters.id && !String(t.id || '').toLowerCase().includes(colFilters.id.toLowerCase())) return false;
     if (colFilters.title && !String(t.title || '').toLowerCase().includes(colFilters.title.toLowerCase())) return false;
-    if (colFilters.type && String(t.type || 'Feature') !== colFilters.type) return false;
-    if (colFilters.priority && String(t.priority || 'Medium') !== colFilters.priority) return false;
+    if (colFilters.type.length && !colFilters.type.includes(String(t.type || 'Feature'))) return false;
+    if (colFilters.priority.length && !colFilters.priority.includes(String(t.priority || 'Medium'))) return false;
     return true;
   });
-  if (sortColumn) {
+  if (liveSort.length) {
     tasks = tasks.slice().sort((a, b) => {
-      const c = compareCol(a, b, sortColumn);
-      return sortDir === 'asc' ? c : -c;
+      for (const { column, dir } of liveSort) {
+        const c = compareCol(a, b, column);
+        if (c) return dir === 'asc' ? c : -c;
+      }
+      return 0;
     });
   }
   return tasks;
@@ -708,61 +791,462 @@ function compareCol(a, b, col) {
   return String(va).localeCompare(String(vb), undefined, { numeric: true, sensitivity: 'base' });
 }
 
-// Cycle a column's sort state: none -> ascending -> descending -> none.
+// Manual header click cycles a single column's sort: none -> asc -> desc -> none.
+// This replaces any multi-column sort that may have come from an applied view.
 function cycleSort(col) {
-  if (sortColumn !== col) { sortColumn = col; sortDir = 'asc'; }
-  else if (sortDir === 'asc') { sortDir = 'desc'; }
-  else { sortColumn = null; sortDir = 'asc'; }
+  const cur = (liveSort.length === 1 && liveSort[0].column === col) ? liveSort[0] : null;
+  if (!cur) liveSort = [{ column: col, dir: 'asc' }];
+  else if (cur.dir === 'asc') liveSort = [{ column: col, dir: 'desc' }];
+  else liveSort = [];
   updateSortIndicators();
+  onManualConfigChange();
   renderTable();
 }
 
+// Reflect the live (possibly multi-column) sort in the header indicators. When
+// more than one column is sorted, each arrow carries its 1-based order.
 function updateSortIndicators() {
+  const order = {};
+  liveSort.forEach((s, i) => { order[s.column] = { dir: s.dir, pos: i + 1 }; });
   ['id', 'title', 'type', 'priority'].forEach(c => {
     const el = document.getElementById('sort-ind-' + c);
     if (!el) return;
-    el.textContent = (sortColumn === c) ? (sortDir === 'asc' ? '\u25B2' : '\u25BC') : '';
+    const o = order[c];
+    if (!o) { el.textContent = ''; return; }
+    const arrow = o.dir === 'asc' ? '\u25B2' : '\u25BC';
+    el.textContent = arrow + (liveSort.length > 1 ? String(o.pos) : '');
   });
 }
 
-// Fill the type/priority filter dropdowns from the distinct values present
-// across all tasks, preserving the current selection when still available.
+// Build the Type/Priority multi-select column filters. Each offers the canonical
+// values first, then any extra values present in the data or currently selected,
+// with the current selection preserved.
 function populateColumnFilters() {
-  const typeSel = document.getElementById('filter-type');
-  const priSel = document.getElementById('filter-priority');
-  if (typeSel) {
-    const types = [...new Set(allTasks.map(t => String(t.type || 'Feature')))].sort((a, b) => a.localeCompare(b));
-    fillFilterSelect(typeSel, types, colFilters.type, 'All types');
-    colFilters.type = typeSel.value;
-  }
-  if (priSel) {
-    const present = new Set(allTasks.map(t => String(t.priority || 'Medium')));
-    const known = PRIORITY_ORDER.filter(p => present.has(p));
-    const extra = [...present].filter(p => !PRIORITY_ORDER.includes(p)).sort((a, b) => a.localeCompare(b));
-    fillFilterSelect(priSel, [...known, ...extra], colFilters.priority, 'All priorities');
-    colFilters.priority = priSel.value;
-  }
+  const present = col => [...new Set(allTasks.map(t => String(t[col] || (col === 'type' ? 'Feature' : 'Medium'))))];
+  const merge = (canon, col) => {
+    const seen = new Set(canon);
+    const out = canon.slice();
+    [...present(col), ...colFilters[col]].forEach(v => { if (!seen.has(v)) { seen.add(v); out.push(v); } });
+    return out;
+  };
+  buildMultiSelect('filter-type', merge(TYPE_ORDER, 'type'), 'type');
+  buildMultiSelect('filter-priority', merge(PRIORITY_ORDER, 'priority'), 'priority');
 }
 
-function fillFilterSelect(sel, values, current, allLabel) {
-  sel.innerHTML = '<option value="">' + esc(allLabel) + '</option>' +
-    values.map(v => '<option value="' + esc(v) + '">' + esc(v) + '</option>').join('');
-  sel.value = (current && values.includes(current)) ? current : '';
+// Render a checkbox-dropdown multi-select into `id`, bound to colFilters[key].
+function buildMultiSelect(id, values, key) {
+  const host = document.getElementById(id);
+  if (!host) return;
+  const allLabel = host.dataset.all || 'All';
+  // Drop selected values that are no longer offered.
+  colFilters[key] = colFilters[key].filter(v => values.includes(v));
+  host.innerHTML = '';
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  toggle.className = 'ms-toggle';
+  const menu = document.createElement('div');
+  menu.className = 'ms-menu';
+  const refreshLabel = () => {
+    const sel = colFilters[key];
+    toggle.textContent = !sel.length ? allLabel : (sel.length <= 2 ? sel.join(', ') : sel.length + ' selected');
+  };
+  values.forEach(v => {
+    const opt = document.createElement('label');
+    opt.className = 'ms-opt';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = v;
+    cb.checked = colFilters[key].includes(v);
+    cb.addEventListener('change', () => {
+      if (cb.checked) { if (!colFilters[key].includes(v)) colFilters[key].push(v); }
+      else { colFilters[key] = colFilters[key].filter(x => x !== v); }
+      refreshLabel();
+      onManualConfigChange();
+      renderTable();
+    });
+    opt.appendChild(cb);
+    opt.appendChild(document.createTextNode(v));
+    menu.appendChild(opt);
+  });
+  toggle.addEventListener('click', e => {
+    e.stopPropagation();
+    const open = host.classList.toggle('open');
+    if (open) document.querySelectorAll('.ms.open').forEach(m => { if (m !== host) m.classList.remove('open'); });
+  });
+  host.appendChild(toggle);
+  host.appendChild(menu);
+  refreshLabel();
 }
 
-// Wire header clicks (sorting) and filter inputs. Called once at startup.
+// Wire header clicks (sorting) and the text filter inputs. The Type/Priority
+// multi-selects wire themselves in buildMultiSelect(). Called once at startup.
 function initColumnControls() {
   document.querySelectorAll('.task-table th.sortable').forEach(th => {
     th.addEventListener('click', () => cycleSort(th.dataset.col));
   });
   const fid = document.getElementById('filter-id');
   const fti = document.getElementById('filter-title');
-  const fty = document.getElementById('filter-type');
-  const fpr = document.getElementById('filter-priority');
-  if (fid) fid.addEventListener('input', () => { colFilters.id = fid.value; renderTable(); });
-  if (fti) fti.addEventListener('input', () => { colFilters.title = fti.value; renderTable(); });
-  if (fty) fty.addEventListener('change', () => { colFilters.type = fty.value; renderTable(); });
-  if (fpr) fpr.addEventListener('change', () => { colFilters.priority = fpr.value; renderTable(); });
+  if (fid) fid.addEventListener('input', () => { colFilters.id = fid.value; onManualConfigChange(); renderTable(); });
+  if (fti) fti.addEventListener('input', () => { colFilters.title = fti.value; onManualConfigChange(); renderTable(); });
+  // Close any open multi-select menu when clicking elsewhere.
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.ms.open').forEach(m => m.classList.remove('open'));
+  });
+}
+
+// ── Saved views ───────────────────────────────────────────────
+// Views are saved sort + per-column filter configurations associated with one
+// or more status tabs (see the header comment near allViews). They are stored
+// server-side and rendered as chips in the views bar.
+
+// Snapshot the live sort/filter configuration into a plain view config object.
+// sort is the ordered multi-column list; filter lists only constrained columns.
+function currentViewConfig() {
+  const filter = {};
+  if (colFilters.id) filter.id = [colFilters.id];
+  if (colFilters.title) filter.title = [colFilters.title];
+  if (colFilters.type.length) filter.type = colFilters.type.slice();
+  if (colFilters.priority.length) filter.priority = colFilters.priority.slice();
+  return { sort: liveSort.map(s => ({ column: s.column, dir: s.dir })), filter };
+}
+
+const FILTER_COLS = ['id', 'title', 'type', 'priority'];
+
+// Normalize a stored/raw view into the canonical client shape:
+//   { id, name, builtin, tabs:[...], sort:[{column,dir},...],
+//     filter:{ id:'', title:'', type:[], priority:[] } }
+// Tolerates the compact on-disk form (sort as an ordered {col:dir} map, filter
+// values as scalars or arrays).
+function normalizeView(v) {
+  v = v || {};
+  const sort = [];
+  if (Array.isArray(v.sort)) {
+    v.sort.forEach(s => { if (s && s.column) sort.push({ column: String(s.column), dir: s.dir === 'desc' ? 'desc' : 'asc' }); });
+  } else if (v.sort && typeof v.sort === 'object') {
+    Object.keys(v.sort).forEach(col => sort.push({ column: col, dir: v.sort[col] === 'desc' ? 'desc' : 'asc' }));
+  }
+  const raw = (v.filter && typeof v.filter === 'object') ? v.filter : {};
+  const first = x => Array.isArray(x) ? String(x[0] || '') : String(x || '');
+  const arr = x => Array.isArray(x) ? x.map(String) : (x ? [String(x)] : []);
+  return {
+    id: String(v.id || ('v' + Date.now().toString(36))),
+    name: String(v.name || 'View'),
+    builtin: !!v.builtin,
+    tabs: Array.isArray(v.tabs) ? v.tabs.map(String) : [],
+    sort,
+    filter: { id: first(raw.id), title: first(raw.title), type: arr(raw.type), priority: arr(raw.priority) }
+  };
+}
+
+// Serialize a view to the compact persisted shape: sort as an ordered {col:dir}
+// map, filter as a map of column -> array (only constrained columns kept).
+function serializeView(v) {
+  const sort = {};
+  v.sort.forEach(s => { sort[s.column] = s.dir; });
+  const filter = {};
+  if (v.filter.id) filter.id = [v.filter.id];
+  if (v.filter.title) filter.title = [v.filter.title];
+  if (v.filter.type.length) filter.type = v.filter.type.slice();
+  if (v.filter.priority.length) filter.priority = v.filter.priority.slice();
+  return { id: v.id, name: v.name, tabs: v.tabs.slice(), sort, filter };
+}
+
+// Turn a view into the live-config shape used by applyViewConfig/configsEqual.
+function viewToConfig(view) {
+  const filter = {};
+  if (view.filter.id) filter.id = [view.filter.id];
+  if (view.filter.title) filter.title = [view.filter.title];
+  if (view.filter.type.length) filter.type = view.filter.type.slice();
+  if (view.filter.priority.length) filter.priority = view.filter.priority.slice();
+  return { sort: view.sort, filter };
+}
+
+async function loadViews() {
+  allViews = [];
+  Object.keys(activeByTab).forEach(k => delete activeByTab[k]);
+  try {
+    const r = await fetch('/api/views');
+    const p = await r.json();
+    const list = (p && Array.isArray(p.views)) ? p.views : [];
+    allViews = list.filter(v => v && v.id).map(normalizeView);
+    const active = (p && p.active && typeof p.active === 'object') ? p.active : {};
+    Object.keys(active).forEach(tab => { if (active[tab]) activeByTab[tab] = String(active[tab]); });
+  } catch { allViews = []; }
+}
+
+// Build the persisted payload: only user (non-built-in) views + the active map.
+// Built-in views are excluded — they always come from config/base.json.
+function viewsPayload() {
+  return {
+    views: allViews.filter(v => !v.builtin).map(serializeView),
+    active: Object.assign({}, activeByTab)
+  };
+}
+
+// Persist views to config/machine.json via the server (best-effort, fire-and-forget).
+function saveViews() {
+  fetch('/api/views', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(viewsPayload())
+  }).catch(() => {});
+}
+
+// True when a view is associated with (usable on) the given tab.
+function viewEnabledOn(view, tab) { return view.tabs.indexOf(tab) !== -1; }
+function findView(id) { return allViews.find(v => v.id === id); }
+
+// Pluralize a type label for use in an auto-generated view name (Bug -> Bugs).
+function pluralizeType(t) {
+  if (!t) return '';
+  return /s$/i.test(t) ? t : (t + 's');
+}
+
+// Derive a human-readable default name from a view config (sort:[...] list,
+// filter:{col:[values]} map). e.g. priority:[High], type:[Bug] -> "High Priority Bugs".
+function defaultViewName(cfg) {
+  const f = cfg.filter || {};
+  const parts = [];
+  if (f.priority && f.priority.length) parts.push(f.priority.join('/') + ' Priority');
+  if (f.id && f.id.length) parts.push('ID ' + f.id[0]);
+  if (f.title && f.title.length) parts.push(f.title[0]);
+  if (f.type && f.type.length) parts.push(f.type.map(pluralizeType).join('/'));
+  let name = parts.join(' ').trim();
+  if (cfg.sort && cfg.sort.length) {
+    const s = cfg.sort.map(x => x.column + ' ' + (x.dir === 'asc' ? '\u2191' : '\u2193')).join(', ');
+    name += (name ? ' ' : '') + 'by ' + s;
+  }
+  return name || ('All ' + currentStatus + ' Tasks');
+}
+
+// True when two view configs (sort:[...], filter:{col:[...]}) are equivalent.
+function configsEqual(a, b) {
+  if (!a || !b) return false;
+  const sa = a.sort || [], sb = b.sort || [];
+  if (sa.length !== sb.length) return false;
+  for (let i = 0; i < sa.length; i++) {
+    if (sa[i].column !== sb[i].column || (sa[i].dir || 'asc') !== (sb[i].dir || 'asc')) return false;
+  }
+  const fa = a.filter || {}, fb = b.filter || {};
+  const norm = (o, c) => { const r = o[c]; return Array.isArray(r) ? r : (r ? [String(r)] : []); };
+  return FILTER_COLS.every(c => {
+    const x = norm(fa, c), y = norm(fb, c);
+    return x.length === y.length && x.every((v, i) => v === y[i]);
+  });
+}
+
+// Reflect the live sort/filter state in the header indicators, text inputs, and
+// the Type/Priority multi-selects (rebuilt so their checkboxes/labels match).
+function syncFilterControls() {
+  const fid = document.getElementById('filter-id');
+  const fti = document.getElementById('filter-title');
+  if (fid) fid.value = colFilters.id;
+  if (fti) fti.value = colFilters.title;
+  populateColumnFilters();
+  updateSortIndicators();
+}
+
+// Apply a view config (sort:[...] list, filter:{col:[values]} map) to the live
+// state and reflect it in the controls. applyingView guards the change handlers.
+function applyViewConfig(cfg) {
+  applyingView = true;
+  liveSort = (cfg.sort || []).map(s => ({ column: s.column, dir: s.dir === 'desc' ? 'desc' : 'asc' }));
+  const f = cfg.filter || {};
+  const first = x => Array.isArray(x) ? String(x[0] || '') : String(x || '');
+  const arr = x => Array.isArray(x) ? x.map(String) : (x ? [String(x)] : []);
+  colFilters.id = first(f.id);
+  colFilters.title = first(f.title);
+  colFilters.type = arr(f.type);
+  colFilters.priority = arr(f.priority);
+  syncFilterControls();
+  applyingView = false;
+}
+
+const EMPTY_CONFIG = { sort: [], filter: {} };
+
+// Restore a tab's remembered active view when switching to it, provided the view
+// still exists and is enabled on the tab; otherwise clear to an unfiltered,
+// unsorted list.
+function restoreView(tab) {
+  const activeId = activeByTab[tab];
+  const view = activeId ? findView(activeId) : null;
+  if (view && viewEnabledOn(view, tab)) {
+    applyViewConfig(viewToConfig(view));
+  } else {
+    if (activeId) delete activeByTab[tab];
+    applyViewConfig(EMPTY_CONFIG);
+  }
+}
+
+// Save the live configuration as a new user view, auto-associated with (and
+// active on) the current tab; grayed-out on all other tabs until included.
+function saveCurrentView() {
+  const cfg = currentViewConfig();
+  const view = normalizeView({
+    id: 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    name: defaultViewName(cfg), builtin: false, tabs: [currentStatus],
+    sort: cfg.sort, filter: cfg.filter
+  });
+  allViews.push(view);
+  activeByTab[currentStatus] = view.id;
+  saveViews();
+  renderViewsBar();
+}
+
+// Apply a saved view by id, but only when it is enabled on the current tab.
+function applyView(id) {
+  const view = findView(id);
+  if (!view || !viewEnabledOn(view, currentStatus)) return;
+  activeByTab[currentStatus] = id;
+  applyViewConfig(viewToConfig(view));
+  saveViews();
+  renderViewsBar();
+  renderTable();
+}
+
+function renameView(id) {
+  const view = findView(id);
+  if (!view || view.builtin) return;   // built-in views are read-only
+  const next = window.prompt('Rename view', view.name);
+  if (next === null) return;
+  const trimmed = next.trim();
+  if (!trimmed) return;
+  view.name = trimmed;
+  saveViews();
+  renderViewsBar();
+}
+
+function deleteView(id) {
+  const idx = allViews.findIndex(v => v.id === id);
+  if (idx < 0 || allViews[idx].builtin) return;   // built-in views cannot be deleted
+  allViews.splice(idx, 1);
+  Object.keys(activeByTab).forEach(tab => { if (activeByTab[tab] === id) delete activeByTab[tab]; });
+  saveViews();
+  renderViewsBar();
+}
+
+// Associate or de-associate the current tab with a view. User views toggle the
+// current tab in/out of their `tabs`. Built-in views are read-only: associating
+// one with the current tab instead CLONES it into a separate user view (same
+// name/sort/filter) tabbed to — and active on — the current tab.
+function toggleViewTab(id) {
+  const view = findView(id);
+  if (!view) return;
+  if (view.builtin) {
+    const ser = serializeView(view);
+    const clone = normalizeView({
+      id: 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      name: view.name, builtin: false, tabs: [currentStatus],
+      sort: ser.sort, filter: ser.filter
+    });
+    allViews.push(clone);
+    activeByTab[currentStatus] = clone.id;
+    applyViewConfig(viewToConfig(clone));
+    saveViews();
+    renderViewsBar();
+    renderTable();
+    return;
+  }
+  const i = view.tabs.indexOf(currentStatus);
+  if (i === -1) {
+    view.tabs.push(currentStatus);
+  } else {
+    view.tabs.splice(i, 1);
+    if (activeByTab[currentStatus] === id) delete activeByTab[currentStatus];
+  }
+  saveViews();
+  renderViewsBar();
+}
+
+// When the user manually changes a filter or sort, deselect the active view
+// unless the new configuration still exactly matches it.
+function onManualConfigChange() {
+  if (applyingView || !viewsReady) return;
+  const activeId = activeByTab[currentStatus];
+  if (activeId) {
+    const view = findView(activeId);
+    if (!view || !configsEqual(currentViewConfig(), viewToConfig(view))) {
+      delete activeByTab[currentStatus];
+      saveViews();
+    }
+  }
+  renderViewsBar();
+}
+
+// Render the views bar. EVERY view is shown on every tab; a view associated with
+// the current tab is usable (and may be active), while one that is not is
+// grayed-out with a "+" to associate the current tab (clone, for built-ins).
+function renderViewsBar() {
+  const wrap = document.getElementById('views-chips');
+  if (!wrap) return;
+  const activeId = activeByTab[currentStatus] || null;
+  wrap.innerHTML = '';
+  if (!allViews.length) {
+    const span = document.createElement('span');
+    span.className = 'views-empty';
+    span.textContent = 'No saved views \u2014 set filters/sort, then Save view.';
+    wrap.appendChild(span);
+    return;
+  }
+  allViews.forEach(v => {
+    const enabled = viewEnabledOn(v, currentStatus);
+    const chip = document.createElement('span');
+    chip.className = 'view-chip'
+      + (enabled && v.id === activeId ? ' active' : '')
+      + (v.builtin ? ' builtin' : '')
+      + (enabled ? '' : ' disabled');
+    chip.dataset.id = v.id;
+
+    const name = document.createElement('span');
+    name.className = 'view-name';
+    name.textContent = v.name;
+    if (enabled) {
+      name.title = v.builtin ? 'Built-in view \u00b7 click to apply' : 'Click to apply \u00b7 double-click to rename';
+      name.addEventListener('click', () => applyView(v.id));
+      if (!v.builtin) name.addEventListener('dblclick', e => { e.preventDefault(); renameView(v.id); });
+    } else {
+      name.title = v.builtin
+        ? 'Not in this tab \u00b7 click + to save a copy here'
+        : 'Not in this tab \u00b7 click + to add this tab';
+    }
+    chip.appendChild(name);
+
+    // Tab-membership toggle. Enabled built-ins are fully read-only (no toggle).
+    if (!enabled || !v.builtin) {
+      const tabBtn = document.createElement('button');
+      tabBtn.type = 'button';
+      tabBtn.className = 'view-tab';
+      if (enabled) { tabBtn.innerHTML = '\u2713'; tabBtn.title = 'Remove this tab from the view'; }
+      else { tabBtn.innerHTML = '\u002B'; tabBtn.title = v.builtin ? 'Save a copy of this view for this tab' : 'Add this tab to the view'; }
+      tabBtn.setAttribute('aria-label', tabBtn.title);
+      tabBtn.addEventListener('click', e => { e.stopPropagation(); toggleViewTab(v.id); });
+      chip.appendChild(tabBtn);
+    }
+
+    // Delete control (user views only).
+    if (!v.builtin) {
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'view-del';
+      del.innerHTML = '\u2715';
+      del.title = 'Delete this view';
+      del.setAttribute('aria-label', 'Delete view ' + v.name);
+      del.addEventListener('click', e => { e.stopPropagation(); deleteView(v.id); });
+      chip.appendChild(del);
+    }
+    wrap.appendChild(chip);
+  });
+}
+
+// Wire the Save-view button, load stored views, and restore the initial tab's view.
+async function initViews() {
+  await loadViews();
+  const btn = document.getElementById('save-view-btn');
+  if (btn) btn.addEventListener('click', saveCurrentView);
+  viewsReady = true;
+  restoreView(currentStatus);
+  renderViewsBar();
+  renderTable();
 }
 
 // ── Detail panel ──────────────────────────────────────────────
@@ -1006,6 +1490,8 @@ function initTabs() {
       btn.classList.add('active');
       currentStatus = normalizeStatus(btn.dataset.status);
       selectedId = null; hideDetail();
+      restoreView(currentStatus);
+      renderViewsBar();
       renderTable();
     });
   });
@@ -1047,6 +1533,10 @@ function searchTask(rawQuery) {
   const status = normalizeStatus(task.status);
   // Switch to the matched task's status tab and render its list.
   activateStatusTab(status);
+  // Clear any active view/filters for this tab so the matched task is visible.
+  applyViewConfig(EMPTY_CONFIG);
+  if (activeByTab[currentStatus]) { delete activeByTab[currentStatus]; saveViews(); }
+  renderViewsBar();
   renderTable();
   // Select the matched row and open its details.
   selectedId = task.id;
