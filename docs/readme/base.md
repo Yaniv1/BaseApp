@@ -1,4 +1,4 @@
-# BaseApp V-26.06.26.05
+# BaseApp V-26.06.30.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.30.01)
+
+- **Robust flat & nested worktree migration, persisted layout flag, and one-step GitHub publishing** (Feature 3.8; Requirements BASE-REQ-014.18, BASE-REQ-014.20): The existing-deployment migration in `scripts/init_worktree.ps1` is hardened and gains optional remote publishing. `scripts/instantiate.py` now persists the deployment layout as `COMMON.WORKTREE` (a boolean) in the gitignored `config/local.json` (`true` for `--worktree on`, `false` for `off`), so migration can deterministically tell a flat deployment (`{APP}`) from a nested one (`{APP}/{branch}`). `init_worktree.ps1` reads that flag (absent ⇒ legacy flat; `.bare` presence as a secondary nested signal, with a structural fallback) and `Convert-ExistingDeployment` now separates the per-branch content directory from the `{APP}` container, so the **default** nested instantiate output (`{APP}/{branch}` with no `.bare`) migrates into the canonical `{APP}/.bare` + `{APP}/{branch}` layout instead of being double-nested; `WORKTREE=true` is recorded after a successful init. A rename-in-use fix moves both the PowerShell location and the Win32 current directory out of the content tree before relocating it (restoring them in a `finally`), eliminating the `Cannot rename … in use` failure when the script is run from inside the deployment's own `scripts` folder. A new optional `-remote` parameter publishes the migrated repo to GitHub via the `gh` CLI — verifying auth, creating the **private** repo when absent, wiring `origin` with the standard fetch refspec, and pushing all branches with upstream tracking — and accepts an `owner/name`, a bare name, or a full `https`/`ssh` clone URL (normalized to `owner/name` for `gh`). Note: an editor or Explorer window rooted at the `{APP}` container holds a recursive file-watch handle on the container directory and will make the rename step fail with access denied, so close the app folder in your editor before migrating. Verified end-to-end on flat and nested deployments, a no-remote regression run, and a real flat app migrated locally and synced to a throwaway private repo with the production remote untouched; init + instantiate pytests pass and full `app/base.py` EXIT=0.
 
 ## Release Highlights (26.06.26.05)
 

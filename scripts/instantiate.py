@@ -178,18 +178,25 @@ def resolve_app_root(root: str, app_name: str, branch: str, script_dir: Path, wo
 
 
 # Feature 3.1.15
-def populate_local_config(app_root: Path, baseapp_path: Path) -> Path:
+def populate_local_config(app_root: Path, baseapp_path: Path, worktree: bool = True) -> Path:
     """Record the BaseApp source location in the app's gitignored config/local.json.
 
     Writes COMMON.BASEAPP = absolute path of the BaseApp source branch folder so
-    that pullbase.py can later resolve where to pull updates from. The COMMON
-    section (and the file itself) is created when missing; all other existing keys
-    are preserved. config/local.json is a 'once' manifest entry and gitignored, so
-    this value survives subsequent base-update pulls.
+    that pullbase.py can later resolve where to pull updates from. Also records
+    COMMON.WORKTREE = the worktree-mode setting this deployment was instantiated
+    with (True = multi-branch nested layout {APP}/{branch}; False = legacy flat
+    layout {APP}). scripts/init_worktree.ps1 reads this flag to tell a nested
+    deployment from a flat one when migrating to the bare/worktree layout (a
+    missing flag is assumed flat), and sets it True once the worktree layout is
+    in place. The COMMON section (and the file itself) is created when missing;
+    all other existing keys are preserved. config/local.json is a 'once' manifest
+    entry and gitignored, so these values survive subsequent base-update pulls.
 
     Args:
         app_root: Root of the instantiated app variant.
         baseapp_path: Absolute path of the BaseApp source branch folder.
+        worktree: Whether this deployment uses the multi-branch worktree layout
+            (the --worktree on|off setting). Persisted as COMMON.WORKTREE.
 
     Returns:
         Path to the local.json file that was written.
@@ -210,6 +217,7 @@ def populate_local_config(app_root: Path, baseapp_path: Path) -> Path:
         common = {}
         data["COMMON"] = common
     common["BASEAPP"] = str(baseapp_path)
+    common["WORKTREE"] = bool(worktree)
 
     local_path.parent.mkdir(parents=True, exist_ok=True)
     with open(local_path, "w", encoding="utf-8") as f:
@@ -541,7 +549,9 @@ def main():
         print(f"App placeholders created: {result['created_placeholders']}")
         print(f"App placeholders preserved: {result['kept_placeholders']}")
 
-        local_config_path = populate_local_config(target_root, source_root)
+        local_config_path = populate_local_config(
+            target_root, source_root, worktree=(args.worktree == "on")
+        )
         print(f"Recorded BaseApp source in: {local_config_path} (COMMON.BASEAPP={source_root})")
 
         if logger:

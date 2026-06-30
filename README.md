@@ -4,8 +4,12 @@ BaseApp is a reusable Python application template for configuration-driven runti
 
 ## Version
 
-- Base version: 26.06.26.02
-- App template version: A26.06.26.02
+- Base version: 26.06.30.01
+- App template version: A26.06.30.01
+
+## Highlights (26.06.30.01)
+
+- **Turn an existing app into the multi-branch layout, and publish it to GitHub, in one step.** An app that was set up as a single plain folder can now be converted in place into the multi-branch layout — where every branch lives in its own folder beside the others, all sharing one underlying repository — without losing any history or local files. The conversion recognizes both a flat app and one that already keeps its files under a branch sub-folder, and does the right thing for each. Optionally, the same command can publish the converted app to a brand-new **private** GitHub repository and push every branch to it in one go; you can name the repository as `owner/name`, a bare name, or paste a full repository URL. Tip: close the app's folder in your editor before converting, since an open editor keeps a lock on the folder that prevents the conversion from completing.
 
 ## Highlights (26.06.26.02)
 

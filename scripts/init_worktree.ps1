@@ -37,6 +37,16 @@
     standard fetch refspec is configured) so you can `git push -u origin <branch>`
     later. No push is performed by this script.
 
+.PARAMETER remote
+    Optional. When non-empty, publish the resulting bare/worktree repository to a
+    NEW GitHub repository using the GitHub CLI ('gh'). The value is the repo spec
+    passed to 'gh repo create' -- either "owner/name" or just "name" (created under
+    your account). The sequence is: ensure 'gh' auth (runs 'gh auth login' only when
+    not already authenticated), create the repo as PRIVATE if it does not yet exist
+    (an existing repo is reused), set it as 'origin' (the standard fetch refspec is
+    configured), and push ALL local branches with upstream tracking. Defaults to
+    empty (no remote is created or pushed). Requires the GitHub CLI on PATH.
+
 .PARAMETER root
     Parent directory that will CONTAIN the {APP} container folder. Defaults to the
     parent of the {APP} this script is deployed under: this script lives at
@@ -87,6 +97,12 @@
     pwsh -File .\scripts\init_worktree.ps1 -root D:\work -appName MyApp
 
 .EXAMPLE
+    # MIGRATION + publish: convert in place AND create a private GitHub repo, then
+    # push all branches to it (runs 'gh auth login' only if not already signed in):
+    pwsh -File .\scripts\init_worktree.ps1 -root D:\work -appName MyApp `
+        -remote Yaniv1/MyApp
+
+.EXAMPLE
     # MIGRATION + attach a remote: convert in place AND wire up 'origin' so the
     # migrated repo can be pushed later (no push is performed here):
     pwsh -File .\scripts\init_worktree.ps1 `
@@ -103,7 +119,8 @@ param(
     [string]$appName,
     [string]$branch,
     [string]$taskBranch,
-    [string]$taskFolder
+    [string]$taskFolder,
+    [string]$remote
 )
 
 $ErrorActionPreference = "Stop"
@@ -131,20 +148,149 @@ function Add-MigrationExcludes {
     }
 }
 
+function Get-DeployedWorktreeFlag {
+    # Best-effort read of COMMON.WORKTREE from a deployed app's gitignored
+    # config/local.json. instantiate.py records there whether the deployment uses
+    # the multi-branch nested layout ({APP}/{branch}) or the legacy flat layout
+    # ({APP}). Returns $true / $false, or $null when the file or flag is absent
+    # (callers treat a missing flag as flat, since legacy deployments predate it).
+    param([string]$ContentDir)
+    if (-not $ContentDir) { return $null }
+    $cfg = Join-Path $ContentDir "config\local.json"
+    if (-not (Test-Path -LiteralPath $cfg)) { return $null }
+    try {
+        $json = Get-Content -LiteralPath $cfg -Raw | ConvertFrom-Json
+        $val = $json.COMMON.WORKTREE
+        if ($null -ne $val) { return [bool]$val }
+    } catch { }
+    return $null
+}
+
+function Set-DeployedWorktreeFlag {
+    # Record that a deployment is now in the multi-branch worktree (nested) layout
+    # by writing COMMON.WORKTREE = $true into the given worktree's gitignored
+    # config/local.json. Creates the file/section when missing and preserves all
+    # other keys. Best-effort: never throws (the file is local-only metadata).
+    param([string]$WorktreeDir)
+    if (-not $WorktreeDir) { return }
+    try {
+        $cfgDir = Join-Path $WorktreeDir "config"
+        if (-not (Test-Path -LiteralPath $cfgDir)) { return }
+        $cfg = Join-Path $cfgDir "local.json"
+        $data = [ordered]@{}
+        if (Test-Path -LiteralPath $cfg) {
+            $existing = Get-Content -LiteralPath $cfg -Raw | ConvertFrom-Json
+            if ($existing) {
+                $data = [ordered]@{}
+                foreach ($p in $existing.PSObject.Properties) { $data[$p.Name] = $p.Value }
+            }
+        }
+        $common = [ordered]@{}
+        if ($data.Contains('COMMON') -and $data['COMMON']) {
+            foreach ($p in $data['COMMON'].PSObject.Properties) { $common[$p.Name] = $p.Value }
+        }
+        $common['WORKTREE'] = $true
+        $data['COMMON'] = $common
+        ($data | ConvertTo-Json -Depth 20) | Set-Content -LiteralPath $cfg -Encoding utf8
+    } catch { }
+}
+
+function Publish-ToRemote {
+    # Create a GitHub repository with the GitHub CLI and push the local
+    # bare/worktree repo to it. Ensures auth, creates the repo (PRIVATE) when it
+    # does not exist, wires it up as 'origin', and pushes all local branches with
+    # upstream tracking. $RemoteSpec is 'owner/name', 'name', or a full clone URL
+    # (https/ssh) -- a URL is normalized to 'owner/name' for the gh calls.
+    param(
+        [string]$AppPath,
+        [string]$RemoteSpec
+    )
+    if (-not (Get-Command gh -ErrorAction SilentlyContinue)) {
+        Die "remote setup requested (-remote) but the GitHub CLI 'gh' is not on PATH."
+    }
+
+    # 0. normalize the spec: accept 'owner/name', 'name', or a full https/ssh URL.
+    $spec = $RemoteSpec.Trim()
+    if ($spec -match '^(https?://|git@|ssh://)') {
+        $m = [regex]::Match($spec, '[:/]([^/:]+)/([^/]+?)(\.git)?/?$')
+        if (-not $m.Success) { Die "remote: could not parse owner/name from URL '$spec'." }
+        $spec = "$($m.Groups[1].Value)/$($m.Groups[2].Value)"
+        Info "remote: parsed '$spec' from URL"
+    }
+
+    # 1. ensure authenticated (only prompt when not already signed in)
+    gh auth status 2>$null | Out-Null
+    if ($LASTEXITCODE -ne 0) {
+        Info "remote: not authenticated -> launching 'gh auth login' ..."
+        gh auth login
+        if ($LASTEXITCODE -ne 0) { Die "remote: 'gh auth login' failed or was cancelled." }
+    } else {
+        Info "remote: gh already authenticated"
+    }
+
+    # 2. create the repository if it does not already exist
+    gh repo view $spec 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Info "remote: repository '$spec' already exists -> reusing"
+    } else {
+        Info "remote: creating private repository '$spec' ..."
+        gh repo create $spec --private 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) { Die "remote: 'gh repo create $spec' failed." }
+        Ok "remote: created '$spec'"
+    }
+
+    # 3. resolve the repository URL
+    $url = (gh repo view $spec --json url -q .url 2>$null)
+    if (-not $url) { Die "remote: could not resolve a URL for '$spec'." }
+    $url = $url.Trim()
+    if ($url -notmatch '\.git$') { $url = "$url.git" }
+
+    # 4. set as 'origin' (replacing any existing origin) + standard fetch refspec
+    $hasOrigin = @(git -C $AppPath remote 2>$null) -contains 'origin'
+    if ($hasOrigin) {
+        git -C $AppPath remote set-url origin $url | Out-Null
+    } else {
+        git -C $AppPath remote add origin $url | Out-Null
+    }
+    if ($LASTEXITCODE -ne 0) { Die "remote: failed to set origin to '$url'." }
+    git -C $AppPath config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" | Out-Null
+    Ok "remote: origin -> $url"
+
+    # 5. push all local branches and set upstream tracking
+    Info "remote: pushing all local branches to origin ..."
+    git -C $AppPath push -u origin --all 2>&1 | Out-Null
+    if ($LASTEXITCODE -ne 0) { Die "remote: 'git push -u origin --all' failed." }
+    Ok "remote: pushed all branches to origin"
+}
+
 # --- sanity: git present ------------------------------------------------------
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Die "git is not on PATH."
 }
 
 # --- derive container name + paths -------------------------------------------
-# This script is deployed at {APP}/{branch}/scripts, so its grandparent's parent
-# is the {APP} folder and the level above that is the default Root that CONTAINS
-# {APP}. These provide the script-location defaults for -root / -appName.
+# This script lives at <content-dir>/scripts. The deployed content (config,
+# scripts, app, ...) always sits in scripts' parent ($myTreeRoot). Whether that
+# folder IS the {APP} container (legacy flat deployment, {APP}/scripts) or a
+# per-branch sub-folder of it (multi-branch layout {APP}/{branch}/scripts, as
+# produced by 'instantiate --worktree on') is recorded by instantiate.py in
+# config/local.json -> COMMON.WORKTREE. A missing flag is assumed flat (legacy
+# deployments predate it). An already-bare layout ({APP}/.bare at the
+# grandparent) is likewise treated as nested. These provide the script-location
+# defaults for -root / -appName.
 $scriptDir   = $PSScriptRoot
-$myBranchDir = if ($scriptDir)   { Split-Path -Parent $scriptDir }   else { $null }
-$myAppDir    = if ($myBranchDir) { Split-Path -Parent $myBranchDir } else { $null }
-$myAppName   = if ($myAppDir)    { Split-Path -Leaf   $myAppDir }    else { $null }
-$myRoot      = if ($myAppDir)    { Split-Path -Parent $myAppDir }    else { (Get-Location).Path }
+$myTreeRoot  = if ($scriptDir)  { Split-Path -Parent $scriptDir }  else { $null }   # scripts' parent = deployed content dir
+$myTreeAbove = if ($myTreeRoot) { Split-Path -Parent $myTreeRoot } else { $null }   # {APP} in the nested layout
+$myContentDir = $myTreeRoot
+$deployNested = Get-DeployedWorktreeFlag -ContentDir $myTreeRoot
+$inBareLayout = $myTreeAbove -and (Test-Path -LiteralPath (Join-Path $myTreeAbove ".bare"))
+if (($deployNested -eq $true) -or $inBareLayout) {
+    $myAppDir = $myTreeAbove          # nested: {APP} is the grandparent
+} else {
+    $myAppDir = $myTreeRoot           # flat (or unknown): scripts' parent is {APP}
+}
+$myAppName   = if ($myAppDir) { Split-Path -Leaf   $myAppDir } else { $null }
+$myRoot      = if ($myAppDir) { Split-Path -Parent $myAppDir } else { (Get-Location).Path }
 
 if (-not $appName) {
     if ($baseRepo) {
@@ -178,6 +324,7 @@ function Convert-ExistingDeployment {
     #>
     param(
         [string]$AppPath,
+        [string]$ContentDir,
         [string]$branchName,
         [string]$RemoteUrl
     )
@@ -189,34 +336,71 @@ function Convert-ExistingDeployment {
         return $branchName
     }
 
+    # 0. locate the deployable content. In a flat deployment the content lives
+    #    directly in {APP}; in a nested deployment ('instantiate --worktree on')
+    #    it lives in a single {APP}/{branch} sub-folder. The caller passes the
+    #    recorded layout (COMMON.WORKTREE) and a content-dir hint; fall back to
+    #    structural detection (config/app.json marker) when the hint is unusable.
+    $contentDir = $null
+    if ($ContentDir -and (Test-Path -LiteralPath $ContentDir)) {
+        # Trusted hint from the caller (script-location derivation): the deployed
+        # content dir, already known to be $app (flat) or a $app/{branch} child.
+        $contentDir = (Resolve-Path -LiteralPath $ContentDir).Path
+    } else {
+        # Structural detection. A flat {APP} holds the deployment directly (top-level
+        # files and/or recognizable content dirs); a nested {APP} (pre-bare worktree
+        # layout) holds nothing but a single {APP}/{branch} sub-folder.
+        $topFiles = @(Get-ChildItem -LiteralPath $AppPath -File -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -ne '.git' })
+        $topDirs  = @(Get-ChildItem -LiteralPath $AppPath -Directory -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notin '.bare','.git' })
+        $hasFlatMarker = (Test-Path -LiteralPath (Join-Path $AppPath "config\app.json")) -or
+                         ($topFiles.Count -gt 0) -or
+                         [bool](@($topDirs | Where-Object { $_.Name -in 'scripts','config','app','build' }))
+        if ($hasFlatMarker) {
+            $contentDir = $AppPath                       # flat: content directly in {APP}
+        } elseif ($topDirs.Count -eq 1) {
+            $contentDir = $topDirs[0].FullName           # nested: single {APP}/{branch} content folder
+        } elseif ($topDirs.Count -gt 1) {
+            Die ("migration: multiple branch folders under {0}: {1}; cannot pick a migration source." -f $AppPath, (($topDirs | ForEach-Object Name) -join ', '))
+        } else {
+            Die "migration: no deployable content found under $AppPath."
+        }
+    }
+    $isNested = ($contentDir -ne $AppPath)
+    if ($isNested -and -not $branchName) {
+        $branchName = Split-Path -Leaf $contentDir   # nested: branch folder name == branch
+    }
+    if ($isNested) { Info "migration: nested layout -> content in '$(Split-Path -Leaf $contentDir)'" }
+
     # 1. ensure history
-    $hasRepo = Test-Path -LiteralPath (Join-Path $AppPath ".git")
+    $hasRepo = Test-Path -LiteralPath (Join-Path $contentDir ".git")
     if (-not $hasRepo) {
         if (-not $branchName) { $branchName = "main" }
-        git -C $AppPath init -b $branchName | Out-Null
+        git -C $contentDir init -b $branchName | Out-Null
         if ($LASTEXITCODE -ne 0) { Die "migration: git init failed." }
-        Add-MigrationExcludes -RepoPath $AppPath
-        git -C $AppPath add -A | Out-Null
-        git -C $AppPath -c user.email=baseapp@local -c user.name=baseapp commit -m "Initial commit (migrated to bare/worktree layout)" --quiet | Out-Null
+        Add-MigrationExcludes -RepoPath $contentDir
+        git -C $contentDir add -A | Out-Null
+        git -C $contentDir -c user.email=baseapp@local -c user.name=baseapp commit -m "Initial commit (migrated to bare/worktree layout)" --quiet | Out-Null
         if ($LASTEXITCODE -ne 0) { Die "migration: initial commit failed." }
         Ok "migration: initialized history on '$branchName'"
     } else {
-        $current = (git -C $AppPath rev-parse --abbrev-ref HEAD 2>$null)
+        $current = (git -C $contentDir rev-parse --abbrev-ref HEAD 2>$null)
         if (-not $branchName) {
             $branchName = if ($current -and $current -ne "HEAD") { $current } else { "main" }
         }
-        Add-MigrationExcludes -RepoPath $AppPath
-        git -C $AppPath add -A 2>$null | Out-Null
-        $pending = git -C $AppPath status --porcelain
+        Add-MigrationExcludes -RepoPath $contentDir
+        git -C $contentDir add -A 2>$null | Out-Null
+        $pending = git -C $contentDir status --porcelain
         if ($pending) {
-            git -C $AppPath -c user.email=baseapp@local -c user.name=baseapp commit -m "Snapshot before migration to bare/worktree layout" --quiet | Out-Null
+            git -C $contentDir -c user.email=baseapp@local -c user.name=baseapp commit -m "Snapshot before migration to bare/worktree layout" --quiet | Out-Null
         }
         Ok "migration: using existing history on '$branchName'"
     }
 
     # 2. record untracked + ignored files to preserve (e.g. config/local.json)
     $preserve = @()
-    $statusLines = git -C $AppPath status --ignored --porcelain
+    $statusLines = git -C $contentDir status --ignored --porcelain
     foreach ($line in $statusLines) {
         if ($line -match '^(\?\?|!!)\s+(.*)$') {
             $rel = $Matches[2].Trim('"')
@@ -225,17 +409,28 @@ function Convert-ExistingDeployment {
         }
     }
 
-    # 3. rename {APP} -> temp sibling
-    $parent = Split-Path -Parent $AppPath
-    $leaf   = Split-Path -Leaf   $AppPath
+    # 3. rename the content dir -> temp sibling
+    #    flat: content dir IS {APP}; nested: content dir is {APP}/{branch}.
+    $parent = Split-Path -Parent $contentDir
+    $leaf   = Split-Path -Leaf   $contentDir
     $tempLeaf = "{0}.migrate-{1}" -f $leaf, (Get-Date -Format "yyyyMMddHHmmss")
     $temp   = Join-Path $parent $tempLeaf
-    Rename-Item -LiteralPath $AppPath -NewName $tempLeaf
+    # The script is commonly run from inside the content dir (e.g. .../scripts),
+    # which pins the directory and makes the rename fail with "in use". Move the
+    # process working directory out to the content dir's parent first -- both
+    # PowerShell's location and the Win32 current directory
+    # ([Environment]::CurrentDirectory), which is what actually holds the handle.
+    Set-Location -LiteralPath $parent
+    [Environment]::CurrentDirectory = $parent
+    Rename-Item -LiteralPath $contentDir -NewName $tempLeaf
     Ok "migration: staged existing tree at $temp"
 
     try {
-        # recreate empty container
-        New-Item -ItemType Directory -Force -Path $AppPath | Out-Null
+        # ensure the {APP} container exists (flat: it was just renamed away;
+        # nested: it already exists as the content dir's parent)
+        if (-not (Test-Path -LiteralPath $AppPath)) {
+            New-Item -ItemType Directory -Force -Path $AppPath | Out-Null
+        }
 
         # 4. bare clone from the staged working tree
         $bareTarget = Join-Path $AppPath ".bare"
@@ -291,6 +486,15 @@ function Convert-ExistingDeployment {
         if (Test-Path -LiteralPath $temp) {
             Remove-Item -LiteralPath $temp -Recurse -Force -ErrorAction SilentlyContinue
         }
+        # 9. restore a valid working directory (the caller's original location was
+        #    inside {APP} and has been moved/removed): prefer the new worktree,
+        #    then {APP}, then its parent.
+        $restoreTo = Join-Path $AppPath $branchName
+        if (-not (Test-Path -LiteralPath $restoreTo)) {
+            $restoreTo = if (Test-Path -LiteralPath $AppPath) { $AppPath } else { $parent }
+        }
+        Set-Location -LiteralPath $restoreTo
+        [Environment]::CurrentDirectory = $restoreTo
     }
 
     return $branchName
@@ -308,7 +512,15 @@ if (Test-Path -LiteralPath $app) {
 $migrated = $false
 if (-not $bareExists -and $appHasContent) {
     Info "existing deployment detected at $app with no .bare -> MIGRATION mode"
-    $branch = Convert-ExistingDeployment -AppPath $app -BranchName $branch -RemoteUrl $baseRepo
+    # Pass the deployed content dir as a hint when it sits within (or is) $app, so
+    # the converter knows the flat-vs-nested source without re-detection. The
+    # converter falls back to structural detection when the hint is unusable.
+    $contentHint = $null
+    if ($myContentDir) {
+        $cp = Split-Path -Parent $myContentDir
+        if (($myContentDir -eq $app) -or ($cp -eq $app)) { $contentHint = $myContentDir }
+    }
+    $branch = Convert-ExistingDeployment -AppPath $app -ContentDir $contentHint -BranchName $branch -RemoteUrl $baseRepo
     $migrated = $true
 }
 
@@ -458,6 +670,15 @@ if ($taskBranch) {
 # --- 8. verify ----------------------------------------------------------------
 Info "worktree layout:"
 git -C $app worktree list
+
+# Record that this deployment now uses the multi-branch worktree (nested) layout
+# so a later re-run / migration treats it as nested (COMMON.WORKTREE = true).
+Set-DeployedWorktreeFlag -WorktreeDir (Join-Path $app $branch)
+
+# --- 9. optional remote setup (create GitHub repo + push all branches) --------
+if ($remote) {
+    Publish-ToRemote -AppPath $app -RemoteSpec $remote
+}
 
 Ok "DONE. Container ready at: $app"
 Write-Host ""
