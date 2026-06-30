@@ -697,7 +697,7 @@
                         },
                         {
                             "id": "BASE-REQ-008.7.2",
-                            "description": "Process requirement: The worker prompt for a task shall be built from an instruction template selected by task type via the CONFIG.APP.TASK_MANAGER.templates mapping (currently Feature->task.md, Bug->task.md, PullBase->pullbase.md) with a 'default' of task.md. PullBase tasks therefore use build/instructions/pullbase.md instead of task.md, because the base-update lifecycle differs from feature/bug-fix work. No type strings or template filenames are hard-coded in logic.",
+                            "description": "Process requirement: The worker prompt for a task shall be built from an instruction template selected by task type via the CONFIG.APP.TASK_MANAGER.templates mapping (currently Feature->task.md, Bug->task.md, PullBase->pullbase.md) with a 'default' of task.md, resolved inline in the prompt builder (a simple config lookup, not a dedicated helper). PullBase tasks therefore use build/instructions/pullbase.md instead of task.md, because the base-update lifecycle differs from feature/bug-fix work. No type strings or template filenames are hard-coded in logic.",
                             "priority": "Medium",
                             "comments": []
                         },
@@ -801,7 +801,7 @@
                 },
                 {
                     "feature": "3.6.15",
-                    "role": "_instruction_template_for_task routes a task to its instruction template via CONFIG.APP.TASK_MANAGER.templates (PullBase->pullbase.md, default task.md) (BASE-REQ-008.7.2).",
+                    "role": "_build_copilot_prompt selects the instruction template inline by task type via CONFIG.APP.TASK_MANAGER.templates (PullBase->pullbase.md, default task.md) (BASE-REQ-008.7.2).",
                     "implementation": 0.0,
                     "verification": 0.0,
                     "deployment": 0.0

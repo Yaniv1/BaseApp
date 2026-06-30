@@ -401,10 +401,10 @@
                             "path": "scripts/task_manager.py::_write_agent_mcp_config"
                         },
                         "3.6.15": {
-                            "name": "scripts.task_manager._instruction_template_for_task",
-                            "description": "Resolve which instruction template a task's worker prompt is built from, based on the task type, using the CONFIG.APP.TASK_MANAGER.templates mapping (e.g. Feature->task.md, Bug->task.md, PullBase->pullbase.md) with a 'default' fallback of task.md. No task-type strings or template filenames are hard-coded in logic.",
+                            "name": "scripts.task_manager._build_copilot_prompt",
+                            "description": "Build a task's worker Copilot prompt by populating the instruction template with task details and store/workspace placeholders. The instruction template is selected inline by task type via the CONFIG.APP.TASK_MANAGER.templates mapping (e.g. PullBase->pullbase.md) with a 'default' of task.md, so PullBase tasks are driven by build/instructions/pullbase.md while Feature/Bug tasks use task.md.",
                             "type": "Folder.PyFile.Function",
-                            "path": "scripts/task_manager.py::_instruction_template_for_task"
+                            "path": "scripts/task_manager.py::_build_copilot_prompt"
                         }
                     }
                 },
