@@ -39,9 +39,8 @@
         }, 
         {
             "source": "build/instructions/pullbase.md",
-            "target": "build/instructions/pullbase.md",
-            "target": "build/instructions/task.md"
-        }, 
+            "target": "build/instructions/pullbase.md"
+        },        
         {
             "source": "docs/readme/base.md"
         },
