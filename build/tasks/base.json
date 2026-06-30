@@ -2028,7 +2028,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Deployed",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2054,6 +2054,11 @@
                     "author": "BASE-TASK-260627-0002 worker",
                     "content": "Engineer approved the push. Finalized and pushed to branch task/BASE-TASK-260627-0002 (commit 19a8d4c): ALL tab + Status column feature, BASE-REQ-014.15, docs/readme + README overview, updates ledger, version bumped to 26.06.29.02. Build tests: deployment 25/25, README-overview PASS, 0 failures. The task ledger (build/tasks/base.json) was intentionally excluded from the commit.",
                     "timestamp": "2026-06-30T01:55:13Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0002 worker",
+                    "content": "Integration complete: task/BASE-TASK-260627-0002 merged into main with --no-ff (merge commit 7e0ea25) under engineer supervision, no conflicts (the task ledger was excluded from the feature commit, so main's ledger was untouched). main pushed to origin (87655c2..7e0ea25). Dissolving the short-lived task branch and its worktree.",
+                    "timestamp": "2026-06-30T02:32:05Z"
                 }
             ],
             "worker_session": {
