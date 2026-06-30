@@ -1893,7 +1893,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Ready",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -1929,6 +1929,11 @@
                     "author": "BASE-TASK-260626-0003 worker",
                     "content": "Implementation complete and validated (awaiting review; code not yet pushed). Variant apps now deploy into the multi-branch bare/worktree architecture: (1) instantiate.py adds --container/--app-name/--branch with resolve_app_root (3.1.14) computing {abspath(container)}/{app-name}/{branch} and populate_local_config (3.1.15) recording COMMON.BASEAPP in config/local.json; (2) pullbase.py adds --branch and resolve_baseapp_source (3.2.19) with worktree->main->auto fallback and BASEAPP leaf-swap; (3) init_bare_worktree_repo.ps1 adds auto-detected MIGRATION mode Convert-ExistingDeployment (3.8.2) converting an existing single-tree deployment in place into {APP}/.bare + {APP}/{branch}, preserving git history and gitignored files (e.g. local.json), excluding .venv, dropping the dangling origin, idempotent. Tests 5.3.1.5.2, 5.3.1.5.3, 5.3.1.4.2 (structured) and 5.3.1.8.2 (pytest migration) added. Validation: prep phase 17 run/0 failures; init pytest 2 passed; build phase 0 failures.",
                     "timestamp": "2026-06-29T23:21:14Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0003 worker",
+                    "content": "Moving to Deployed. Implementation committed and pushed to task/BASE-TASK-260626-0003 (commit 66a2ad9): variant apps deploy into the multi-branch bare/worktree architecture (instantiate.py --worktree on|off, resolve_app_root/populate_local_config), pullbase.py BaseApp-source resolution with is_self_pull guard (PULLE11) preventing branch overwrite, and init_worktree.ps1 (renamed) with auto migration mode. CLI params aligned to camelCase across all three scripts. Validation: full app/base.py suite EXIT=0; deployment integration 25/25; init pytest 2 passed.",
+                    "timestamp": "2026-06-30T04:54:08Z"
                 }
             ],
             "worker_session": {
