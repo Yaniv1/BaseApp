@@ -1,4 +1,4 @@
-# BaseApp V-26.06.30.01
+# BaseApp V-26.06.30.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.30.02)
+
+- **First-class `PullBase` task type — managed, reviewable BaseApp-update pulls** (Feature 3.6; Requirement BASE-REQ-008.7): Consuming a BaseApp update is now a managed Task Manager task rather than a manual staging of base churn in the variant app. The Task Manager create pane (`resources/templates/task_manager.html`) moves the **task type selector above the title** and adds a **`PullBase`** option (also added to the edit pane); selecting `PullBase` makes the **title optional** (the server auto-fills `PullBase {YYYY-MM-DD}`) and shows an auto-fill hint. `scripts/task_manager.py` selects the worker instruction template **by task type** in `_build_copilot_prompt` (Architecture 3.6.16) using a new `CONFIG.APP.TASK_MANAGER.templates` map (`Feature`→`task.md`, `Bug`→`task.md`, `PullBase`→`pullbase.md`, with a `default` of `task.md`), and `_create_task` (Architecture 3.6.4) auto-fills the PullBase title — the type name and title format live as module constants (`PULLBASE_TASK_TYPE`/`PULLBASE_TITLE_FORMAT`/`PULLBASE_TITLE_DATE_FORMAT`), with no hard-coded literals in the logic. A new dedicated instruction file **`build/instructions/pullbase.md`** (Architecture 10.1.2) drives the PullBase lifecycle from the task details: confirm the task branch, run `pullbase` on it (auto-detecting the BaseApp source unless the task description overrides it), collect and review the incoming base updates, summarize them to the engineer as an HTML report to reach **Ready**, then deploy and merge under `base.md`'s supervised-merge model (deploy+merge together, or deploy-only then merge after a separate approval). `resources/manifests/pull.json` registers `pullbase.md` so variant apps receive it on pull. Tests in `test/tests/base/task_manager.py` cover type-based template routing, the `default` fallback, and the PullBase title auto-fill (explicit titles preserved; non-PullBase types never auto-titled). Verified live: the running Task Manager created a real `PullBase 2026-06-30` task through this feature.
 
 ## Release Highlights (26.06.30.01)
 

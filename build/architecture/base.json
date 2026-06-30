@@ -340,7 +340,7 @@
                         },
                         "3.6.4": {
                             "name": "scripts.task_manager._create_task",
-                            "description": "Create and append a new task to the task list, always prepending an auto-generated 'Task created' comment attributed to the local or provided author.",
+                            "description": "Create and append a new task to the task list, always prepending an auto-generated 'Task created' comment attributed to the local or provided author. When the task type is PullBase and no title is supplied, the title is auto-filled as 'PullBase {YYYY-MM-DD}'.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_create_task"
                         },
@@ -429,6 +429,12 @@
                             "description": "Built-in + user views model for the Task Manager UI saved views, modelled as a single FLAT ARRAY of view objects { id, name, tabs:[...], sort:{col:dir,...}, filter:{col:[vals],...} } (multi-tab association; compact ordered multi-column sort; compact multi-value filters). _load_views returns the effective payload { views:[...], active:{tab:viewId} }: 'views' is the read-only built-in views shipped in config/base.json under APP.TASK_MANAGER.views (each tagged builtin=true via _builtin_views/_tag_views) followed by the user's saved views read from the override layers config/local.json then config/machine.json (machine taking precedence via _user_views, tagged builtin=false), with user views whose id collides with a built-in dropped so built-ins always win; 'active' is the per-tab active-view map (_active_views) from those layers. Helpers _config_file_path/_load_config_file_raw/_nested_get/_views_array_from_config_file/_active_from_config_file/_builtin_view_ids support the read. _save_views accepts { views, active } and persists ONLY user views (built-ins, identified by _builtin_view_ids or a builtin=true flag, are stripped along with the builtin flag and never written) plus the active map (filtered to view ids that actually exist) to config/machine.json under APP.TASK_MANAGER.views (flat array) and APP.TASK_MANAGER.active_views via _set_nested, creating the nested sections and preserving every other key, written atomically (os.replace), and returns the freshly merged effective payload. The handler exposes them as GET /api/views (effective payload) and PUT /api/views (validates a dict body, persists user views + active map, returns the effective payload), so the predefined built-in views ship in committed config and cannot be deleted, renamed, or re-tabbed by the user, while a user's personal views and active-view selections stay machine-local (git-ignored) and survive sessions and browsers.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_load_views"
+                        },
+                        "3.6.16": {
+                            "name": "scripts.task_manager._build_copilot_prompt",
+                            "description": "Build a task's worker Copilot prompt by populating the instruction template with task details and store/workspace placeholders. The instruction template is selected inline by task type via the CONFIG.APP.TASK_MANAGER.templates mapping (e.g. PullBase->pullbase.md) with a 'default' of task.md, so PullBase tasks are driven by build/instructions/pullbase.md while Feature/Bug tasks use task.md.",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_build_copilot_prompt"
                         }
                     }
                 },
@@ -1251,6 +1257,12 @@
                             "description": "Base-layer agent and developer instructions.",
                             "type": "Folder.Folder.MdFile",
                             "path": "build/instructions/base.md"
+                        },
+                        "10.1.2": {
+                            "name": "build.instructions.pullbase",
+                            "description": "Dedicated instruction file for PullBase tasks: using the task details, run pullbase on the task branch (auto-detecting the BaseApp source unless the task description specifies otherwise), collect and review the incoming BaseApp updates, summarize them to the user as an HTML report, reach Ready, then deploy and merge under explicit engineer approval following base.md's supervised-merge model (deploy+merge, or deploy-only then merge after a separate approval).",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "build/instructions/pullbase.md"
                         }
                     }
                 },

@@ -125,6 +125,15 @@ python scripts/task_manager.py --browser-off
 
 How a task flows through the system:
 
+- **Task types.** Each task has a **type**, chosen above the title when it is created.
+  `Feature` and `Bug` tasks are spec-driven code changes that share the standard
+  `task.md` instructions. **`PullBase`** is a dedicated type for consuming BaseApp
+  updates as a managed, reviewable task: selecting it makes the title optional (it is
+  auto-filled as `PullBase {YYYY-MM-DD}`) and drives the work from a separate
+  `pullbase.md` instruction file that runs `pullbase` on the task branch, summarizes the
+  incoming base changes for review, and then deploys and merges them under the supervised
+  lifecycle. The per-type instruction template is configured in
+  `config/base.json` under `APP.TASK_MANAGER.templates`.
 - **Browseable task list.** Tasks are presented in a sortable, filterable list with a
   search box and tabs: an **`ALL`** tab (the default) shows every task in one view, and
   one tab per status narrows the list to that status. Each column (ID, Title, Type,

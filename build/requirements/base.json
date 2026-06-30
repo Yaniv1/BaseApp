@@ -680,6 +680,51 @@
                             "comments": []
                         }
                     ]
+                },
+                {
+                    "id": "BASE-REQ-008.7",
+                    "title": "Managed PullBase Task Workflow for Consuming Base Updates",
+                    "description": "The system must minimize the burden a BaseApp update imposes on an instance app by making the consumption of base updates a first-class, reviewable task type ('PullBase', named to match the pullbase script) rather than a manual edit-and-commit chore. From the Task Manager, the designer creates a PullBase task that runs pullbase on a dedicated task branch, gathers the incoming base changes, summarizes them for review, and is then deployed and merged under explicit engineer approval following base.md's supervised-merge model — keeping the BaseApp code structure identical in the instance while removing the structure-maintenance burden from the instance designer.",
+                    "priority": "Medium",
+                    "comments": [],
+                    "breakdown": [
+                        {
+                            "id": "BASE-REQ-008.7.1",
+                            "description": "Interface requirement: In the Task Manager task-creation pane, the task type selector shall appear above the title field. 'PullBase' shall be a selectable task type. When the type is PullBase, no title is required: the system shall auto-fill the title as 'PullBase {YYYY-MM-DD}'. No special one-off button is introduced.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.7.2",
+                            "description": "Process requirement: The worker prompt for a task shall be built from an instruction template selected by task type via the CONFIG.APP.TASK_MANAGER.templates mapping (currently Feature->task.md, Bug->task.md, PullBase->pullbase.md) with a 'default' of task.md, resolved inline in the prompt builder (a simple config lookup, not a dedicated helper). PullBase tasks therefore use build/instructions/pullbase.md instead of task.md, because the base-update lifecycle differs from feature/bug-fix work. No type strings or template filenames are hard-coded in logic.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.7.3",
+                            "description": "Process requirement: The pullbase.md instruction file shall use the task details (id, title, description, etc.) and direct the worker to run pullbase against the BaseApp source on the task's own short-lived branch, auto-detecting the source by default and honoring an alternative source specified in the task description.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.7.4",
+                            "description": "Output requirement: Before reaching Ready, the PullBase flow shall collect the incoming BaseApp updates (e.g. from git status/diff and build/updates/base.json) and produce a human-readable HTML report summarizing them, written to the task result store, then move the task to Ready for review.",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.7.5",
+                            "description": "Process requirement: Deployment and integration shall be gated on explicit engineer approval following base.md's supervised-merge model, with two supported paths: (a) approve deploy-and-merge — finalize, push the branch (Deployed), then merge to main (Done); or (b) approve deploy-only — finalize and push the branch (Deployed), then wait for a separate merge approval before merging to main (Done).",
+                            "priority": "Medium",
+                            "comments": []
+                        },
+                        {
+                            "id": "BASE-REQ-008.7.6",
+                            "description": "Constraint requirement: The feature is implemented in BaseApp so every variant app receives the pullbase.md instruction file (via the pull manifest) and the type-routed Task Manager behavior through the normal pull/manifest mechanism.",
+                            "priority": "Low",
+                            "comments": []
+                        }
+                    ]
                 }
             ],
             "solution": [
@@ -745,6 +790,27 @@
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0
+                },
+                {
+                    "feature": "3.6.4",
+                    "role": "_create_task auto-fills the PullBase title as 'PullBase {date}' when type is PullBase and no title is supplied (BASE-REQ-008.7.1).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "3.6.16",
+                    "role": "_build_copilot_prompt selects the instruction template inline by task type via CONFIG.APP.TASK_MANAGER.templates (PullBase->pullbase.md, default task.md) (BASE-REQ-008.7.2).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "10.1.2",
+                    "role": "pullbase.md uses the task details to drive the PullBase lifecycle: pullbase on the task branch, collect/summarize updates, reach Ready, then deploy and merge per approval under base.md's supervised-merge model (BASE-REQ-008.7.3, 008.7.4, 008.7.5).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
                 }
             ]
         },
