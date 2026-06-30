@@ -414,6 +414,33 @@ def test_task_manager_template_has_column_sorting_and_filtering():
     assert "PRIORITY_RANK" in template
 
 
+def test_task_manager_template_has_all_tab():
+    """BASE-REQ-014.15: a single 'ALL' tab, positioned before the status tabs and
+    active by default, lists every task without status division and adds a
+    Status column (sortable + filterable) available only in the ALL tab."""
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    # The ALL tab markup is present, with a total-count badge.
+    assert 'data-status="ALL"' in template
+    assert 'id="cnt-ALL"' in template
+    # The ALL tab is positioned before (to the left of) the ToDo status tab and
+    # is the active tab by default.
+    assert template.index('data-status="ALL"') < template.index('data-status="ToDo"')
+    assert '<button class="tab active" data-status="ALL">' in template
+    # 'ALL' is the default selected view and is not normalized to a real status.
+    assert "currentStatus = 'ALL'" in template
+    # The Status column header is sortable with its own indicator, and offers a filter.
+    assert 'data-col="status"' in template
+    assert 'id="sort-ind-status"' in template
+    assert 'id="filter-status"' in template
+    # The Status column is hidden outside the ALL tab via the show-status toggle.
+    assert ".task-table .col-status{display:none}" in template
+    assert ".task-table.show-status .col-status" in template
+    assert "classList.toggle('show-status', currentStatus === 'ALL')" in template
+    # Status sorts by lifecycle order (the canonical status-tab order).
+    assert "STATUS_TABS.indexOf(normalizeStatus(a.status))" in template
+
+
 def test_delete_task_soft_deletes_then_removes():
     tasks = [
         {"id": "BASE-TASK-0001", "title": "Keep", "status": "ToDo"},

@@ -125,6 +125,11 @@ python scripts/task_manager.py --browser-off
 
 How a task flows through the system:
 
+- **Browseable task list.** Tasks are presented in a sortable, filterable list with a
+  search box and tabs: an **`ALL`** tab (the default) shows every task in one view, and
+  one tab per status narrows the list to that status. Each column (ID, Title, Type,
+  Priority — plus Status in the `ALL` tab) can be sorted and filtered, and the search box
+  jumps straight to a task by id.
 - **Isolation per task.** The repository uses a bare shared object store with every
   branch — including `main` — checked out as its own git worktree under one container.
   Each task is worked on a short-lived `task/<id>` branch in its own dedicated worktree,

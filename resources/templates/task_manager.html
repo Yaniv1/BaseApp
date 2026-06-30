@@ -121,6 +121,11 @@ details.cli-sect{margin-top:2px}
 /* Sortable headers + per-column filters */
 .task-table th.sortable{cursor:pointer;user-select:none;white-space:nowrap}
 .task-table th.sortable:hover{color:var(--tx)}
+/* The Status column is only meaningful in the ALL tab; it is hidden in the
+   per-status tabs (where every row shares the tab's status) and revealed when
+   the table carries the .show-status class set by renderTable for the ALL tab. */
+.task-table .col-status{display:none}
+.task-table.show-status .col-status{display:table-cell}
 .sort-ind{margin-left:5px;font-size:.7rem;color:var(--ac)}
 .filter-row th{padding:0 10px 9px;border-bottom:1px solid var(--ln)}
 .col-filter{width:100%;box-sizing:border-box;background:var(--bg);color:var(--tx);
@@ -247,7 +252,8 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       <span id="task-search-msg" class="msg"></span>
     </div>
     <div class="tab-bar">
-      <button class="tab active" data-status="ToDo">ToDo <span id="cnt-ToDo" class="badge">0</span></button>
+      <button class="tab active" data-status="ALL">ALL <span id="cnt-ALL" class="badge">0</span></button>
+      <button class="tab" data-status="ToDo">ToDo <span id="cnt-ToDo" class="badge">0</span></button>
       <button class="tab" data-status="InProgress">InProgress <span id="cnt-InProgress" class="badge">0</span></button>
       <button class="tab" data-status="Specified">Specified <span id="cnt-Specified" class="badge">0</span></button>
       <button class="tab" data-status="Ready">Ready <span id="cnt-Ready" class="badge">0</span></button>
@@ -260,19 +266,21 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
     <div class="split" id="split">
       <div class="list-pane" id="list-pane">
         <div class="table-wrap">
-          <table class="task-table">
+          <table class="task-table" id="task-table">
             <thead>
               <tr class="sort-row">
                 <th class="sortable" data-col="id">ID<span class="sort-ind" id="sort-ind-id"></span></th>
                 <th class="sortable" data-col="title">Title<span class="sort-ind" id="sort-ind-title"></span></th>
                 <th class="sortable" data-col="type">Type<span class="sort-ind" id="sort-ind-type"></span></th>
                 <th class="sortable" data-col="priority">Priority<span class="sort-ind" id="sort-ind-priority"></span></th>
+                <th class="sortable col-status" data-col="status">Status<span class="sort-ind" id="sort-ind-status"></span></th>
               </tr>
               <tr class="filter-row">
                 <th><input type="text" id="filter-id" class="col-filter" placeholder="Filter ID&hellip;" autocomplete="off"></th>
                 <th><input type="text" id="filter-title" class="col-filter" placeholder="Filter title&hellip;" autocomplete="off"></th>
                 <th><select id="filter-type" class="col-filter"><option value="">All types</option></select></th>
                 <th><select id="filter-priority" class="col-filter"><option value="">All priorities</option></select></th>
+                <th class="col-status"><select id="filter-status" class="col-filter"><option value="">All statuses</option></select></th>
               </tr>
             </thead>
             <tbody id="task-tbody"></tbody>
@@ -347,13 +355,14 @@ const SM = document.getElementById('server-meta');
 const defaultPath = SM ? SM.getAttribute('data-tasks-path') : '';
 const defaultTasksDir = SM ? SM.getAttribute('data-tasks-dir') : '';
 const defaultAppName = SM ? SM.getAttribute('data-app-name') : 'App';
-let allTasks = [], currentStatus = 'ToDo', selectedId = null;
-// Column sort state: which column (id|title|type|priority) and direction.
+let allTasks = [], currentStatus = 'ALL', selectedId = null;
+// Column sort state: which column (id|title|type|priority|status) and direction.
 // Sorting cycles none -> asc -> desc -> none per column.
 let sortColumn = null, sortDir = 'asc';
-// Per-column filters: id/title are substring text filters, type/priority are
-// exact-value selections drawn from the values present in the task list.
-const colFilters = { id: '', title: '', type: '', priority: '' };
+// Per-column filters: id/title are substring text filters, type/priority/status
+// are exact-value selections drawn from the values present in the task list.
+// The status filter applies only in the ALL tab.
+const colFilters = { id: '', title: '', type: '', priority: '', status: '' };
 const PRIORITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 const PRIORITY_ORDER = ['Critical', 'High', 'Medium', 'Low'];
 const STATUS_TABS = ['ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted', 'Other'];
@@ -637,20 +646,31 @@ function updateBadges() {
     const el = document.getElementById('cnt-' + s);
     if (el) el.textContent = n;
   });
+  // The ALL tab badge reflects the total number of tasks (no status division).
+  const allEl = document.getElementById('cnt-ALL');
+  if (allEl) allEl.textContent = allTasks.length;
 }
 
 function renderTable() {
-  currentStatus = normalizeStatus(currentStatus);
+  // 'ALL' is a virtual tab (every task, no status division) and is not a real
+  // status, so it bypasses status normalization.
+  if (currentStatus !== 'ALL') currentStatus = normalizeStatus(currentStatus);
+  // The Status column is only shown in the ALL tab.
+  const table = document.getElementById('task-table');
+  if (table) table.classList.toggle('show-status', currentStatus === 'ALL');
   const tasks = getVisibleTasks();
   const tbody = document.getElementById('task-tbody');
   const noEl = document.getElementById('no-tasks');
   tbody.innerHTML = '';
   if (!tasks.length) {
-    const filtersActive = colFilters.id || colFilters.title || colFilters.type || colFilters.priority;
-    const hasUnfiltered = allTasks.some(t => normalizeStatus(t.status) === currentStatus);
+    const filtersActive = colFilters.id || colFilters.title || colFilters.type || colFilters.priority ||
+      (currentStatus === 'ALL' && colFilters.status);
+    const hasUnfiltered = currentStatus === 'ALL'
+      ? allTasks.length > 0
+      : allTasks.some(t => normalizeStatus(t.status) === currentStatus);
     noEl.textContent = (filtersActive && hasUnfiltered)
       ? 'No tasks match the current filters.'
-      : 'No tasks in this status.';
+      : (currentStatus === 'ALL' ? 'No tasks.' : 'No tasks in this status.');
     noEl.classList.remove('hidden');
     return;
   }
@@ -661,11 +681,13 @@ function renderTable() {
     tr.dataset.id = task.id;
     tr.tabIndex = 0;
     const p = (task.priority || 'Medium').toLowerCase();
+    const st = normalizeStatus(task.status);
     tr.innerHTML =
       '<td class="id-col"><code>' + esc(task.id) + '</code></td>' +
       '<td class="title-col">' + esc(task.title || '') + '</td>' +
       '<td>' + esc(task.type || 'Feature') + '</td>' +
-      '<td><span class="pri pri-' + p + '">' + esc(task.priority || 'Medium') + '</span></td>';
+      '<td><span class="pri pri-' + p + '">' + esc(task.priority || 'Medium') + '</span></td>' +
+      '<td class="col-status"><span class="sbadge ' + statusCls(st) + '">' + esc(st) + '</span></td>';
     tr.addEventListener('click', () => toggle(task));
     tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(task); } });
     tbody.appendChild(tr);
@@ -676,12 +698,17 @@ function renderTable() {
 // Returns tasks for the current status tab with column filters applied
 // and the active column sort, if any.
 function getVisibleTasks() {
-  let tasks = allTasks.filter(t => normalizeStatus(t.status) === currentStatus);
+  // The ALL tab shows every task; status tabs show only their own status.
+  let tasks = currentStatus === 'ALL'
+    ? allTasks.slice()
+    : allTasks.filter(t => normalizeStatus(t.status) === currentStatus);
   tasks = tasks.filter(t => {
     if (colFilters.id && !String(t.id || '').toLowerCase().includes(colFilters.id.toLowerCase())) return false;
     if (colFilters.title && !String(t.title || '').toLowerCase().includes(colFilters.title.toLowerCase())) return false;
     if (colFilters.type && String(t.type || 'Feature') !== colFilters.type) return false;
     if (colFilters.priority && String(t.priority || 'Medium') !== colFilters.priority) return false;
+    // The status filter is only meaningful (and only exposed) in the ALL tab.
+    if (currentStatus === 'ALL' && colFilters.status && normalizeStatus(t.status) !== colFilters.status) return false;
     return true;
   });
   if (sortColumn) {
@@ -694,12 +721,16 @@ function getVisibleTasks() {
 }
 
 // Compare two tasks on a column. Priority sorts by severity rank
-// (Critical > High > Medium > Low); other columns sort naturally.
+// (Critical > High > Medium > Low); Status sorts by lifecycle order
+// (the canonical status-tab order); other columns sort naturally.
 function compareCol(a, b, col) {
   if (col === 'priority') {
     const ra = PRIORITY_RANK[String(a.priority || 'Medium').toLowerCase()] || 0;
     const rb = PRIORITY_RANK[String(b.priority || 'Medium').toLowerCase()] || 0;
     return ra - rb;
+  }
+  if (col === 'status') {
+    return STATUS_TABS.indexOf(normalizeStatus(a.status)) - STATUS_TABS.indexOf(normalizeStatus(b.status));
   }
   let va, vb;
   if (col === 'id') { va = a.id || ''; vb = b.id || ''; }
@@ -718,7 +749,7 @@ function cycleSort(col) {
 }
 
 function updateSortIndicators() {
-  ['id', 'title', 'type', 'priority'].forEach(c => {
+  ['id', 'title', 'type', 'priority', 'status'].forEach(c => {
     const el = document.getElementById('sort-ind-' + c);
     if (!el) return;
     el.textContent = (sortColumn === c) ? (sortDir === 'asc' ? '\u25B2' : '\u25BC') : '';
@@ -742,6 +773,15 @@ function populateColumnFilters() {
     fillFilterSelect(priSel, [...known, ...extra], colFilters.priority, 'All priorities');
     colFilters.priority = priSel.value;
   }
+  // Status filter (ALL tab only): distinct normalized statuses present, ordered
+  // by the canonical status-tab lifecycle order.
+  const statusSel = document.getElementById('filter-status');
+  if (statusSel) {
+    const present = new Set(allTasks.map(t => normalizeStatus(t.status)));
+    const ordered = STATUS_TABS.filter(s => present.has(s));
+    fillFilterSelect(statusSel, ordered, colFilters.status, 'All statuses');
+    colFilters.status = statusSel.value;
+  }
 }
 
 function fillFilterSelect(sel, values, current, allLabel) {
@@ -759,10 +799,12 @@ function initColumnControls() {
   const fti = document.getElementById('filter-title');
   const fty = document.getElementById('filter-type');
   const fpr = document.getElementById('filter-priority');
+  const fst = document.getElementById('filter-status');
   if (fid) fid.addEventListener('input', () => { colFilters.id = fid.value; renderTable(); });
   if (fti) fti.addEventListener('input', () => { colFilters.title = fti.value; renderTable(); });
   if (fty) fty.addEventListener('change', () => { colFilters.type = fty.value; renderTable(); });
   if (fpr) fpr.addEventListener('change', () => { colFilters.priority = fpr.value; renderTable(); });
+  if (fst) fst.addEventListener('change', () => { colFilters.status = fst.value; renderTable(); });
 }
 
 // ── Detail panel ──────────────────────────────────────────────
@@ -1004,7 +1046,7 @@ function initTabs() {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
-      currentStatus = normalizeStatus(btn.dataset.status);
+      currentStatus = btn.dataset.status === 'ALL' ? 'ALL' : normalizeStatus(btn.dataset.status);
       selectedId = null; hideDetail();
       renderTable();
     });

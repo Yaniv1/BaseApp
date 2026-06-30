@@ -1,4 +1,4 @@
-# BaseApp V-26.06.29.01
+# BaseApp V-26.06.29.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.06.29.02)
+
+- **Task Manager UI "ALL" tab — a single view of every task** (Feature 3.6; Requirement BASE-REQ-014.15): The Task Manager UI (`resources/templates/task_manager.html`) gains an **`ALL`** tab placed **before** the status tabs and active by default, listing every task with no status division and carrying a total-count badge (`cnt-ALL`). The existing per-column sorting and filtering (ID, Title, Type, Priority) apply unchanged within the ALL tab. Because the ALL tab mixes statuses, the task list also exposes a **Status** column that is shown **only** in the ALL tab (hidden in the per-status tabs via a `show-status` class toggled on the table): its header is **sortable** (none → ascending → descending, sorting by lifecycle/status-tab order rather than alphabetically) and it offers an exact-match **filter** dropdown populated with the distinct normalized statuses present plus an "All" option. `ALL` is handled as a virtual tab that bypasses `normalizeStatus` (which would otherwise collapse it to `Other`); the canonical `STATUS_TABS` array is left intact. Implemented entirely in the single-page template (`getVisibleTasks` status-filter bypass, `compareCol` lifecycle-order status sort, `populateColumnFilters`/`initColumnControls` status filter, `updateBadges` `cnt-ALL`, `renderTable` `show-status` toggle + Status cell, and the `initTabs` handler); no server-side change. New test `test_task_manager_template_has_all_tab` in `test/tests/base/task_manager.py`. Build tests verified: build phase 2/2, 0 failures.
 
 ## Release Highlights (26.06.29.01)
 
