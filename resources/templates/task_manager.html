@@ -198,16 +198,16 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
   <aside class="sidebar">
     <h2>Create Task</h2>
     <form id="create-form" autocomplete="off">
+      <label>Type
+        <select name="type">
+          <option>Feature</option><option>Bug</option><option>Chore</option><option>Doc</option><option>PullBase</option>
+        </select>
+      </label>
       <label>Title
         <input name="title" required placeholder="Short imperative title">
       </label>
       <label>Description
         <textarea name="description" placeholder="What, why, acceptance criteria..."></textarea>
-      </label>
-      <label>Type
-        <select name="type">
-          <option>Feature</option><option>Bug</option><option>Chore</option><option>Doc</option>
-        </select>
       </label>
       <label>Priority
         <select name="priority">
@@ -309,7 +309,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
             <label>Title<input id="e-title" name="title"></label>
             <label>Type
               <select id="e-type" name="type">
-                <option>Feature</option><option>Bug</option><option>Chore</option><option>Doc</option>
+                <option>Feature</option><option>Bug</option><option>Chore</option><option>Doc</option><option>PullBase</option>
               </select>
             </label>
             <label>Priority
@@ -1102,6 +1102,19 @@ function populateAuthorDropdown() {
 function initCreateForm() {
   const form = document.getElementById('create-form');
   const authorInput = document.getElementById('create-author');
+  const typeSelect = form.querySelector('[name=type]');
+  const titleInput = form.querySelector('[name=title]');
+  // PullBase tasks need no title — the Task Manager auto-fills "PullBase {date}".
+  // Relax the required title and hint the auto-fill when PullBase is selected.
+  function syncPullBaseTitle() {
+    const isPullBase = typeSelect.value === 'PullBase';
+    titleInput.required = !isPullBase;
+    titleInput.placeholder = isPullBase
+      ? 'Optional — auto-filled as PullBase {date}'
+      : 'Short imperative title';
+  }
+  typeSelect.addEventListener('change', syncPullBaseTitle);
+  syncPullBaseTitle();
   // Track whether the user has manually typed an author so we can distinguish from the auto-default
   if (authorInput) {
     authorInput.addEventListener('input', () => { authorInput.dataset.userEdited = '1'; });
@@ -1123,6 +1136,7 @@ function initCreateForm() {
       form.querySelector('[name=status]').value = 'ToDo';
       form.querySelector('[name=type]').value = 'Feature';
       form.querySelector('[name=priority]').value = 'Medium';
+      syncPullBaseTitle();
       // Clear user-edited flag and restore default author after reset
       if (authorInput) { delete authorInput.dataset.userEdited; }
       setMsg('create-msg', 'Created: ' + res.task.id);

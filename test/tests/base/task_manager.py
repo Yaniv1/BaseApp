@@ -75,7 +75,7 @@ def test_build_copilot_prompt_uses_plain_task_request():
     }
     tasks_path = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
     prompt = task_manager._build_copilot_prompt(task, tasks_path)
-    assert prompt.startswith("Implement the requested task")
+    assert prompt.startswith("Task ID: BASE-TASK-0001")
     assert "Implement the requested behavior." in prompt
 
 
@@ -1294,6 +1294,65 @@ def test_build_copilot_prompt_uses_workspace_override(tmp_path):
     override = (Path(tmp_path) / "wt-override")
     prompt = task_manager._build_copilot_prompt(task, tasks_path, store=store, workspace_override=str(override))
     assert override.resolve().as_posix() in prompt
+
+
+def test_build_copilot_prompt_routes_template_by_type(tmp_path):
+    """A PullBase task must render from the pullbase.md instruction template."""
+    store, _store_root, _tasks_path = _make_status_store(tmp_path)
+    store.config.APP.TASK_MANAGER.templates = {
+        "Feature": "task.md", "Bug": "task.md", "PullBase": "pullbase.md", "default": "task.md",
+    }
+    tasks_path = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    task = {"id": "BASE-TASK-PB-0001", "title": "PullBase 2026-06-26", "type": "PullBase",
+            "status": "ToDo", "description": "Pull the latest base."}
+    prompt = task_manager._build_copilot_prompt(task, tasks_path, store=store)
+    assert "## PullBase Workflow" in prompt
+    assert "scripts/pullbase.py" in prompt
+
+
+def test_build_copilot_prompt_defaults_to_task_md_for_unmapped_type(tmp_path):
+    """An unmapped type falls back to the 'default' template (task.md)."""
+    store, _store_root, _tasks_path = _make_status_store(tmp_path)
+    store.config.APP.TASK_MANAGER.templates = {"PullBase": "pullbase.md", "default": "task.md"}
+    tasks_path = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    task = {"id": "BASE-TASK-FT-0001", "title": "A feature", "type": "Feature",
+            "status": "ToDo", "description": "Do the feature."}
+    prompt = task_manager._build_copilot_prompt(task, tasks_path, store=store)
+    assert prompt.startswith("Task ID: BASE-TASK-FT-0001")
+    assert "PullBase task" not in prompt
+
+
+def test_create_task_autofills_pullbase_title():
+    """A PullBase task with no title gets an auto-filled 'PullBase {date}' title."""
+    import datetime
+    data = {"TASKS": []}
+    created = _create_task(
+        data["TASKS"], {"type": "PullBase", "description": "Pull base."},
+        pullbase_type="PullBase", pullbase_title_format="PullBase {date}", pullbase_date_format="%Y-%m-%d",
+    )
+    expected = "PullBase " + datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    assert created["type"] == "PullBase"
+    assert created["title"] == expected
+
+
+def test_create_task_keeps_explicit_title_for_pullbase():
+    """An explicitly provided title is preserved even for PullBase tasks."""
+    data = {"TASKS": []}
+    created = _create_task(
+        data["TASKS"], {"type": "PullBase", "title": "Custom pull", "description": "d"},
+        pullbase_type="PullBase", pullbase_title_format="PullBase {date}", pullbase_date_format="%Y-%m-%d",
+    )
+    assert created["title"] == "Custom pull"
+
+
+def test_create_task_does_not_autofill_non_pullbase_title():
+    """Non-PullBase tasks are never auto-titled."""
+    data = {"TASKS": []}
+    created = _create_task(
+        data["TASKS"], {"type": "Feature", "description": "d"},
+        pullbase_type="PullBase", pullbase_title_format="PullBase {date}", pullbase_date_format="%Y-%m-%d",
+    )
+    assert created["title"] == ""
 
 
 # ---------------------------------------------------------------------------

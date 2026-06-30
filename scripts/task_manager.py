@@ -21,7 +21,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from utils.baseutils import Config
+from utils.baseutils import Config, Params
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -161,7 +161,7 @@ def _local_user():
         return "Task Manager UI"
 
 
-def _create_task(tasks, payload, tasks_path=None):
+def _create_task(tasks, payload, tasks_path=None, pullbase_type=None, pullbase_title_format=None, pullbase_date_format=None):
     task = {
         key: value
         for key, value in payload.items()
@@ -169,9 +169,15 @@ def _create_task(tasks, payload, tasks_path=None):
     }
     task["id"] = str(payload.get("id") or _next_task_id(tasks, tasks_path)).strip()
     task["uuid"] = str(payload.get("uuid") or uuid.uuid4())
-    task["title"] = str(payload.get("title", "")).strip()
-    task["description"] = _split_description(payload.get("description", ""))
     task["type"] = str(payload.get("type") or "Feature").strip() or "Feature"
+    title = str(payload.get("title", "")).strip()
+    # PullBase tasks need no title: auto-fill "PullBase {date}" from config so the
+    # designer can request a base pull without inventing a title.
+    if not title and pullbase_type and task["type"] == pullbase_type:
+        date_str = dt.datetime.utcnow().strftime(pullbase_date_format or "%Y-%m-%d")
+        title = (pullbase_title_format or "PullBase {date}").format(date=date_str)
+    task["title"] = title
+    task["description"] = _split_description(payload.get("description", ""))
     task["priority"] = str(payload.get("priority") or "Medium").strip() or "Medium"
     task["status"] = str(payload.get("status") or "ToDo").strip() or "ToDo"
 
@@ -446,10 +452,27 @@ def _populate_placeholders(text, params):
     return re.sub(r"\{([A-Za-z_][A-Za-z0-9_]*)\}", replace, text)
 
 
-def _build_copilot_prompt(task, tasks_path, template_path=COPILOT_PROMPT_TEMPLATE_PATH, store=None, workspace_override=None):
+def _build_copilot_prompt(task, tasks_path, template_path=None, store=None, workspace_override=None):
     tasks_file = Path(tasks_path).resolve()
     build_dir = tasks_file.parent.parent
     workspace_root = Path(workspace_override).resolve() if workspace_override else build_dir.parent
+
+    # Select the instruction template by task type from the configured
+    # CONFIG.APP.TASK_MANAGER.templates mapping (e.g. PullBase -> pullbase.md),
+    # falling back to the 'default' entry and finally task.md. An explicit
+    # template_path (e.g. the review template) always wins.
+    if template_path is None:
+        task_type = str(task.get("type", "")).strip()
+        templates = {}
+        task_manager_cfg = getattr(getattr(getattr(store, "config", None), "APP", None), "TASK_MANAGER", None)
+        templates_cfg = getattr(task_manager_cfg, "templates", None) if task_manager_cfg else None
+        if isinstance(templates_cfg, Params):
+            templates = templates_cfg.get_dict()
+        elif isinstance(templates_cfg, dict):
+            templates = templates_cfg
+        template_name = templates.get(task_type) or templates.get("default") or "task.md"
+        template_path = build_dir / "instructions" / template_name
+
     with Path(template_path).open("r", encoding="utf-8") as handle:
         template_text = handle.read()
 
@@ -1329,7 +1352,15 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         data = self._get_tasks()
         if parsed.path == "/api/tasks":
-            task = _create_task(data["TASKS"], self._read_body(), self.__class__.store.tasks_path)
+            store = self.__class__.store
+            pb = getattr(getattr(getattr(store.config, "APP", None), "TASK_MANAGER", None), "pullbase", None)
+            pb_type = getattr(pb, "type", None) if pb else None
+            pb_title = getattr(pb, "title_format", None) if pb else None
+            pb_date = getattr(pb, "date_format", None) if pb else None
+            task = _create_task(
+                data["TASKS"], self._read_body(), store.tasks_path,
+                pullbase_type=pb_type, pullbase_title_format=pb_title, pullbase_date_format=pb_date,
+            )
             self._write_tasks(data)
             self._send_json(201, {"task": task})
             return

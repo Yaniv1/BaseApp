@@ -37,7 +37,18 @@
             "status_queue": "{$OUTPUT_PREFIX$}/status_queue",
             "request_polling_frequency": 5,
             "ledger_branch": "main",
-            "enable": true
+            "enable": true,
+            "templates": {
+                "Feature": "task.md",
+                "Bug": "task.md",
+                "PullBase": "pullbase.md",
+                "default": "task.md"
+            },
+            "pullbase": {
+                "type": "PullBase",
+                "title_format": "PullBase {date}",
+                "date_format": "%Y-%m-%d"
+            }
         }
     },
     "LOG": {
