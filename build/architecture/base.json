@@ -247,18 +247,6 @@
                             "description": "Migrate or remove deprecated paths in the local app. For each (source, target) pair: if target is absent, move source to target preserving data; if target exists, delete source. Returns (moved, removed, skipped).",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/pullbase.py::drop_deprecated_paths"
-                        },
-                        "3.2.17": {
-                            "name": "scripts.pullbase.derive_base_managed_paths",
-                            "description": "Compute the deduplicated, sorted list of base-owned ignore paths from the manifest pull entries (file targets as-is, directory targets as directory prefixes), used to populate the base-managed .gitignore block.",
-                            "type": "Folder.PyFile.Function",
-                            "path": "scripts/pullbase.py::derive_base_managed_paths"
-                        },
-                        "3.2.18": {
-                            "name": "scripts.pullbase.update_base_gitignore",
-                            "description": "Write or refresh a delimited base-managed block in the instance app's .gitignore listing base-owned pull paths, idempotently and gated by COMMON.BASE_GITIGNORE, preserving user content outside the sentinels so base updates do not churn the instance repo.",
-                            "type": "Folder.PyFile.Function",
-                            "path": "scripts/pullbase.py::update_base_gitignore"
                         }
                     }
                 },
@@ -411,6 +399,18 @@
                             "description": "When the durable status store is enabled, write a per-agent MCP config file ({\"mcpServers\":{\"task-status-queue\":{type:local,command:python,args:[status_queue_mcp.py],env:{TASK_STATUS_PENDING_DIR,TASK_STATUS_TASK_ID,TASK_STATUS_AUTHOR},tools:[*]}}}) next to the agent prompt and return its path; _start_copilot_for_task passes it to launch_task_agent.ps1 via -McpConfig, which appends --additional-mcp-config @<path> to the Copilot CLI invocation. Returns None when the status store is disabled/unconfigured (the agent then uses the documented direct-file-write fallback).",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_write_agent_mcp_config"
+                        },
+                        "3.6.15": {
+                            "name": "scripts.task_manager._instruction_template_for_task",
+                            "description": "Resolve which instruction template a task's worker prompt is built from, based on the task type: BaseUpdate tasks use build/instructions/base-update.md (the dedicated base-update lifecycle), all other types use build/instructions/task.md. The mapping of type to instruction file is read from APP.TASK_MANAGER config (no hard-coded type names).",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_instruction_template_for_task"
+                        },
+                        "3.6.16": {
+                            "name": "scripts.task_manager._create_base_update_task",
+                            "description": "Create the built-in 'Pull BaseApp Changes' task (type BaseUpdate, status ToDo) in the selected variant app's task ledger using the canned title/description and type name from APP.TASK_MANAGER.base_update config; served by the POST /api/tasks/pull-base endpoint, which is offered by the UI only for variant apps (not BaseApp itself).",
+                            "type": "Folder.PyFile.Function",
+                            "path": "scripts/task_manager.py::_create_base_update_task"
                         }
                     }
                 },
@@ -1169,6 +1169,12 @@
                             "description": "Base-layer agent and developer instructions.",
                             "type": "Folder.Folder.MdFile",
                             "path": "build/instructions/base.md"
+                        },
+                        "10.1.2": {
+                            "name": "build.instructions.base-update",
+                            "description": "Dedicated instruction file for BaseUpdate tasks: run pullbase on the task branch, collect and review the incoming BaseApp updates, summarize them to the user as an HTML report, reach Ready, then deploy and/or merge per engineer approval (deploy+merge, or deploy-only then merge after a separate approval).",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "build/instructions/base-update.md"
                         }
                     }
                 },
