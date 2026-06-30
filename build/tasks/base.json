@@ -2093,7 +2093,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "Ready",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2134,6 +2134,11 @@
                     "author": "BASE-TASK-260627-0003 worker",
                     "content": "Refinement #4 complete: redesigned saved views to a single flat array of view objects {id,name,tabs:[...],sort:{col:dir},filter:{col:[vals]}} with multi-tab association, multi-column sort, and multi-value (checkbox) Type/Priority filters. Built-in views ship read-only in config/base.json (flat array, base-priority/critical/bugs/features); user views + per-tab active_views persist to git-ignored config/machine.json via GET/PUT /api/views returning {views,active}. Grayed/enabled chip model: views show on every tab, enabled only when current tab is in tabs; user views can include/remove the current tab, a grayed built-in clones into a user view. Updated server helpers, frontend, base.json, specs (BASE-REQ-014.15 rewritten, 014.16 added, 014.13 updated), architecture 3.6.15/11.2.2, updates entry, and result HTML. Tests rewritten: task_manager module 66 passed (2 pre-existing unrelated failures). Awaiting review; no commit/push yet.",
                     "timestamp": "2026-06-30T02:24:07Z"
+                },
+                {
+                    "author": "BASE-TASK-260627-0003 worker",
+                    "content": "Finalized and deployed at version 26.06.29.03. Saved Task Manager views feature (BASE-REQ-014.16 saved views flat multi-tab model; BASE-REQ-014.17 multi-column sort + multi-value filters) implemented, tested, and documented. Version bumped (base.txt/app.txt/config COMMON), docs/readme/base.md and README.md updated. Changes committed and pushed to main (1092251); feature branch previously merged (e5de255). User approved the push.",
+                    "timestamp": "2026-06-30T03:17:59Z"
                 }
             ],
             "worker_session": {
