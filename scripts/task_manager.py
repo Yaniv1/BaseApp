@@ -87,6 +87,185 @@ def _save_tasks_store(tasks_path, data):
         handle.write("\n")
 
 
+# Saved Task Manager UI "views" are named sort + per-column filter
+# configurations. They live under APP.TASK_MANAGER.views in the layered JSON
+# config as a FLAT ARRAY of view objects, each shaped:
+#   { "id", "name", "tabs": [status, ...],
+#     "sort":   { column: "asc"|"desc", ... },   # ordered, multi-column
+#     "filter": { column: [values, ...], ... } } # multi-value per column
+# A view is associated with one or more status tabs via its "tabs" list and is
+# usable on a tab only when that tab is listed. A set of BUILT-IN default views
+# ships in the committed config/base.json; these are read-only -- the user can
+# neither rename, delete, nor change the tabs of a built-in. On top of the
+# built-ins, user-created views are layered from config/local.json (app-local,
+# git-tracked placeholder) and config/machine.json (machine-specific,
+# git-ignored), with machine.json taking precedence. The effective set served to
+# the UI is built-ins (tagged builtin=true) followed by the user views; the UI
+# saves only user views back to config/machine.json, so built-ins always come
+# from base.json and a user's personal views stay machine-local without ever
+# polluting the committed config. The per-tab "active" (last-applied) view is a
+# user preference persisted alongside the user views under
+# APP.TASK_MANAGER.active_views as a { tab: viewId } map.
+VIEWS_CONFIG_PATH = ("APP", "TASK_MANAGER", "views")
+ACTIVE_CONFIG_PATH = ("APP", "TASK_MANAGER", "active_views")
+# Built-in (read-only) views ship here; user views are layered on top from the
+# override files (lowest to highest precedence). Runtime saves go to the last one.
+VIEWS_BASE_CONFIG = "base.json"
+VIEWS_USER_LAYERS = ("local.json", "machine.json")
+VIEWS_SAVE_CONFIG = "machine.json"
+
+
+def _config_file_path(base_dir, name):
+    """Path to a named JSON file inside the app's config directory."""
+    return Path(base_dir).resolve() / "config" / name
+
+
+def _load_config_file_raw(path):
+    """Load a config JSON file as a plain dict, tolerating a missing/invalid file."""
+    path = Path(path)
+    if path.is_file():
+        try:
+            with path.open("r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (json.JSONDecodeError, OSError, UnicodeDecodeError):
+            data = {}
+    else:
+        data = {}
+    return data if isinstance(data, dict) else {}
+
+
+def _nested_get(data, path):
+    """Return the value at a tuple key-path within nested dicts, or None."""
+    current = data
+    for key in path:
+        if not isinstance(current, dict):
+            return None
+        current = current.get(key)
+    return current
+
+
+def _views_array_from_config_file(path):
+    """Return APP.TASK_MANAGER.views from a config file when it is a list."""
+    views = _nested_get(_load_config_file_raw(path), VIEWS_CONFIG_PATH)
+    return views if isinstance(views, list) else None
+
+
+def _active_from_config_file(path):
+    """Return APP.TASK_MANAGER.active_views from a config file when it is a dict."""
+    active = _nested_get(_load_config_file_raw(path), ACTIVE_CONFIG_PATH)
+    return active if isinstance(active, dict) else None
+
+
+def _builtin_views(base_dir):
+    """Flat list of built-in views shipped (read-only) in config/base.json."""
+    views = _views_array_from_config_file(_config_file_path(base_dir, VIEWS_BASE_CONFIG))
+    return views if isinstance(views, list) else []
+
+
+def _user_views(base_dir):
+    """Flat list of user-saved views from the override layers (machine wins)."""
+    result = []
+    for name in VIEWS_USER_LAYERS:
+        views = _views_array_from_config_file(_config_file_path(base_dir, name))
+        if views is not None:
+            result = views
+    return result
+
+
+def _active_views(base_dir):
+    """Per-tab active-view map from the override layers (machine wins)."""
+    result = {}
+    for name in VIEWS_USER_LAYERS:
+        active = _active_from_config_file(_config_file_path(base_dir, name))
+        if active is not None:
+            result = active
+    return result
+
+
+def _builtin_view_ids(base_dir):
+    """Set of view ids that are built-in (defined in config/base.json)."""
+    return {str(v["id"]) for v in _builtin_views(base_dir)
+            if isinstance(v, dict) and v.get("id")}
+
+
+def _tag_views(views, builtin):
+    """Return a copy of each valid view dict with a builtin flag stamped on it."""
+    out = []
+    for view in views or []:
+        if isinstance(view, dict) and view.get("id"):
+            item = dict(view)
+            item["builtin"] = builtin
+            out.append(item)
+    return out
+
+
+def _load_views(base_dir):
+    """Return the effective views payload: a flat list of read-only built-in
+    views from config/base.json (each tagged builtin=true) followed by the user's
+    saved views from config/local.json / config/machine.json (tagged
+    builtin=false), plus the per-tab active-view map. User views whose id collides
+    with a built-in id are dropped so built-ins always win."""
+    builtin_ids = _builtin_view_ids(base_dir)
+    builtins = _tag_views(_builtin_views(base_dir), True)
+    users = [v for v in _tag_views(_user_views(base_dir), False)
+             if str(v["id"]) not in builtin_ids]
+    active = {str(k): v for k, v in _active_views(base_dir).items() if v}
+    return {"views": builtins + users, "active": active}
+
+
+def _save_views(base_dir, payload):
+    """Persist only the user-created views and the active-view map into
+    config/machine.json under APP.TASK_MANAGER.views / .active_views
+    (machine-specific, git-ignored). Built-in views (those shipped in
+    config/base.json) are never written back, so the user can neither delete,
+    rename, nor re-tab them; every other key in the file is preserved and the
+    write is atomic. Returns the effective (built-in + user) payload."""
+    if not isinstance(payload, dict):
+        payload = {}
+    views = payload.get("views")
+    if not isinstance(views, list):
+        views = []
+    active = payload.get("active")
+    if not isinstance(active, dict):
+        active = {}
+
+    builtin_ids = _builtin_view_ids(base_dir)
+    user_list = []
+    for view in views:
+        if not isinstance(view, dict) or not view.get("id"):
+            continue
+        if str(view.get("id")) in builtin_ids or view.get("builtin") is True:
+            continue  # never persist built-in views
+        user_list.append({k: val for k, val in view.items() if k != "builtin"})
+    user_ids = {str(v["id"]) for v in user_list}
+    cleaned_active = {str(tab): vid for tab, vid in active.items()
+                      if vid and (str(vid) in user_ids or str(vid) in builtin_ids)}
+
+    path = _config_file_path(base_dir, VIEWS_SAVE_CONFIG)
+    data = _load_config_file_raw(path)
+    _set_nested(data, VIEWS_CONFIG_PATH, user_list)
+    _set_nested(data, ACTIVE_CONFIG_PATH, cleaned_active)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    with tmp.open("w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=4, ensure_ascii=False)
+        handle.write("\n")
+    os.replace(tmp, path)
+    return _load_views(base_dir)
+
+
+def _set_nested(data, path, value):
+    """Set value at a tuple key-path within nested dicts, creating dicts as needed."""
+    section = data
+    for key in path[:-1]:
+        child = section.get(key)
+        if not isinstance(child, dict):
+            child = {}
+            section[key] = child
+        section = child
+    section[path[-1]] = value
+
+
 def _split_description(description):
     text = "\n".join(description) if isinstance(description, list) else str(description or "")
     lines = [line.rstrip() for line in text.splitlines()]
@@ -1313,6 +1492,11 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             })
             return
 
+        if parsed.path == "/api/views":
+            base_dir = _get_store_base_dir(self.__class__.store)
+            self._send_json(200, _load_views(base_dir))
+            return
+
         if parsed.path.startswith("/api/tasks/"):
             task_id = parsed.path.removeprefix("/api/tasks/").split("/", 1)[0]
             data = self._get_tasks()
@@ -1491,6 +1675,16 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
                 "tasks_dir": self.__class__.store.tasks_dir.resolve().as_posix(),
                 "app_name": self.__class__.store.app_name,
             })
+            return
+
+        if parsed.path == "/api/views":
+            payload = self._read_body()
+            if not isinstance(payload, dict):
+                self._send_json(400, {"error": "views payload must be an object"})
+                return
+            base_dir = _get_store_base_dir(self.__class__.store)
+            saved = _save_views(base_dir, payload)
+            self._send_json(200, saved)
             return
 
         if not parsed.path.startswith("/api/tasks/"):

@@ -37,7 +37,37 @@
             "status_queue": "{$OUTPUT_PREFIX$}/status_queue",
             "request_polling_frequency": 5,
             "ledger_branch": "main",
-            "enable": true
+            "enable": true,
+            "views": [
+                {
+                    "id": "base-priority",
+                    "name": "By Priority",
+                    "tabs": ["ToDo", "InProgress", "Specified", "Ready"],
+                    "sort": {"priority": "desc"},
+                    "filter": {}
+                },
+                {
+                    "id": "base-critical",
+                    "name": "Critical",
+                    "tabs": ["ToDo", "Ready"],
+                    "sort": {"priority": "desc"},
+                    "filter": {"priority": ["Critical"]}
+                },
+                {
+                    "id": "base-bugs",
+                    "name": "Bugs",
+                    "tabs": ["ToDo", "InProgress", "Ready", "Deployed"],
+                    "sort": {"priority": "desc"},
+                    "filter": {"type": ["Bug"]}
+                },
+                {
+                    "id": "base-features",
+                    "name": "Features",
+                    "tabs": ["ToDo", "InProgress"],
+                    "sort": {"priority": "desc"},
+                    "filter": {"type": ["Feature"]}
+                }
+            ]
         }
     },
     "LOG": {
