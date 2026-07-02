@@ -2200,14 +2200,61 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager Track model used by copilot and number of Tokens consumed",
                     "timestamp": "2026-06-29T22:45:23Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 worker",
+                    "content": "Started working on BASE-TASK-260629-0001: tracking model and token consumption (TOTAL and per-state) in worker_session.",
+                    "timestamp": "2026-07-02T18:45:39Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 17332,
+                "window_title": "Task Manager Track model used by copilot and number of Tokens consumed (BASE-TASK-260629-0001)",
+                "mode": "work",
+                "branch": "BASE-TASK-260629-0001",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260629-0001",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260629-0001.md",
+                "started_at": "2026-07-02T18:44:26Z"
+            }
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260702-0001",
+            "uuid": "308dfb34-e1d2-4d07-8cef-f9360dfea104",
+            "type": "Feature",
+            "title": "Let the user decide which config files to use and in what order",
+            "description": [
+                "Currently, config is derived alphabetically from the config folder.",
+                "Change this to let the user have more control.",
+                "Each config file will be able to list which other config files to read, and in what order.",
+                "the first config file that will be used (config/base.json by default, or whatever the user will pass as a parameter) will define which additional config files or folders to read. By default, base.json/COMMON.CONFIG_FILES is a dict  that will include {\"app.json\":true}",
+                "app.json can include additional items like local.json or test.json or any specific config file (e.g. run.json)",
+                "configs will patch each other in the order of appearance. if a folder is listed, the files in the folder will patch over alphabetically."
+            ],
+            "priority": "Medium",
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Let the user decide which config files to use and in what order",
+                    "timestamp": "2026-07-02T18:43:51Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 40236,
+                "window_title": "Let the user decide which config files to use and in what order (BASE-TASK-260702-0001)",
+                "mode": "work",
+                "branch": "BASE-TASK-260702-0001",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260702-0001",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260702-0001.md",
+                "started_at": "2026-07-02T18:44:46Z"
+            }
         }
     ]
 }
