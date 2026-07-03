@@ -2238,7 +2238,7 @@
                 "configs will patch each other in the order of appearance. if a folder is listed, the files in the folder will patch over alphabetically."
             ],
             "priority": "Medium",
-            "status": "Specified",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2259,6 +2259,11 @@
                     "author": "BASE-TASK-260702-0001 worker",
                     "content": "Revised design per review (still Specified, awaiting approval). (1) Emphasized mandatory requirement/sub-requirement title in build/requirements/req-eng-instructions.md (item 3.2). (2) Redesigned to a candidate-list model: default seed = base file then its folder alphabetically; a declared COMMON.CONFIG_FILES REPLACES the default (empty dict = base only); each loaded file's CONFIG_FILES extends the ramp-up; evaluate/populate run once after all overlays; unified folder handling removes the separate alphabetical method (dropped _apply_config_dir_alphabetically; now 6.1.4.1-6.1.4.4). (3) Missing referenced files skipped with a logged warning, not an error. (4) Reverted all Python/config/test changes — only design artifacts (requirements, architecture, req-eng-instructions) modified at this stage. Report updated: C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001.html.",
                     "timestamp": "2026-07-02T22:01:04Z"
+                },
+                {
+                    "author": "BASE-TASK-260702-0001 worker",
+                    "content": "Implementation complete (per approved design). Config overlay is user-controlled via COMMON.CONFIG_FILES: base file loads, then an ordered work-list is built (default = base's folder alphabetically, base skipped via visited guard); a declared CONFIG_FILES REPLACES the default (empty dict = base only); each overlaid file's CONFIG_FILES extends the work-list; folders expand alphabetically; missing referenced files warn (warnings.warn) without error; _/.-prefixed and LOADME:false skipped; evaluate/populate run once after all overlays. New helpers _get_config_files/_apply_config_files/_apply_config_file in utils/baseutils.py; default wiring base.json->{app.json:true}, app.json->{local.json:true}. New prep test test_config_files_ordering (9/9 PASS), existing test_local_config_override (4/4 PASS), live app run resolves base->app->local; full app run shows only the unrelated pre-existing resolve_baseapp_source (TST005) failure. Recorded progress in build/updates/base.json (step 3f). Report with colorized diffs: C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001.html. No commit/push yet — awaiting review.",
+                    "timestamp": "2026-07-03T02:06:19Z"
                 }
             ],
             "worker_session": {
