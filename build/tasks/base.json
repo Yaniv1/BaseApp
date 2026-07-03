@@ -2349,6 +2349,54 @@
                     "timestamp": "2026-07-03T02:18:19Z"
                 }
             ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260703-0002",
+            "uuid": "3723665f-e858-422d-a539-c2b5339f1abe",
+            "type": "Feature",
+            "title": "Requirements Manager",
+            "description": [
+                "Introduce a systems engineering app that visualizes the requirements in a tabular hierarchical structure and the architecture and how it maps to the code.",
+                "The requirements manager will visualize the requirements, the architectural features hierarchy and their mapping.",
+                "Architecture features will point to the code and allow the user to browse the code.",
+                "Architecture items without attached code will be flagged as not implemented.",
+                "Reports: the tool will generate requirement reports - requirements by status, flow, etc. architecture feature report, mapping requirements to features / features to requirements, design documents that walk through all the features under a required root feature etc."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Requirements Manager",
+                    "timestamp": "2026-07-03T18:06:19Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260703-0003",
+            "uuid": "df01bc99-74fa-4013-b94b-45458208521e",
+            "type": "Feature",
+            "title": "Requirements MCP",
+            "description": [
+                "Currently, requirements are numbered separately by each task, often causing conflicting requirement ids.",
+                "Implement a mechanism similar to task manager that provides a single access point for task workers to request requirement ids and update the requirements ledger in the main branch. The MCP will provide the most suitable and appropriate requirement id according to the feature being required.",
+                "for this purpose the task will have to provide the MCP with sufficient context to decide where to place the requirement in the hierarchy.",
+                "This MCP will therefore need to consult an LLM client to decide where to place the requirement, provide the relevant context from the main branch and the task's context, and produce a decision.",
+                "User instructions to the task worker regarding the requirement specification (location in hierarchy, enumeration, structure, etc.) should do two things:",
+                "a. engage the requirement manager mcp again to resolve the gaps",
+                "b. ask the mcp to modify its own internal requirements to take the generic methodological guidance from the engineer into account in future reqeusts. for example if the engineer asks that from now on requirements for some functionality will always be under a specific requirement root, or that a requirement needs to be broken down into a set of requirements with additional semantics then the mcp should respect this methodological instruction going forward."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Requirements MCP",
+                    "timestamp": "2026-07-03T18:13:13Z"
+                }
+            ]
         }
     ]
 }
