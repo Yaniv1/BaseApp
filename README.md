@@ -14,11 +14,15 @@ You use BaseApp in two roles:
 
 ## What it does
 
-- **Layered configuration.** Configuration is assembled from all JSON files in `config/`
-  (loaded alphabetically and deep-merged), driven by a shared `COMMON` block that
-  supports placeholder expansion and expression evaluation. Files can be disabled by
-  naming convention (`_`/`.` prefix) or a `LOADME: false` flag, and a gitignored
-  `local.json` lets you override settings per machine without touching tracked files.
+- **Layered configuration.** Configuration is assembled by overlaying JSON files from
+  `config/` and deep-merging them, driven by a shared `COMMON` block that supports
+  placeholder expansion and expression evaluation. By default the base config's folder
+  is overlaid alphabetically, but any config file can declare `COMMON.CONFIG_FILES` — an
+  ordered list of files/folders — to control exactly which files load and in what order
+  (each file can extend the chain, and a missing referenced file is logged as a warning
+  rather than failing). Files can also be disabled by naming convention (`_`/`.` prefix)
+  or a `LOADME: false` flag, and a gitignored `local.json` lets you override settings per
+  machine without touching tracked files.
 - **Structured logging.** A built-in logger writes to the console, CSV, and HTML using
   message codes (defined in `resources/message_codes/`) rather than free text, records
   caller lineage on every entry, and prints an error summary on close.

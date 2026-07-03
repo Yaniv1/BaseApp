@@ -36,6 +36,13 @@
                     "description": "Local override requirement: The system shall load config/local.json when present and deep-merge its values on top of base and app config so that local overrides take effect without modifying tracked config files.",
                     "priority": "High",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-001.6",
+                    "title": "User-controlled configuration overlay",
+                    "description": "The system shall build an ordered candidate list of configuration files to overlay, defaulting to the base configuration file first followed by the remaining JSON files in its folder (alphabetically). Any loaded configuration file may declare COMMON.CONFIG_FILES, an ordered dict of files and/or folders (folders expanded alphabetically) whose value enables (truthy) or disables (falsy) each entry; when present it REPLACES the default candidate list (an empty dict means no additional files), and each subsequently loaded file's COMMON.CONFIG_FILES likewise extends the processing so the ramp-up continues while new files remain, with a missing or empty value ending that thread. A referenced file that does not exist shall be skipped and reported as a WARN log message (rather than raising an error), and expression evaluation and placeholder population shall run once, only after all configuration files have been overlaid.",
+                    "priority": "Medium",
+                    "comments": []
                 }
             ],
             "solution": [

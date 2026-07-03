@@ -17,11 +17,13 @@ from utils.testutils import TestManager, build_test_config
 def run(args=sys.argv[1:]):
     """Feature ID: 5.3.2.1. Load config, execute the build test phase, store outputs, and return exit code."""
     base_config_path = os.path.join(PROJECT_ROOT, "config", "base.json")
-    config = Config(args=args, base_config_path=base_config_path).config
+    config_loader = Config(args=args, base_config_path=base_config_path)
+    config = config_loader.config
 
     logger_settings = config.LOG.get_dict() if getattr(config, "LOG", None) else {}
     logger_settings["base_dir"] = config.base_dir
     logger = create_logger(logger_settings)
+    config_loader.log_warnings(logger)
 
     test_config_path = os.path.join(PROJECT_ROOT, "test", "config", "base.json")
     test_config = get_config(config_path=test_config_path)

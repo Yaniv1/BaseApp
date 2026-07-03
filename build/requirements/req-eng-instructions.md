@@ -46,6 +46,8 @@ This file provides instructions for requirements engineering:
 
 3.1. Note that this structure applies recursively to sub-requirements.
 
+3.2. The `title` is MANDATORY for every requirement AND every sub-requirement (each breakdown item), not only top-level requirements. It must be a concise, human-readable name (typically two to five words) that uniquely and meaningfully identifies the requirement at a glance in listings, tables, and reports. The title is as important as the `id` and `description`: never omit it, never leave it empty, and never rely on the description in its place. A requirement or sub-requirement without a clear, concise title is considered incomplete and must not be submitted for review.
+
 4. Find the appropriate location in the hierarchy for the requirement. Ideally a requirement should be placed at the bottommost location in the hierarchy, i.e. under existing requirements if it reflects a specific extension, specialization or derivation of an existing functionality. A requirement that is being changed as a whole should be replaced by a new requirement at the same level. Only a requirement for a completely new feature/functionality that does not exist should be added at the topmost level.
 
 4. Breakdown:

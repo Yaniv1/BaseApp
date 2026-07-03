@@ -19,6 +19,7 @@ BASE018,INFO,Updated app monitor state,
 BASE019,INFO,Recorded test monitor request,
 BASEE13,ERROR,Application run failed,4
 BASEW10,WARN,Failed to load input file,4
+BASEW07,WARN,Config file not found: {config_file},
 BASE999,GOOD,App completed
 INST001,INFO,Instantiate started
 INST002,INFO,Loaded manifest entries

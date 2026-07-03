@@ -209,6 +209,14 @@
                 }
             },
             {
+                "id": "prep_config_files_ordering",
+                "name": "Prep config files ordering",
+                "callable": "test.tests.base.config.test_config_files_ordering",
+                "inputs": {
+                    "message": "Validated COMMON.CONFIG_FILES user-controlled overlay: declared list replaces the default folder seed, overlays apply in declared order (last wins), CONFIG_FILES extends the ramp-up, disabled entries are skipped, a missing referenced file warns without error, and the default overlays the base folder alphabetically"
+                }
+            },
+            {
                 "id": "prep_task_manager_interface",
                 "name": "Prep task manager interface",
                 "callable": "test.tests.base.task_manager.test_task_manager_interface",
