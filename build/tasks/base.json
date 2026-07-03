@@ -2200,7 +2200,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2211,6 +2211,11 @@
                     "author": "BASE-TASK-260629-0001 worker",
                     "content": "Started working on BASE-TASK-260629-0001: tracking model and token consumption (TOTAL and per-state) in worker_session.",
                     "timestamp": "2026-07-02T18:45:39Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 worker",
+                    "content": "Design ready for review. Requirements: added BASE-REQ-014.22 (model + token accounting per task/state). Architecture: added features 3.6.17 (_record_worker_session_usage), 3.6.17.1 (_resolve_session_state_dir), 3.6.17.2 (_read_worktree_session_usage). Design: Task Manager reads the Copilot CLI event log (~/.copilot/session-state/<id>/events.jsonl), matches sessions to the task by worktree cwd, sums assistant.message outputTokens for tokens.TOTAL and captures the model; on each status transition it adds the token delta to tokens.per_state[current status] (accumulating on revisits). worker_session gains model + tokens{TOTAL, per_state}. Reading is best-effort/non-blocking. Summary: C:/data/MyApp/task_results/BASE-TASK-260629-0001/BASE-TASK-260629-0001.html",
+                    "timestamp": "2026-07-03T02:23:54Z"
                 }
             ],
             "worker_session": {
