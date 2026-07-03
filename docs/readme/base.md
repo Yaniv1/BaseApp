@@ -1,4 +1,4 @@
-# BaseApp V-26.06.30.02
+# BaseApp V-26.07.02.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.07.02.01)
+
+- **User-controlled config file selection and order via `COMMON.CONFIG_FILES`** (Feature 6.1.4; Requirement BASE-REQ-001.6): Configuration overlay is now driven by the config itself instead of a fixed alphabetical folder scan. After the base config file is loaded, an ordered overlay work-list is built: by default it is the base config's own folder expanded alphabetically (the base file overlaid first, then skipped via a visited guard), reproducing the previous behavior. Any loaded config file may declare `COMMON.CONFIG_FILES` — an ordered dict of files and/or folders whose truthy/falsy value enables/disables each entry. When present it **replaces** the default seed (an explicit empty dict means "base only"), and each overlaid file's own `COMMON.CONFIG_FILES` **extends** the work-list, so the ramp-up continues while files remain (a missing/empty value ends that thread). Folders are expanded alphabetically; a referenced file that does not exist is skipped and reported as a **WARN log message** (new message code `BASEW07`, `Config file not found: {config_file}`) rather than raising — because `Config` is constructed before a logger exists, missing-file warnings are buffered in `Config.load_warnings` during load and flushed via the new `Config.log_warnings(logger)` (Architecture 6.1.4.5) once the app logger is created (wired into `app/base.py` `run()` and `test/tests/build.py` `run()`); name-prefixed (`_`/`.`) and `LOADME:false` files are still skipped; and expression evaluation + placeholder population run once, only after all overlays are applied. New helpers `_get_config_files` (6.1.4.2), `_apply_config_files` (6.1.4.3), and `_apply_config_file` (6.1.4.4) implement the work-list. Default wiring: `config/base.json` `COMMON.CONFIG_FILES = {app.json: true}` and `config/app.json` `COMMON.CONFIG_FILES = {local.json: true}`, preserving the base→app→local layering. New prep test `test/tests/base/config.py::test_config_files_ordering` (10/10 criteria) verifies declared-list replacement, declared ordering (last wins, beating alphabetical), work-list extension, disabled-entry skipping, and that a missing file is buffered and emitted as a `BASEW07` WARN log; existing `test_local_config_override` (5/5) confirms the default path. Full `app/base.py` run shows only the unrelated pre-existing `resolve_baseapp_source` (TST005) failure.
 
 ## Release Highlights (26.06.30.02)
 

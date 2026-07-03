@@ -2,7 +2,10 @@
     "COMMON": {
         "APP_NAME": "MyApp",
         "VERSION": "A26.06.17.01",
-        "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}"
+        "OUTPUT_PREFIX": "C:/data/{$APP_NAME$}",
+        "CONFIG_FILES": {
+            "local.json": true
+        }
     },
     "APP": {},
     "LOG": {},

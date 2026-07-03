@@ -35,13 +35,15 @@ def run(args=sys.argv[1:]):
     """Feature ID: 1.1.3. Run the app with explicit config/logger initialization and tracked execution."""
     
     base_config_path = "../config/base.json"
-    config = Config(
+    config_loader = Config(
         args=args,
         base_config_path=base_config_path,
-    ).config
+    )
+    config = config_loader.config
     logger_settings = config.LOG.get_dict() if getattr(config, "LOG", None) else {}
     logger_settings["base_dir"] = config.base_dir
     logger = create_logger(logger_settings)
+    config_loader.log_warnings(logger)
     logger.log(message_code="BASE002", data={"config": config.get_dict()})
 
     app = App(config=config, logger=logger)

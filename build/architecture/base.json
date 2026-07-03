@@ -729,7 +729,7 @@
                                 },
                                 "5.3.1.6": {
                                     "name": "test.tests.base.config",
-                                    "description": "Pre-tests for config/local.json local override loading (features 6.1.4, 2.2).",
+                                    "description": "Pre-tests for config loading: config/local.json local override and COMMON.CONFIG_FILES user-controlled load order (features 6.1.4, 2.2).",
                                     "type": "Folder.Folder.Folder.PyFile",
                                     "path": "test/tests/base/config.py",
                                     "features": {
@@ -738,6 +738,12 @@
                                             "description": "Pre-test validating that config/local.json exists, overrides app config values, non-overridden keys are preserved, and Config loads fine when local.json is absent. 4 criteria.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/config.py::test_local_config_override"
+                                        },
+                                        "5.3.1.6.2": {
+                                            "name": "test.tests.base.config.test_config_files_ordering",
+                                            "description": "Pre-test validating COMMON.CONFIG_FILES user-controlled overlay: a declared list REPLACES the default folder seed, overlays apply in declared order (last wins), disabled (falsy) entries are skipped, folders expand alphabetically, an overlaid file's own CONFIG_FILES extends the ramp-up, a missing referenced file is skipped with a warning (no error), and the default (no CONFIG_FILES) overlays the base folder alphabetically.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/config.py::test_config_files_ordering"
                                         }
                                     }
                                 },
@@ -871,9 +877,33 @@
                             "features": {
                                 "6.1.4.1": {
                                     "name": "utils.baseutils.Config.__init__",
-                                    "description": "Skip config files by naming convention (prefix underscore or dot) and explicit flag (LOADME: false key). Preserve alphabetical load order for active files.",
+                                    "description": "Load the base config, then overlay additional config files from an ordered work-list. The work-list is seeded with the base config's directory by default (expanded alphabetically, with the base file overlaid first and skipped thereafter via a visited guard); when the base config declares COMMON.CONFIG_FILES that ordered dict REPLACES the default seed (an empty dict means base only). Each overlaid file's own COMMON.CONFIG_FILES extends the work-list until no files remain. Run evaluate() and populate() once, only after all overlays are applied.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/baseutils.py::Config.__init__"
+                                },
+                                "6.1.4.2": {
+                                    "name": "utils.baseutils.Config._get_config_files",
+                                    "description": "Return the COMMON.CONFIG_FILES ordered dict from a loaded config dict/object, or None when not declared (distinguishing an absent declaration from an explicit empty dict).",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Config._get_config_files"
+                                },
+                                "6.1.4.3": {
+                                    "name": "utils.baseutils.Config._apply_config_files",
+                                    "description": "Process an ordered CONFIG_FILES dict of file/folder entries in declaration order: skip disabled (falsy) entries, expand folder entries alphabetically, overlay each file, and extend processing with each overlaid file's own COMMON.CONFIG_FILES, guarding against cycles/re-loads with a visited set.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Config._apply_config_files"
+                                },
+                                "6.1.4.4": {
+                                    "name": "utils.baseutils.Config._apply_config_file",
+                                    "description": "Overlay a single JSON config file onto the running config, honoring name-prefix skips (underscore/dot), the LOADME:false flag, and the visited guard; a referenced file that does not exist is buffered as a load warning (not raised) for later WARN logging.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Config._apply_config_file"
+                                },
+                                "6.1.4.5": {
+                                    "name": "utils.baseutils.Config.log_warnings",
+                                    "description": "Emit any config-load warnings buffered during loading (e.g. missing referenced config files) as WARN log messages (message code BASEW07) via the supplied logger, then clear the buffer. Config runs before a logger exists, so warnings are logged once the app logger is available.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::Config.log_warnings"
                                 }
                             }
                         },

@@ -280,31 +280,118 @@ class Config:
         self.config = Params(get_config(config_path=self.base_config_path, overrides=self.overrides))
         self.config.base_dir = self.base_dir
         config_dir = os.path.dirname(self.base_config_path)
-        base_config_name = os.path.basename(self.base_config_path).lower()
-        for file_name in sorted(os.listdir(config_dir)):
-            file_path = path_join(config_dir, file_name)
-            if not os.path.isfile(file_path):
-                continue
-            if not file_name.lower().endswith(".json"):
-                continue
-            if file_name.lower() == base_config_name:
-                continue
-            if file_name.startswith(("_", ".")):
-                continue
 
-            with open(file_path, "r") as f:
-                app_config = json.load(f)
-            if not isinstance(app_config, dict):
-                continue
-            if app_config.get("LOADME") is False:
-                continue
-            self.config.set(**app_config)
-       
+        # Missing referenced config files are buffered here during load and
+        # later emitted as WARN log messages via log_warnings(); Config runs
+        # before a logger exists (logger settings come from config.LOG), so the
+        # warnings cannot be logged inline.
+        self.load_warnings = []
 
+        # Build the ordered overlay work-list. The base config file has already
+        # been loaded above; the remaining candidates default to its folder,
+        # expanded alphabetically (the base file itself is skipped via the
+        # visited guard). When the base config declares COMMON.CONFIG_FILES, that
+        # ordered dict REPLACES the default seed (an explicit empty dict means
+        # "base only"); each overlaid file may in turn declare its own
+        # COMMON.CONFIG_FILES, extending the work-list until no files remain.
+        seed = self._get_config_files(self.config)
+        if seed is None:
+            seed = {config_dir: True}
+        self._apply_config_files(seed, config_dir, {self.base_config_path})
+
+        # Evaluate expressions and populate placeholders once, only after every
+        # config file has been overlaid.
         self.config = self.config \
                         .evaluate(common_nodes=["COMMON"]) \
                         .populate(common_nodes=["COMMON"], 
                                   wrappers=self.config.COMMON.CONFIG_WRAPPERS)
+
+    @staticmethod
+    def _get_config_files(config):
+        """Return the COMMON.CONFIG_FILES ordered dict from a config, or None.
+
+        Accepts either a Params container or a plain dict and distinguishes an
+        absent declaration (returns None) from an explicit empty dict (returns
+        {}), which the caller treats as "no additional files".
+        """
+        if isinstance(config, dict):
+            common = config.get("COMMON")
+        else:
+            common = getattr(config, "COMMON", None)
+        if isinstance(common, Params):
+            config_files = getattr(common, "CONFIG_FILES", None)
+        elif isinstance(common, dict):
+            config_files = common.get("CONFIG_FILES")
+        else:
+            config_files = None
+        if isinstance(config_files, Params):
+            config_files = config_files.get_dict()
+        return config_files if isinstance(config_files, dict) else None
+
+    def _apply_config_files(self, config_files, config_dir, visited):
+        """Overlay files from an ordered CONFIG_FILES dict of files/folders.
+
+        Entries are processed in order of appearance. A falsy value disables an
+        entry. A folder entry is expanded to its JSON members alphabetically;
+        any other entry is treated as a single file. Each overlaid file may
+        extend processing via its own COMMON.CONFIG_FILES. ``visited`` holds
+        absolute paths already loaded to guard against cycles/re-loads.
+        """
+        if not isinstance(config_files, dict):
+            return
+        for name, enabled in config_files.items():
+            if not enabled:
+                continue
+            target = os.path.abspath(path_join(config_dir, name))
+            if os.path.isdir(target):
+                for file_name in sorted(os.listdir(target)):
+                    self._apply_config_file(
+                        os.path.abspath(path_join(target, file_name)), config_dir, visited)
+            else:
+                self._apply_config_file(target, config_dir, visited)
+
+    def _apply_config_file(self, file_path, config_dir, visited):
+        """Overlay a single JSON config file and extend from its CONFIG_FILES.
+
+        A referenced file that does not exist is skipped with a logged warning
+        rather than raising an error. Files are also skipped when named with a
+        leading underscore/dot, flagged with ``LOADME: false``, or already
+        visited.
+        """
+        file_name = os.path.basename(file_path)
+        if not os.path.isfile(file_path):
+            self.load_warnings.append({"config_file": file_path})
+            return
+        if not file_name.lower().endswith(".json"):
+            return
+        if file_name.startswith(("_", ".")):
+            return
+        if file_path in visited:
+            return
+        visited.add(file_path)
+
+        with open(file_path, "r") as f:
+            overlay = json.load(f)
+        if not isinstance(overlay, dict):
+            return
+        if overlay.get("LOADME") is False:
+            return
+        self.config.set(**overlay)
+        self._apply_config_files(self._get_config_files(overlay), config_dir, visited)
+
+    # Feature 6.1.4.5
+    def log_warnings(self, logger):
+        """Feature ID: 6.1.4.5. Emit buffered config-load warnings as WARN logs.
+
+        Each missing config file recorded during load is reported as a WARN log
+        message (message code BASEW07) using the supplied logger, after which
+        the buffer is cleared. A missing logger is tolerated (no-op).
+        """
+        if logger is None:
+            return
+        for warning in self.load_warnings:
+            logger.log(message_code="BASEW07", data=warning, populate=True)
+        self.load_warnings = []
 
     
 
