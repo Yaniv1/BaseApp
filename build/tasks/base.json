@@ -2253,7 +2253,7 @@
                 "configs will patch each other in the order of appearance. if a folder is listed, the files in the folder will patch over alphabetically."
             ],
             "priority": "Medium",
-            "status": "Ready",
+            "status": "Approved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2284,6 +2284,11 @@
                     "author": "BASE-TASK-260702-0001 worker",
                     "content": "Addressed review feedback: missing config files are now reported via the logging system (WARN log, new message code BASEW07 'Config file not found: {config_file}') instead of Python warnings.warn. Since Config is constructed before the logger exists (logger settings derive from config.LOG), missing-file warnings are buffered in Config.load_warnings during load and flushed as WARN logs by the new public method Config.log_warnings(logger) (architecture 6.1.4.5), wired into app/base.py run() and test/tests/build.py run() right after the logger is created. Removed the now-unused 'import warnings' from utils/baseutils.py. Updated test test_config_files_ordering to assert the missing file is buffered in load_warnings AND emitted as a BASEW07 WARN log, then the buffer is cleared (now 10/10 criteria PASS; test_local_config_override 5/5). Updated requirement BASE-REQ-001.6, architecture 6.1.4.4/6.1.4.5, build/updates/base.json, and resources/message_codes/base.csv. Full app run shows only the unrelated pre-existing TST005 (resolve_baseapp_source) failure. HTML report refreshed. Remaining at Ready for engineer review; no commit/push.",
                     "timestamp": "2026-07-03T02:21:52Z"
+                },
+                {
+                    "author": "BASE-TASK-260702-0001 worker",
+                    "content": "Engineer approved the implementation. Moving to deployment finalization: performed version bump to 26.07.02.01 (resources/version/base.txt=26.07.02.01, resources/version/app.txt=A26.07.02.01, config/base.json COMMON.VERSION=26.07.02.01), added the release-highlight section to docs/readme/base.md and updated its title, refreshed the overview 'Layered configuration' bullet in README.md (in place, no changelog), and updated build/updates/base.json to version 26.07.02.01. Full app run re-verified: config overlay tests pass; only the unrelated pre-existing TST005 (resolve_baseapp_source) fails. Builder approval recorded. NOT staged/committed/pushed — awaiting explicit final push approval before moving to Deployed.",
+                    "timestamp": "2026-07-03T02:49:32Z"
                 }
             ],
             "worker_session": {
