@@ -2260,7 +2260,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Ready",
+            "status": "CodeApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2301,6 +2301,11 @@
                     "author": "BASE-TASK-260629-0001 worker",
                     "content": "Review refinement: removed the APP.TASK_MANAGER.session_state_dir config key (it was a confusing observation-only pointer that couldn't control the CLI and could silently mismatch). The Copilot CLI has no session-state-only override, but it does honour COPILOT_HOME (state root = <COPILOT_HOME>/session-state, default ~/.copilot). The reader now resolves the session-state root from COPILOT_HOME via new helper _copilot_home_dir, so it always tracks wherever the CLI actually writes (workers inherit the Task Manager's env, so read and write locations never diverge). config/base.json is back to its committed state; requirements/architecture/tests updated accordingly. Tests: pytest test/tests/base/task_manager.py -> 83 passed (the one port-fallback failure is pre-existing and unrelated); base.py + config.py pass. Still Ready for review.",
                     "timestamp": "2026-07-03T18:01:36Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 worker",
+                    "content": "Engineer approved the implementation (model + per-state token tracking, null/blank token display, green→red token heat coloring, and immediate git sync on task creation). Advancing Ready → CodeApproved ahead of deployment.",
+                    "timestamp": "2026-07-03T19:10:19Z"
                 }
             ],
             "worker_session": {
@@ -2313,8 +2318,10 @@
                 "started_at": "2026-07-02T18:44:26Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 197245,
-                    "per_state": {}
+                    "TOTAL": 213286,
+                    "per_state": {
+                        "CodeApproved": 16041
+                    }
                 }
             }
         },
