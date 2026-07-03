@@ -2264,6 +2264,11 @@
                     "author": "BASE-TASK-260702-0001 worker",
                     "content": "Implementation complete (per approved design). Config overlay is user-controlled via COMMON.CONFIG_FILES: base file loads, then an ordered work-list is built (default = base's folder alphabetically, base skipped via visited guard); a declared CONFIG_FILES REPLACES the default (empty dict = base only); each overlaid file's CONFIG_FILES extends the work-list; folders expand alphabetically; missing referenced files warn (warnings.warn) without error; _/.-prefixed and LOADME:false skipped; evaluate/populate run once after all overlays. New helpers _get_config_files/_apply_config_files/_apply_config_file in utils/baseutils.py; default wiring base.json->{app.json:true}, app.json->{local.json:true}. New prep test test_config_files_ordering (9/9 PASS), existing test_local_config_override (4/4 PASS), live app run resolves base->app->local; full app run shows only the unrelated pre-existing resolve_baseapp_source (TST005) failure. Recorded progress in build/updates/base.json (step 3f). Report with colorized diffs: C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001.html. No commit/push yet — awaiting review.",
                     "timestamp": "2026-07-03T02:06:19Z"
+                },
+                {
+                    "author": "BASE-TASK-260702-0001 worker",
+                    "content": "Addressed review feedback: missing config files are now reported via the logging system (WARN log, new message code BASEW07 'Config file not found: {config_file}') instead of Python warnings.warn. Since Config is constructed before the logger exists (logger settings derive from config.LOG), missing-file warnings are buffered in Config.load_warnings during load and flushed as WARN logs by the new public method Config.log_warnings(logger) (architecture 6.1.4.5), wired into app/base.py run() and test/tests/build.py run() right after the logger is created. Removed the now-unused 'import warnings' from utils/baseutils.py. Updated test test_config_files_ordering to assert the missing file is buffered in load_warnings AND emitted as a BASEW07 WARN log, then the buffer is cleared (now 10/10 criteria PASS; test_local_config_override 5/5). Updated requirement BASE-REQ-001.6, architecture 6.1.4.4/6.1.4.5, build/updates/base.json, and resources/message_codes/base.csv. Full app run shows only the unrelated pre-existing TST005 (resolve_baseapp_source) failure. HTML report refreshed. Remaining at Ready for engineer review; no commit/push.",
+                    "timestamp": "2026-07-03T02:21:52Z"
                 }
             ],
             "worker_session": {
@@ -2275,6 +2280,30 @@
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260702-0001.md",
                 "started_at": "2026-07-02T18:44:46Z"
             }
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260703-0001",
+            "uuid": "7e1a1f3b-a772-4851-90b3-26ffa9b36703",
+            "type": "Feature",
+            "title": "Structured HTML task summaries and reports",
+            "description": [
+                "Currently there is no structured template our outline for HTML task reports, resulting in a plethora of structures, styles, color schemes, and types of information provided in the summary.",
+                "We need to have a structure for the summary so that all reports look the same.",
+                "When you provide a specification review, which is essentially a design document that the engineer would want to read carefully to understand, challenge, and enhance your suggested design, the review should highlight artifacts in the logical order: first the requirements, then the architecture (additions/changes) and then the detailed design - what each component needs to do, what additional functionality is needed etc. Changes should be organized logically - user interface, configuration/resource changes, app functionality, utilities, deployment protocols/scripts, testing artifacts, etc.",
+                "It will be awesome to get a clear color-coded diff-like presentation of the changes in each one of the files (for spec and code artifacts). A nice example is provided here:  file:///C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001%20-%20Ready.html",
+                "Having each modified file reach VS CODE diff view in the source control tab would be awesome.",
+                "Each status/stage that is concluded in such a report should be kept separately, currently the report is being overwritten but not necessarily appended to, resulting in loss of information."
+            ],
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Structured HTML task summaries and reports",
+                    "timestamp": "2026-07-03T02:18:19Z"
+                }
+            ]
         }
     ]
 }
