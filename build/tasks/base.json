@@ -1025,7 +1025,7 @@
             ],
             "type": "Bug",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Deleted",
             "comments": []
         },
         {
@@ -1060,7 +1060,12 @@
                 "branch": "task/BASE-TASK-260621-0003",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260621-0003",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260621-0003.md",
-                "started_at": "2026-06-29T20:41:01Z"
+                "started_at": "2026-06-29T20:41:01Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 14878,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -1073,7 +1078,7 @@
             ],
             "type": "Bug",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Deleted",
             "comments": []
         },
         {
@@ -1181,7 +1186,12 @@
                 "branch": "task/BASE-TASK-260622-0004",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260622-0004",
                 "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260622-0004.md",
-                "started_at": "2026-06-26T23:06:57Z"
+                "started_at": "2026-06-26T23:06:57Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 45489,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -1225,7 +1235,11 @@
                 "window_title": "Copilot Review BASE-TASK-260622-0005",
                 "mode": "review",
                 "prompt_file": "C:/data/MyApp/20260624/agent_prompts/BASE-TASK-260622-0005-review.md",
-                "started_at": "2026-06-24T20:23:04Z"
+                "started_at": "2026-06-24T20:23:04Z",
+                "tokens": {
+                    "TOTAL": null,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -1293,7 +1307,11 @@
                 "window_title": "Copilot Task BASE-TASK-260623-0002",
                 "mode": "work",
                 "prompt_file": "C:/data/MyApp/20260624/agent_prompts/BASE-TASK-260623-0002.md",
-                "started_at": "2026-06-24T20:24:20Z"
+                "started_at": "2026-06-24T20:24:20Z",
+                "tokens": {
+                    "TOTAL": null,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -1601,7 +1619,11 @@
                 "mode": "work",
                 "branch": "task/BASE-TASK-260624-0001",
                 "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260624-0001.md",
-                "started_at": "2026-06-26T21:30:29Z"
+                "started_at": "2026-06-26T21:30:29Z",
+                "tokens": {
+                    "TOTAL": null,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -1661,7 +1683,11 @@
                 "mode": "work",
                 "branch": "task/BASE-TASK-260624-0002",
                 "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260624-0002.md",
-                "started_at": "2026-06-26T00:12:08Z"
+                "started_at": "2026-06-26T00:12:08Z",
+                "tokens": {
+                    "TOTAL": null,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -1720,7 +1746,12 @@
                 "branch": "task/BASE-TASK-260624-0003",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260624-0003",
                 "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260624-0003.md",
-                "started_at": "2026-06-26T23:06:30Z"
+                "started_at": "2026-06-26T23:06:30Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 124317,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -1816,7 +1847,11 @@
                 "mode": "work",
                 "branch": "task/BASE-TASK-260626-0001",
                 "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0001.md",
-                "started_at": "2026-06-26T18:56:37Z"
+                "started_at": "2026-06-26T18:56:37Z",
+                "tokens": {
+                    "TOTAL": null,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -1877,7 +1912,12 @@
                 "branch": "task/BASE-TASK-260626-0002",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0002",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260626-0002.md",
-                "started_at": "2026-06-29T18:39:32Z"
+                "started_at": "2026-06-29T18:39:32Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 100719,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -1953,7 +1993,12 @@
                 "branch": null,
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0003",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260626-0003-review.md",
-                "started_at": "2026-06-29T18:43:09Z"
+                "started_at": "2026-06-29T18:43:09Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 39284,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -2027,7 +2072,12 @@
                 "branch": "task/BASE-TASK-260626-0004",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0004",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260626-0004.md",
-                "started_at": "2026-06-29T20:43:26Z"
+                "started_at": "2026-06-29T20:43:26Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 184120,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -2103,7 +2153,12 @@
                 "branch": "task/BASE-TASK-260627-0002",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260627-0002",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260627-0002.md",
-                "started_at": "2026-06-29T20:44:13Z"
+                "started_at": "2026-06-29T20:44:13Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 49738,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -2183,7 +2238,12 @@
                 "branch": "task/BASE-TASK-260627-0003",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260627-0003",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260627-0003.md",
-                "started_at": "2026-06-29T22:27:50Z"
+                "started_at": "2026-06-29T22:27:50Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 348401,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -2250,7 +2310,12 @@
                 "branch": "BASE-TASK-260629-0001",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260629-0001",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260629-0001.md",
-                "started_at": "2026-07-02T18:44:26Z"
+                "started_at": "2026-07-02T18:44:26Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 197245,
+                    "per_state": {}
+                }
             }
         },
         {
@@ -2323,7 +2388,12 @@
                 "branch": "BASE-TASK-260702-0001",
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260702-0001",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260702-0001.md",
-                "started_at": "2026-07-02T18:44:46Z"
+                "started_at": "2026-07-02T18:44:46Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 131611,
+                    "per_state": {}
+                }
             }
         },
         {
