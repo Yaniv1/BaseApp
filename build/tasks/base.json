@@ -2216,6 +2216,11 @@
                     "author": "BASE-TASK-260629-0001 worker",
                     "content": "Design ready for review. Requirements: added BASE-REQ-014.22 (model + token accounting per task/state). Architecture: added features 3.6.17 (_record_worker_session_usage), 3.6.17.1 (_resolve_session_state_dir), 3.6.17.2 (_read_worktree_session_usage). Design: Task Manager reads the Copilot CLI event log (~/.copilot/session-state/<id>/events.jsonl), matches sessions to the task by worktree cwd, sums assistant.message outputTokens for tokens.TOTAL and captures the model; on each status transition it adds the token delta to tokens.per_state[current status] (accumulating on revisits). worker_session gains model + tokens{TOTAL, per_state}. Reading is best-effort/non-blocking. Summary: C:/data/MyApp/task_results/BASE-TASK-260629-0001/BASE-TASK-260629-0001.html",
                     "timestamp": "2026-07-03T02:23:54Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 worker",
+                    "content": "Extended the spec per engineer request to include the Task Manager UI: (a) task-list table gains a numeric, sortable 'Tokens' column showing cumulative worker_session.tokens.TOTAL; (b) task-details pane gains a per-step Copilot-usage table aggregating per_state into four steps -- Specification (ToDo/InProgress/Specified), Implementation (Ready), Deployment (Deployed), Integration (Approved/Done) -- with per-step subtotals, a TOTAL row, and the model. Both derived client-side from worker_session (no new API). Updated BASE-REQ-014.22 and architecture 11.2.2 (task_manager.html) accordingly; summary HTML refreshed.",
+                    "timestamp": "2026-07-03T02:36:54Z"
                 }
             ],
             "worker_session": {
