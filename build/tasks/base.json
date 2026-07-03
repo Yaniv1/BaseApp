@@ -2221,6 +2221,11 @@
                     "author": "BASE-TASK-260629-0001 worker",
                     "content": "Extended the spec per engineer request to include the Task Manager UI: (a) task-list table gains a numeric, sortable 'Tokens' column showing cumulative worker_session.tokens.TOTAL; (b) task-details pane gains a per-step Copilot-usage table aggregating per_state into four steps -- Specification (ToDo/InProgress/Specified), Implementation (Ready), Deployment (Deployed), Integration (Approved/Done) -- with per-step subtotals, a TOTAL row, and the model. Both derived client-side from worker_session (no new API). Updated BASE-REQ-014.22 and architecture 11.2.2 (task_manager.html) accordingly; summary HTML refreshed.",
                     "timestamp": "2026-07-03T02:36:54Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 worker",
+                    "content": "Spec updated per engineer to expand the approval lifecycle. New order: ToDo -> InProgress -> Specified -> SpecApproved -> Ready -> CodeApproved -> Deployed -> BuildApproved -> Done (SpecApproved inserted after Specified; CodeApproved inserted after Ready; Approved renamed BuildApproved). Review gates: Specified->SpecApproved (spec), Ready->CodeApproved (code), Deployed->BuildApproved (build/integration). Token gating regrouped into 3 phases for the details pane: Spec (ToDo->SpecApproved: InProgress/Specified/SpecApproved), Code (SpecApproved->CodeApproved: Ready/CodeApproved), Build (CodeApproved->Done: Deployed/BuildApproved/Done). Planned edits: template.json status enum, instructions (base.md/task.md), UI tabs/normalizeStatus/statusCls/badges/selects, README lifecycle, plus the Tokens column and per-phase usage table. Updated BASE-REQ-014.22 and architecture 11.2.2; summary HTML refreshed. Awaiting spec approval (SpecApproved) before implementing.",
+                    "timestamp": "2026-07-03T02:48:29Z"
                 }
             ],
             "worker_session": {
