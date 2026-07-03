@@ -2260,7 +2260,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "CodeApproved",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2306,6 +2306,11 @@
                     "author": "BASE-TASK-260629-0001 worker",
                     "content": "Engineer approved the implementation (model + per-state token tracking, null/blank token display, green→red token heat coloring, and immediate git sync on task creation). Advancing Ready → CodeApproved ahead of deployment.",
                     "timestamp": "2026-07-03T19:10:19Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 worker",
+                    "content": "Reverting CodeApproved → Ready: the CodeApproved transition was only a live test of per-state token tracking and immediate main sync (both confirmed working). Code review is still in progress. Also fixed the token heat-color scale to anchor its min/max to the whole ledger (allTasks) instead of the visible rows, so colors no longer shift with the active tab/filter/sort.",
+                    "timestamp": "2026-07-03T19:14:12Z"
                 }
             ],
             "worker_session": {
