@@ -2200,7 +2200,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Specified",
+            "status": "SpecApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2226,6 +2226,11 @@
                     "author": "BASE-TASK-260629-0001 worker",
                     "content": "Spec updated per engineer to expand the approval lifecycle. New order: ToDo -> InProgress -> Specified -> SpecApproved -> Ready -> CodeApproved -> Deployed -> BuildApproved -> Done (SpecApproved inserted after Specified; CodeApproved inserted after Ready; Approved renamed BuildApproved). Review gates: Specified->SpecApproved (spec), Ready->CodeApproved (code), Deployed->BuildApproved (build/integration). Token gating regrouped into 3 phases for the details pane: Spec (ToDo->SpecApproved: InProgress/Specified/SpecApproved), Code (SpecApproved->CodeApproved: Ready/CodeApproved), Build (CodeApproved->Done: Deployed/BuildApproved/Done). Planned edits: template.json status enum, instructions (base.md/task.md), UI tabs/normalizeStatus/statusCls/badges/selects, README lifecycle, plus the Tokens column and per-phase usage table. Updated BASE-REQ-014.22 and architecture 11.2.2; summary HTML refreshed. Awaiting spec approval (SpecApproved) before implementing.",
                     "timestamp": "2026-07-03T02:48:29Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 worker",
+                    "content": "Specification approved by engineer. Beginning implementation of the model/token tracking + expanded approval lifecycle (SpecApproved/CodeApproved/BuildApproved).",
+                    "timestamp": "2026-07-03T03:07:56Z"
                 }
             ],
             "worker_session": {
