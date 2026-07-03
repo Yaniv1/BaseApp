@@ -2253,7 +2253,7 @@
                 "configs will patch each other in the order of appearance. if a folder is listed, the files in the folder will patch over alphabetically."
             ],
             "priority": "Medium",
-            "status": "Approved",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2289,6 +2289,11 @@
                     "author": "BASE-TASK-260702-0001 worker",
                     "content": "Engineer approved the implementation. Moving to deployment finalization: performed version bump to 26.07.02.01 (resources/version/base.txt=26.07.02.01, resources/version/app.txt=A26.07.02.01, config/base.json COMMON.VERSION=26.07.02.01), added the release-highlight section to docs/readme/base.md and updated its title, refreshed the overview 'Layered configuration' bullet in README.md (in place, no changelog), and updated build/updates/base.json to version 26.07.02.01. Full app run re-verified: config overlay tests pass; only the unrelated pre-existing TST005 (resolve_baseapp_source) fails. Builder approval recorded. NOT staged/committed/pushed — awaiting explicit final push approval before moving to Deployed.",
                     "timestamp": "2026-07-03T02:49:32Z"
+                },
+                {
+                    "author": "BASE-TASK-260702-0001 worker",
+                    "content": "Engineer granted explicit approval to stage/commit/push. Committed all task changes (16 files, excluding the server-owned ledger) as 07dfb9f 'BASE-TASK-260702-0001 [6.1.4] User-controlled config file selection/order via COMMON.CONFIG_FILES' and pushed to the short-lived task branch origin/BASE-TASK-260702-0001 (new branch). Version 26.07.02.01. HTML work-summary/transcript saved to the task result store at C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001.html (full diffs of all 16 files + task.md). Not merged to main — awaiting the integration/merge step.",
+                    "timestamp": "2026-07-03T03:00:14Z"
                 }
             ],
             "worker_session": {
