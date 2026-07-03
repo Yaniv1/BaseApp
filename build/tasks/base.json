@@ -2200,7 +2200,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "SpecApproved",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2231,6 +2231,11 @@
                     "author": "BASE-TASK-260629-0001 worker",
                     "content": "Specification approved by engineer. Beginning implementation of the model/token tracking + expanded approval lifecycle (SpecApproved/CodeApproved/BuildApproved).",
                     "timestamp": "2026-07-03T03:07:56Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 worker",
+                    "content": "Implementation complete. Added Copilot model + token accounting to worker_session: Task Manager reads per-session events.jsonl, matches sessions to the task worktree by cwd, sums assistant.message outputTokens, and on each status transition adds the delta to tokens.per_state[current status] (accumulating on revisit) and updates TOTAL + model (scripts/task_manager.py: _resolve_session_state_dir/3.6.17.1, _read_worktree_session_usage/3.6.17.2, _record_worker_session_usage/3.6.17; wired into _apply_status_request_file; model/tokens initialised and preserved across relaunches in _start_copilot_for_task). Expanded lifecycle to ToDo->InProgress->Specified->SpecApproved->Ready->CodeApproved->Deployed->BuildApproved->Done (renamed Approved->BuildApproved) across template.json, base.md, task.md, and the UI (tabs, STATUS_TABS, normalizeStatus, statusCls, badge CSS, create/edit selects). UI adds a sortable Tokens column and a per-phase Design/Develop/Deploy usage table with model in the details pane. Added config APP.TASK_MANAGER.session_state_dir (default ~/.copilot/session-state). Tests: pytest test/tests/base/task_manager.py -> 82 passed (11 new); base.py + config.py pass. Awaiting code review before deployment.",
+                    "timestamp": "2026-07-03T03:24:25Z"
                 }
             ],
             "worker_session": {
