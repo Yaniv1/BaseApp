@@ -2351,7 +2351,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "BuildApproved",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2417,6 +2417,11 @@
                     "author": "BASE-TASK-260629-0001 Agentic Builder",
                     "content": "Engineer approved the deployed build for integration (build/integration-review gate: Deployed -> BuildApproved). Proceeding to merge branch BASE-TASK-260629-0001 into main.",
                     "timestamp": "2026-07-06T20:42:15Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 Agentic Builder",
+                    "content": "Integrated: task branch BASE-TASK-260629-0001 merged into main (merge commit dbca376; version 26.07.06.01). Version/append-log conflicts vs BASE-TASK-260702-0001 resolved keeping both release entries newest-first. Dissolving the short-lived branch and worktree.",
+                    "timestamp": "2026-07-06T20:48:02Z"
                 }
             ],
             "worker_session": {
@@ -2429,9 +2434,10 @@
                 "started_at": "2026-07-02T18:44:26Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 213286,
+                    "TOTAL": 379998,
                     "per_state": {
-                        "CodeApproved": 16041
+                        "CodeApproved": 16041,
+                        "Done": 166712
                     }
                 }
             }
