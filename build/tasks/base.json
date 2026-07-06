@@ -1102,12 +1102,14 @@
             "uuid": "87e9a30a-8e1f-4e2f-bbb4-960160a94a95",
             "title": "Task Manager UI - Add a Close button to close the browser and python background process",
             "description": [
-                "If you close the task manager ui tab the python process keeps running in the background.",
-                "Make sure that if the browser is closed then the python background process is also stopped.",
-                "Also add a close button to close the python and tab."
+                "If you close the task manager ui tab the python process keeps running in the foreground and additional subprocesses keep running in the background.",
+                "Make sure that if the browser is closed then the python background processes are also stopped.",
+                "Also add a close button to close the python and tab.",
+                "When the foreground process is hard-stopped (Ctrl-Z/ Ctrl-C) the background processes must also shut themselves down. they will need to continue monitoring the chief process and if it is gone, they must end as well.",
+                "the ui should also shut itself down if the python server stops working."
             ],
             "type": "Feature",
-            "priority": "Medium",
+            "priority": "Critical",
             "status": "ToDo",
             "comments": []
         },
@@ -2260,7 +2262,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "CodeApproved",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2316,6 +2318,11 @@
                     "author": "BASE-TASK-260629-0001 worker",
                     "content": "Code-review gate (Ready -> CodeApproved): engineer approved the implementation. Feature scope (BASE-REQ-014.22 / arch 3.6.17): Copilot model + token consumption tracking per task and per lifecycle state, surfaced in the Task Manager UI (sortable Tokens column with green->red heat colouring anchored to the whole ledger; per-phase Design/Develop/Deploy usage table in the detail pane); null/blank rendering for tasks with no recorded usage; expanded lifecycle (SpecApproved, CodeApproved, BuildApproved). Also: default ledger file resolves to base.json for BaseApp via COMMON.APP_NAME; the selected tasks dir now persists across reloads (localStorage); immediate git-sync on task creation; and a new built-in \"By Tokens\" view. Proceeding to deployment finalization.",
                     "timestamp": "2026-07-06T19:50:44Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 Agentic Builder",
+                    "content": "Engineer approved final deployment. Code/spec/doc/test changes committed (4a0c367) and pushed to branch BASE-TASK-260629-0001. Version bumped to 26.07.06.01 (app A26.07.06.01). Moving task to Deployed.",
+                    "timestamp": "2026-07-06T20:17:20Z"
                 }
             ],
             "worker_session": {
