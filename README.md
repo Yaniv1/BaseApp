@@ -118,7 +118,7 @@ scripts/deploy.ps1
 ## Building with the Task Manager
 
 Work on BaseApp is organized as **tasks** that move through a managed, spec-driven
-lifecycle: `ToDo → InProgress → Specified → Ready → Deployed → Approved → Done`. The
+lifecycle: `ToDo → InProgress → Specified → SpecApproved → Ready → CodeApproved → Deployed → BuildApproved → Done`. The
 Task Manager is a local, zero-dependency web UI for creating, tracking, and driving
 these tasks.
 
@@ -145,8 +145,17 @@ How a task flows through the system:
   jumps straight to a task by id. Sorting supports **multiple columns** at once, and the
   Type/Priority filters are **multi-select** and always offer the canonical values. Any
   combination of sort and filters can be saved as a named **view** and re-applied later;
-  views can be shared across tabs, a set of built-in views ships by default, and your own
-  views and the active view per tab persist across sessions.
+  views can be shared across tabs, a set of built-in views ships by default (including a
+  **By Tokens** view that ranks tasks by Copilot token consumption), and your own
+  views and the active view per tab persist across sessions. The active tasks directory
+  and selected ledger file are also remembered across reloads.
+- **Model & token accounting.** The Task Manager records, for each task, which GitHub
+  Copilot **model** the worker ran and how many **tokens** it consumed — both a running
+  total and a breakdown per lifecycle state — by reading the Copilot CLI's own per-session
+  usage logs. The task list shows a sortable **Tokens** column (heat-coloured green→red
+  across the whole ledger, blank when no usage has been recorded yet), and a task's detail
+  pane breaks its consumption down into **Design**, **Develop**, and **Deploy** phases
+  alongside the model used.
 - **Isolation per task.** The repository uses a bare shared object store with every
   branch — including `main` — checked out as its own git worktree under one container.
   Each task is worked on a short-lived `task/<id>` branch in its own dedicated worktree,
@@ -159,9 +168,12 @@ How a task flows through the system:
   store** (via an `enqueue_status_update` MCP tool), and the Task Manager is the sole
   writer that applies those requests to the ledger on `main`. A server restart never
   blocks a worker — pending requests wait and are applied exactly once.
-- **Reviewed promotion.** A task is set to `Ready` for engineer review, `Deployed` once
-  finalized and pushed to its own branch, and `Done` only after it is merged into `main`
-  and its branch/worktree are dissolved under the integration engineer's supervision. Branch pruning keeps the repository tidy and clean, with a few short-lived task branches that reflect the current state of development at any given moment.
+- **Reviewed promotion.** A task passes three engineer review gates on its way to
+  integration: the specification is approved (`Specified → SpecApproved`), the
+  implementation is approved (`Ready → CodeApproved`), and the deployed build is approved
+  for merge (`Deployed → BuildApproved`). It is set to `Deployed` once finalized and pushed
+  to its own branch, and reaches `Done` only after it is merged into `main` and its
+  branch/worktree are dissolved under the integration engineer's supervision. Branch pruning keeps the repository tidy and clean, with a few short-lived task branches that reflect the current state of development at any given moment.
 
 Useful Task Manager flags:
 

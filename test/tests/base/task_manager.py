@@ -18,6 +18,7 @@ from scripts.task_manager import (
     _apply_task_update,
     _create_server,
     _create_task,
+    _default_task_filename_for_context,
     _delete_task,
     _load_tasks_store,
     _next_task_id,
@@ -305,7 +306,7 @@ def test_task_manager_template_has_ready_tab():
     template = template_path.read_text(encoding="utf-8")
     assert 'data-status="Ready"' in template
     assert 'id="cnt-Ready"' in template
-    assert "'ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done'" in template
+    assert "'ToDo', 'InProgress', 'Specified', 'SpecApproved', 'Ready', 'CodeApproved', 'Deployed', 'BuildApproved', 'Done'" in template
 
 
 def test_task_manager_template_has_deleted_tab():
@@ -313,7 +314,7 @@ def test_task_manager_template_has_deleted_tab():
     template = template_path.read_text(encoding="utf-8")
     assert 'data-status="Deleted"' in template
     assert 'id="cnt-Deleted"' in template
-    assert "'ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted'" in template
+    assert "'ToDo', 'InProgress', 'Specified', 'SpecApproved', 'Ready', 'CodeApproved', 'Deployed', 'BuildApproved', 'Done', 'Deleted'" in template
     assert 'id="delete-task-btn"' in template
 
 
@@ -324,20 +325,30 @@ def test_task_manager_template_has_deployed_tab():
     assert 'id="cnt-Deployed"' in template
     assert ".s-deployed{" in template
     # Deployed (pushed to its own branch) precedes Done (merged into main) in the lifecycle order.
-    assert "'ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted'" in template
+    assert "'ToDo', 'InProgress', 'Specified', 'SpecApproved', 'Ready', 'CodeApproved', 'Deployed', 'BuildApproved', 'Done', 'Deleted'" in template
 
 
-def test_task_manager_template_has_specified_and_approved_tabs():
+def test_task_manager_template_has_specified_and_approval_tabs():
     template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
     template = template_path.read_text(encoding="utf-8")
     assert 'data-status="Specified"' in template
     assert 'id="cnt-Specified"' in template
     assert ".s-specified{" in template
-    assert 'data-status="Approved"' in template
-    assert 'id="cnt-Approved"' in template
-    assert ".s-approved{" in template
-    # Tab order: ToDo, InProgress, Specified, Ready, Deployed, Approved, Done.
-    assert "'ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted'" in template
+    # The expanded lifecycle adds explicit approval gates: SpecApproved (spec
+    # review), CodeApproved (code review), and BuildApproved (rename of the old
+    # Approved, the build/integration review gate).
+    assert 'data-status="SpecApproved"' in template
+    assert 'id="cnt-SpecApproved"' in template
+    assert ".s-specapproved{" in template
+    assert 'data-status="CodeApproved"' in template
+    assert 'id="cnt-CodeApproved"' in template
+    assert ".s-codeapproved{" in template
+    assert 'data-status="BuildApproved"' in template
+    assert 'id="cnt-BuildApproved"' in template
+    assert ".s-buildapproved{" in template
+    # The old single 'Approved' tab has been renamed to 'BuildApproved'.
+    assert 'data-status="Approved"' not in template
+    assert "'ToDo', 'InProgress', 'Specified', 'SpecApproved', 'Ready', 'CodeApproved', 'Deployed', 'BuildApproved', 'Done', 'Deleted'" in template
 
 
 def test_task_manager_template_has_other_catch_all_tab():
@@ -389,6 +400,15 @@ def test_task_manager_template_has_resizable_split_panes():
     # Default division is 60% list / 40% details and is wired through JS.
     assert "DEFAULT_RATIO = 0.6" in template
     assert "function initSplit()" in template
+
+
+def test_task_manager_template_persists_tasks_dir_across_reloads():
+    """The chosen tasks dir is remembered across reloads via localStorage
+    ('tm_dir'): loadConfig restores it, applyTasksDir saves it."""
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    assert "localStorage.getItem('tm_dir')" in template
+    assert "localStorage.setItem('tm_dir', dir)" in template
 
 
 def test_task_manager_template_has_column_sorting_and_filtering():
@@ -527,6 +547,33 @@ def _write_config(base_dir, name, data):
     config_dir = base_dir / "config"
     config_dir.mkdir(exist_ok=True)
     (config_dir / name).write_text(json.dumps(data, indent=4), encoding="utf-8")
+
+
+def test_default_task_filename_uses_app_name_baseapp(tmp_path):
+    """BaseApp (identified by COMMON.APP_NAME) defaults to base.json even when
+    the base dir is a git worktree folder named after a task id, not 'BaseApp'."""
+    base_dir = tmp_path / "BASE-TASK-260629-0001"
+    base_dir.mkdir()
+    _write_config(base_dir, "base.json", {"COMMON": {"APP_NAME": "BaseApp"}})
+    assert _default_task_filename_for_context(base_dir) == "base.json"
+
+
+def test_default_task_filename_uses_app_name_instance_app(tmp_path):
+    """A generated instance app (non-BaseApp APP_NAME) defaults to app.json."""
+    base_dir = tmp_path / "SomeApp"
+    base_dir.mkdir()
+    _write_config(base_dir, "base.json", {"COMMON": {"APP_NAME": "MyApp"}})
+    assert _default_task_filename_for_context(base_dir) == "app.json"
+
+
+def test_default_task_filename_falls_back_to_folder_name(tmp_path):
+    """Without a config APP_NAME, fall back to the base dir folder name."""
+    baseapp_dir = tmp_path / "BaseApp"
+    baseapp_dir.mkdir()
+    assert _default_task_filename_for_context(baseapp_dir) == "base.json"
+    other_dir = tmp_path / "instance"
+    other_dir.mkdir()
+    assert _default_task_filename_for_context(other_dir) == "app.json"
 
 
 def _sample_views(view_id="v1", tabs=("ToDo",), name="High Priority Bugs"):
@@ -1290,6 +1337,219 @@ def test_apply_task_fields_combines_lists_and_overwrites_scalars():
     assert existing["tags"] == ["a", "b", "c"]
 
 
+def _write_events(session_dir, cwd, messages, model_change=None):
+    """Write a Copilot-style events.jsonl for one session.
+
+    ``messages`` is a list of (model, outputTokens) tuples emitted as
+    assistant.message events; ``cwd`` is the session.start working directory.
+    """
+    session_dir.mkdir(parents=True, exist_ok=True)
+    lines = [json.dumps({"type": "session.start", "data": {"context": {"cwd": cwd}}})]
+    for model, tokens in messages:
+        data = {"outputTokens": tokens}
+        if model:
+            data["model"] = model
+        lines.append(json.dumps({"type": "assistant.message", "data": data}))
+    if model_change:
+        lines.append(json.dumps({"type": "session.model_change", "data": {"newModel": model_change}}))
+    (session_dir / "events.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_read_worktree_session_usage_sums_tokens_and_matches_cwd(tmp_path):
+    """Feature 3.6.17.2: only sessions whose cwd matches the worktree are summed."""
+    state_dir = tmp_path / "session-state"
+    worktree = tmp_path / "APP" / "BASE-TASK-1234"
+    worktree.mkdir(parents=True)
+    other = tmp_path / "APP" / "BASE-TASK-9999"
+    other.mkdir(parents=True)
+    _write_events(state_dir / "s1", worktree.as_posix(), [("claude-opus-4.8", 100), ("claude-opus-4.8", 50)])
+    _write_events(state_dir / "s2", worktree.as_posix(), [("claude-opus-4.8", 25)])
+    # A session for a different worktree must not be counted.
+    _write_events(state_dir / "s3", other.as_posix(), [("claude-opus-4.8", 999)])
+
+    usage = task_manager._read_worktree_session_usage(state_dir, worktree)
+    assert usage["total_tokens"] == 175
+    assert usage["model"] == "claude-opus-4.8"
+
+
+def test_read_worktree_session_usage_takes_latest_model_and_skips_malformed(tmp_path):
+    state_dir = tmp_path / "session-state"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    session_dir = state_dir / "s1"
+    session_dir.mkdir(parents=True)
+    (session_dir / "events.jsonl").write_text(
+        json.dumps({"type": "session.start", "data": {"context": {"cwd": worktree.as_posix()}}}) + "\n"
+        + "not-json-should-be-skipped\n"
+        + json.dumps({"type": "assistant.message", "data": {"outputTokens": 40, "model": "claude-sonnet-4.5"}}) + "\n"
+        + json.dumps({"type": "session.model_change", "data": {"newModel": "claude-opus-4.8"}}) + "\n",
+        encoding="utf-8",
+    )
+    usage = task_manager._read_worktree_session_usage(state_dir, worktree)
+    assert usage["total_tokens"] == 40
+    assert usage["model"] == "claude-opus-4.8"
+
+
+def test_read_worktree_session_usage_missing_dir_is_empty(tmp_path):
+    usage = task_manager._read_worktree_session_usage(tmp_path / "nope", tmp_path / "wt")
+    assert usage == {"model": None, "total_tokens": 0, "matched": False}
+
+
+def test_resolve_session_state_dir_uses_copilot_home(monkeypatch, tmp_path):
+    """Feature 3.6.17.1: the session-state root follows the Copilot CLI's own
+    COPILOT_HOME override (<COPILOT_HOME>/session-state)."""
+    home = tmp_path / "custom-copilot-home"
+    state = home / "session-state"
+    state.mkdir(parents=True)
+    monkeypatch.setenv("COPILOT_HOME", str(home))
+    assert task_manager._resolve_session_state_dir() == state
+
+
+def test_resolve_session_state_dir_defaults_to_user_home_when_unset(monkeypatch, tmp_path):
+    monkeypatch.delenv("COPILOT_HOME", raising=False)
+    default = tmp_path / ".copilot" / "session-state"
+    default.mkdir(parents=True)
+    monkeypatch.setattr(task_manager.Path, "home", classmethod(lambda cls: tmp_path))
+    assert task_manager._resolve_session_state_dir() == default
+
+
+def test_resolve_session_state_dir_none_when_missing(monkeypatch, tmp_path):
+    monkeypatch.setenv("COPILOT_HOME", str(tmp_path / "does-not-exist"))
+    assert task_manager._resolve_session_state_dir() is None
+
+
+def test_record_worker_session_usage_accumulates_per_state_delta(monkeypatch, tmp_path):
+    """Feature 3.6.17: each status transition adds the token delta to the task's
+    current status, accumulating across revisits and never regressing TOTAL."""
+    monkeypatch.setenv("COPILOT_HOME", str(tmp_path))
+    state_dir = tmp_path / "session-state"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    session_dir = state_dir / "s1"
+
+    task = {"id": "T1", "status": "InProgress",
+            "worker_session": {"worktree": worktree.as_posix()}}
+
+    # First reading while InProgress: 100 tokens spent.
+    _write_events(session_dir, worktree.as_posix(), [("claude-opus-4.8", 100)])
+    task_manager._record_worker_session_usage(None, task)
+    tokens = task["worker_session"]["tokens"]
+    assert tokens["TOTAL"] == 100
+    assert tokens["per_state"]["InProgress"] == 100
+    assert task["worker_session"]["model"] == "claude-opus-4.8"
+
+    # Move to Specified and spend 60 more (cumulative 160): delta lands on Specified.
+    task["status"] = "Specified"
+    _write_events(session_dir, worktree.as_posix(), [("claude-opus-4.8", 100), ("claude-opus-4.8", 60)])
+    task_manager._record_worker_session_usage(None, task)
+    tokens = task["worker_session"]["tokens"]
+    assert tokens["TOTAL"] == 160
+    assert tokens["per_state"]["InProgress"] == 100
+    assert tokens["per_state"]["Specified"] == 60
+
+    # Revisit InProgress and spend 30 more: accrues on top of the prior 100.
+    task["status"] = "InProgress"
+    _write_events(session_dir, worktree.as_posix(),
+                  [("claude-opus-4.8", 100), ("claude-opus-4.8", 60), ("claude-opus-4.8", 30)])
+    task_manager._record_worker_session_usage(None, task)
+    tokens = task["worker_session"]["tokens"]
+    assert tokens["TOTAL"] == 190
+    assert tokens["per_state"]["InProgress"] == 130
+
+
+def test_record_worker_session_usage_never_regresses_or_raises(monkeypatch, tmp_path):
+    monkeypatch.setenv("COPILOT_HOME", str(tmp_path))
+    state_dir = tmp_path / "session-state"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    task = {"id": "T1", "status": "Ready",
+            "worker_session": {"worktree": worktree.as_posix(),
+                               "tokens": {"TOTAL": 500, "per_state": {"Ready": 500}}}}
+    # A lower/absent reading must not lower the recorded totals, and must not raise.
+    _write_events(state_dir / "s1", worktree.as_posix(), [("claude-opus-4.8", 10)])
+    task_manager._record_worker_session_usage(None, task)
+    tokens = task["worker_session"]["tokens"]
+    assert tokens["TOTAL"] == 500
+    assert tokens["per_state"]["Ready"] == 500
+
+
+def test_record_worker_session_usage_records_null_when_no_session(monkeypatch, tmp_path):
+    """When no Copilot session matches the worktree, TOTAL is recorded as null
+    (blank in the UI) rather than a misleading 0, and a real prior total is
+    preserved."""
+    monkeypatch.setenv("COPILOT_HOME", str(tmp_path))
+    (tmp_path / "session-state").mkdir()
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+
+    # No session data for this worktree -> null total, empty per_state.
+    task = {"id": "T1", "status": "Ready",
+            "worker_session": {"worktree": worktree.as_posix()}}
+    task_manager._record_worker_session_usage(None, task)
+    tokens = task["worker_session"]["tokens"]
+    assert tokens["TOTAL"] is None
+    assert tokens["per_state"] == {}
+
+    # A previously captured real total must survive a later empty read.
+    task2 = {"id": "T2", "status": "Ready",
+             "worker_session": {"worktree": worktree.as_posix(),
+                                "tokens": {"TOTAL": 320, "per_state": {"Ready": 320}}}}
+    task_manager._record_worker_session_usage(None, task2)
+    assert task2["worker_session"]["tokens"]["TOTAL"] == 320
+
+
+def test_template_json_worker_session_has_model_and_tokens():
+    template_path = Path(__file__).resolve().parents[3] / "build" / "tasks" / "template.json"
+    data = json.loads(template_path.read_text(encoding="utf-8"))
+    task = data["TASKS"][0]
+    ws = task["worker_session"]
+    assert "model" in ws
+    assert "tokens" in ws
+    assert "TOTAL" in ws["tokens"]
+    assert "per_state" in ws["tokens"]
+    # The status enum (pipe-delimited placeholder) carries the expanded lifecycle.
+    status_enum = task["status"]
+    for s in ("SpecApproved", "CodeApproved", "BuildApproved"):
+        assert s in status_enum
+    assert "|Approved|" not in status_enum
+
+
+def test_task_manager_template_has_tokens_column_and_usage_table():
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    # Sortable numeric Tokens column.
+    assert 'data-col="tokens"' in template
+    assert "id=\"sort-ind-tokens\"" in template
+    assert "function tokenTotal(" in template
+    assert "'id', 'title', 'type', 'priority', 'status', 'tokens'" in template
+    # Per-phase (Design/Develop/Deploy) usage breakdown in the detail pane.
+    assert "TOKEN_PHASES" in template
+    assert "'Design'" in template and "'Develop'" in template and "'Deploy'" in template
+    assert 'id="det-usage"' in template
+    # Missing token counts render blank, not 0: fmtTokens returns '' for null and
+    # tokenTotal yields null (not 0) when no usage has been recorded.
+    assert "return '';" in template
+    # Non-empty token counts are heat-coloured green (low) → red (high).
+    assert "function tokenColor(" in template
+    # The colour scale is anchored to the WHOLE ledger (allTasks), not the
+    # currently visible rows, so colours don't shift when changing tab/filter.
+    assert "allTasks.map(tokenTotal)" in template
+
+
+def test_config_base_has_by_tokens_builtin_view():
+    """A built-in 'By Tokens' view ships in config/base.json, sorting tasks by
+    token consumption (descending)."""
+    config_path = Path(__file__).resolve().parents[3] / "config" / "base.json"
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    views = config["APP"]["TASK_MANAGER"]["views"]
+    tokens_view = next((v for v in views if v.get("id") == "base-tokens"), None)
+    assert tokens_view is not None
+    assert tokens_view["name"] == "By Tokens"
+    assert tokens_view["sort"] == {"tokens": "desc"}
+    # Available on the ALL tab (compare every task by cost).
+    assert "ALL" in tokens_view["tabs"]
+
+
 def test_process_status_inbox_applies_request_and_moves_to_processed(monkeypatch, tmp_path):
     store, _store_root, tasks_path = _make_status_store(tmp_path)
     _save_tasks_store(tasks_path, {"TASKS": [
@@ -1645,6 +1905,38 @@ def test_create_task_does_not_autofill_non_pullbase_title():
         data["TASKS"], {"type": "Feature", "description": "d"},
     )
     assert created["title"] == ""
+
+
+def test_create_task_via_http_triggers_immediate_git_sync(monkeypatch, tmp_path):
+    """Creating a task through the UI service commits+pushes it right away so it
+    is never left uncommitted in the working tree."""
+    temp_tasks = tmp_path / "base.json"
+    _save_tasks_store(temp_tasks, {"TASKS": []})
+
+    sync_calls = []
+    monkeypatch.setattr(
+        task_manager, "_sync_task_store_to_git",
+        lambda *a, **k: sync_calls.append(k) or {"message": "ok"},
+    )
+
+    server = _create_server("127.0.0.1", 0, temp_tasks)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    time.sleep(0.2)
+    port = server.server_address[1]
+    try:
+        status, payload = _request_json(
+            f"http://127.0.0.1:{port}/api/tasks", method="POST",
+            payload={"title": "Synced on create", "description": "d", "status": "ToDo"},
+        )
+        assert status == 201
+        assert len(sync_calls) == 1
+        # The commit is scoped to the ledger branch and references the new id.
+        assert payload["task"]["id"] in sync_calls[0].get("message", "")
+        assert sync_calls[0].get("headless") is True
+    finally:
+        server.shutdown()
+        thread.join(timeout=2)
 
 
 # ---------------------------------------------------------------------------

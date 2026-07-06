@@ -191,11 +191,21 @@ details.cli-sect{margin-top:2px}
 .s-done{background:rgba(34,197,94,.17);color:#86efac}
 .s-deployed{background:rgba(16,185,129,.22);color:#34d399}
 .s-specified{background:rgba(168,85,247,.17);color:#d8b4fe}
-.s-approved{background:rgba(132,204,22,.17);color:#bef264}
+.s-specapproved{background:rgba(217,70,239,.17);color:#f0abfc}
+.s-codeapproved{background:rgba(14,165,233,.2);color:#38bdf8}
+.s-buildapproved{background:rgba(132,204,22,.17);color:#bef264}
 .s-deleted{background:rgba(239,68,68,.17);color:#fca5a5}
 .s-other{background:rgba(100,116,139,.22);color:#cbd5e1}
 .det-title{font-size:1.08rem}
 .det-desc{color:var(--mu);white-space:pre-wrap;line-height:1.65;font-size:.88rem}
+.det-usage{margin:4px 0 2px}
+.det-usage .usage-hd{font-size:.78rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mu);margin-bottom:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.det-usage .usage-model{font-family:monospace;font-size:.74rem;font-weight:600;color:var(--ac);background:rgba(56,189,248,.12);border-radius:6px;padding:2px 8px}
+.det-usage table{border-collapse:collapse;width:100%;font-size:.82rem}
+.det-usage th,.det-usage td{text-align:left;padding:5px 10px;border-bottom:1px solid var(--ln)}
+.det-usage td.num,.det-usage th.num{text-align:right;font-variant-numeric:tabular-nums}
+.det-usage tr.usage-total td{font-weight:700;border-top:1px solid var(--ln);border-bottom:none}
+.col-tokens{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .det-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .perm-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--ln);border-radius:999px;background:rgba(30,41,59,.58);font-size:.8rem;color:var(--mu);cursor:pointer}
 .perm-toggle input{margin:0}
@@ -266,7 +276,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       </label>
       <label>Status
         <select name="status">
-          <option>ToDo</option><option>InProgress</option><option>Specified</option><option>Ready</option><option>Deployed</option><option>Approved</option><option>Done</option>
+          <option>ToDo</option><option>InProgress</option><option>Specified</option><option>SpecApproved</option><option>Ready</option><option>CodeApproved</option><option>Deployed</option><option>BuildApproved</option><option>Done</option>
         </select>
       </label>
       <label>Author
@@ -301,9 +311,11 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       <button class="tab" data-status="ToDo">ToDo <span id="cnt-ToDo" class="badge">0</span></button>
       <button class="tab" data-status="InProgress">InProgress <span id="cnt-InProgress" class="badge">0</span></button>
       <button class="tab" data-status="Specified">Specified <span id="cnt-Specified" class="badge">0</span></button>
+      <button class="tab" data-status="SpecApproved">SpecApproved <span id="cnt-SpecApproved" class="badge">0</span></button>
       <button class="tab" data-status="Ready">Ready <span id="cnt-Ready" class="badge">0</span></button>
+      <button class="tab" data-status="CodeApproved">CodeApproved <span id="cnt-CodeApproved" class="badge">0</span></button>
       <button class="tab" data-status="Deployed">Deployed <span id="cnt-Deployed" class="badge">0</span></button>
-      <button class="tab" data-status="Approved">Approved <span id="cnt-Approved" class="badge">0</span></button>
+      <button class="tab" data-status="BuildApproved">BuildApproved <span id="cnt-BuildApproved" class="badge">0</span></button>
       <button class="tab" data-status="Done">Done <span id="cnt-Done" class="badge">0</span></button>
       <button class="tab" data-status="Deleted">Deleted <span id="cnt-Deleted" class="badge">0</span></button>
       <button class="tab" data-status="Other">Other <span id="cnt-Other" class="badge">0</span></button>
@@ -324,6 +336,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
                 <th class="sortable" data-col="type">Type<span class="sort-ind" id="sort-ind-type"></span></th>
                 <th class="sortable" data-col="priority">Priority<span class="sort-ind" id="sort-ind-priority"></span></th>
                 <th class="sortable col-status" data-col="status">Status<span class="sort-ind" id="sort-ind-status"></span></th>
+                <th class="sortable col-tokens" data-col="tokens">Tokens<span class="sort-ind" id="sort-ind-tokens"></span></th>
               </tr>
               <tr class="filter-row">
                 <th><input type="text" id="filter-id" class="col-filter" placeholder="Filter ID&hellip;" autocomplete="off"></th>
@@ -331,6 +344,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
                 <th><div id="filter-type" class="ms" data-all="All types"></div></th>
                 <th><div id="filter-priority" class="ms" data-all="All priorities"></div></th>
                 <th class="col-status"><select id="filter-status" class="col-filter"><option value="">All statuses</option></select></th>
+                <th class="col-tokens"></th>
               </tr>
             </thead>
             <tbody id="task-tbody"></tbody>
@@ -351,6 +365,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       </div>
       <h3 id="det-title" class="det-title"></h3>
       <p id="det-desc" class="det-desc"></p>
+      <div id="det-usage" class="det-usage"></div>
       <div class="det-actions">
         <label class="perm-toggle"><input id="full-read-perm" type="checkbox" checked> Full read</label>
         <label class="perm-toggle"><input id="full-edit-perm" type="checkbox"> Full edit</label>
@@ -377,7 +392,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
             </label>
             <label>Status
               <select id="e-status" name="status">
-                <option>ToDo</option><option>InProgress</option><option>Specified</option><option>Ready</option><option>Deployed</option><option>Approved</option><option>Done</option><option>Deleted</option>
+                <option>ToDo</option><option>InProgress</option><option>Specified</option><option>SpecApproved</option><option>Ready</option><option>CodeApproved</option><option>Deployed</option><option>BuildApproved</option><option>Done</option><option>Deleted</option>
               </select>
             </label>
           </div>
@@ -418,7 +433,7 @@ let liveSort = [];
 const colFilters = { id: '', title: '', type: [], priority: [], status: '' };
 const PRIORITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 const PRIORITY_ORDER = ['Critical', 'High', 'Medium', 'Low'];
-const STATUS_TABS = ['ToDo', 'InProgress', 'Specified', 'Ready', 'Deployed', 'Approved', 'Done', 'Deleted', 'Other'];
+const STATUS_TABS = ['ToDo', 'InProgress', 'Specified', 'SpecApproved', 'Ready', 'CodeApproved', 'Deployed', 'BuildApproved', 'Done', 'Deleted', 'Other'];
 // Canonical filter values that are always selectable in the column filters,
 // regardless of whether they currently appear in the loaded task list. These
 // mirror the Type/Priority options offered by the create/edit forms.
@@ -452,8 +467,10 @@ function normalizeStatus(value) {
   if (key === 'todo' || key === 'pending' || key === 'open') return 'ToDo';
   if (key === 'inprogress' || key === 'doing' || key === 'active' || key === 'wip') return 'InProgress';
   if (key === 'specified' || key === 'specced' || key === 'spec' || key === 'designed') return 'Specified';
+  if (key === 'specapproved' || key === 'specapprove' || key === 'specaccepted' || key === 'designapproved') return 'SpecApproved';
   if (key === 'ready' || key === 'review' || key === 'forreview' || key === 'readyforreview') return 'Ready';
-  if (key === 'approved' || key === 'approve' || key === 'accepted') return 'Approved';
+  if (key === 'codeapproved' || key === 'codeapprove' || key === 'codeaccepted' || key === 'implapproved') return 'CodeApproved';
+  if (key === 'buildapproved' || key === 'approved' || key === 'approve' || key === 'accepted' || key === 'buildapprove') return 'BuildApproved';
   if (key === 'done' || key === 'complete' || key === 'completed' || key === 'closed') return 'Done';
   if (key === 'deployed' || key === 'deploy' || key === 'merged' || key === 'released' || key === 'shipped') return 'Deployed';
   if (key === 'deleted' || key === 'delete' || key === 'removed' || key === 'trash' || key === 'trashed') return 'Deleted';
@@ -570,6 +587,26 @@ function initSplit() {
 async function loadConfig() {
   let cfg = {};
   try { const r = await fetch('/api/config'); cfg = await r.json(); } catch {}
+
+  // Restore the user's previously chosen tasks dir across reloads (and server
+  // restarts). localStorage is authoritative: if it differs from the server's
+  // current dir, push it to the server and re-read the config so the file list
+  // reflects the restored dir. A rejected dir (e.g. deleted) is discarded.
+  try {
+    const savedDir = localStorage.getItem('tm_dir');
+    if (savedDir && savedDir !== String(cfg.tasks_dir || '')) {
+      const pr = await fetch('/api/config', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tasks_dir: savedDir }),
+      });
+      if (pr.ok) {
+        const gr = await fetch('/api/config');
+        cfg = await gr.json();
+      } else {
+        localStorage.removeItem('tm_dir');
+      }
+    }
+  } catch {}
 
   const titleEl = document.getElementById('app-title');
   const appName = String(cfg.app_name || defaultAppName || 'App').trim() || 'App';
@@ -690,6 +727,7 @@ async function applyTasksDir() {
       const p = await r.json().catch(() => ({}));
       throw new Error(p.error || 'Failed to apply tasks dir');
     }
+    localStorage.setItem('tm_dir', dir);
     localStorage.removeItem('tm_file');
     selectedId = null;
     hideDetail();
@@ -755,6 +793,13 @@ function renderTable() {
     return;
   }
   noEl.classList.add('hidden');
+  // Green→red gradient for the Tokens column: the scale is anchored to the
+  // WHOLE ledger (every task, all statuses) — not the currently visible rows —
+  // so a given token count always maps to the same colour regardless of the
+  // active tab, filter, or sort (UI-only; nothing is persisted).
+  const tokVals = allTasks.map(tokenTotal).filter(v => v !== null);
+  const tokMin = tokVals.length ? Math.min(...tokVals) : 0;
+  const tokMax = tokVals.length ? Math.max(...tokVals) : 0;
   tasks.forEach(task => {
     const tr = document.createElement('tr');
     tr.className = 'task-row' + (task.id === selectedId ? ' selected' : '');
@@ -762,12 +807,15 @@ function renderTable() {
     tr.tabIndex = 0;
     const p = (task.priority || 'Medium').toLowerCase();
     const st = normalizeStatus(task.status);
+    const tv = tokenTotal(task);
+    const tokStyle = tv === null ? '' : ' style="color:' + tokenColor(tv, tokMin, tokMax) + '"';
     tr.innerHTML =
       '<td class="id-col"><code>' + esc(task.id) + '</code></td>' +
       '<td class="title-col">' + esc(task.title || '') + '</td>' +
       '<td>' + esc(task.type || 'Feature') + '</td>' +
       '<td><span class="pri pri-' + p + '">' + esc(task.priority || 'Medium') + '</span></td>' +
-      '<td class="col-status"><span class="sbadge ' + statusCls(st) + '">' + esc(st) + '</span></td>';
+      '<td class="col-status"><span class="sbadge ' + statusCls(st) + '">' + esc(st) + '</span></td>' +
+      '<td class="col-tokens"' + tokStyle + '>' + fmtTokens(tv) + '</td>';
     tr.addEventListener('click', () => toggle(task));
     tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(task); } });
     tbody.appendChild(tr);
@@ -815,6 +863,11 @@ function compareCol(a, b, col) {
   if (col === 'status') {
     return STATUS_TABS.indexOf(normalizeStatus(a.status)) - STATUS_TABS.indexOf(normalizeStatus(b.status));
   }
+  if (col === 'tokens') {
+    const ta = tokenTotal(a), tb = tokenTotal(b);
+    // Tasks with no recorded usage (null) sort below any real count.
+    return (ta === null ? -1 : ta) - (tb === null ? -1 : tb);
+  }
   let va, vb;
   if (col === 'id') { va = a.id || ''; vb = b.id || ''; }
   else if (col === 'title') { va = a.title || ''; vb = b.title || ''; }
@@ -839,7 +892,7 @@ function cycleSort(col) {
 function updateSortIndicators() {
   const order = {};
   liveSort.forEach((s, i) => { order[s.column] = { dir: s.dir, pos: i + 1 }; });
-  ['id', 'title', 'type', 'priority', 'status'].forEach(c => {
+  ['id', 'title', 'type', 'priority', 'status', 'tokens'].forEach(c => {
     const el = document.getElementById('sort-ind-' + c);
     if (!el) return;
     const o = order[c];
@@ -1305,7 +1358,45 @@ function refreshRows() {
   document.querySelectorAll('.task-row').forEach(r => r.classList.toggle('selected', r.dataset.id === selectedId));
 }
 
-const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Specified: 's-specified', Ready: 's-ready', Approved: 's-approved', Done: 's-done', Deployed: 's-deployed', Deleted: 's-deleted', Other: 's-other' }[normalizeStatus(s)] || 's-other');
+const statusCls = s => ({ ToDo: 's-todo', InProgress: 's-inprogress', Specified: 's-specified', SpecApproved: 's-specapproved', Ready: 's-ready', CodeApproved: 's-codeapproved', BuildApproved: 's-buildapproved', Done: 's-done', Deployed: 's-deployed', Deleted: 's-deleted', Other: 's-other' }[normalizeStatus(s)] || 's-other');
+
+// --- Copilot token consumption helpers -------------------------------------
+// worker_session.tokens = { TOTAL: <int>, per_state: { <Status>: <int>, ... } }.
+// The Task Manager records the output tokens spent while the task sits in each
+// status; the UI groups those raw statuses into three delivery phases.
+const TOKEN_PHASES = [
+  { label: 'Design', statuses: ['InProgress', 'Specified', 'SpecApproved'] },
+  { label: 'Develop', statuses: ['Ready', 'CodeApproved'] },
+  { label: 'Deploy', statuses: ['Deployed', 'BuildApproved', 'Done'] },
+];
+function tokenTotal(task) {
+  const t = task && task.worker_session && task.worker_session.tokens;
+  if (!t || t.TOTAL === null || t.TOTAL === undefined) return null;
+  const n = Number(t.TOTAL);
+  return Number.isFinite(n) ? n : null;
+}
+function fmtTokens(n) {
+  if (n === null || n === undefined || !Number.isFinite(Number(n))) return '';
+  return Number(n).toLocaleString();
+}
+// UI-only heat colour for a token count: green (hue 120) at the low end of the
+// visible range, red (hue 0) at the high end, interpolated on a perceptually
+// gentle sqrt scale so the mid-range values remain distinguishable. Never
+// persisted — purely a rendering aid.
+function tokenColor(value, min, max) {
+  if (!Number.isFinite(value)) return '';
+  let t = (max > min) ? (value - min) / (max - min) : 0;
+  t = Math.sqrt(Math.max(0, Math.min(1, t)));
+  const hue = 120 * (1 - t); // 120=green → 0=red
+  return 'hsl(' + hue.toFixed(0) + ', 85%, 45%)';
+}
+function phaseTokens(task, statuses) {
+  const per = task && task.worker_session && task.worker_session.tokens && task.worker_session.tokens.per_state;
+  if (!per || typeof per !== 'object') return null;
+  let sum = 0, seen = false;
+  statuses.forEach(s => { const v = Number(per[s]); if (Number.isFinite(v)) { sum += v; seen = true; } });
+  return seen ? sum : null;
+}
 
 function showDetail(task) {
   const panel = document.getElementById('detail-panel');
@@ -1346,6 +1437,29 @@ function showDetail(task) {
 
   const descTxt = Array.isArray(task.description) ? task.description.join('\n') : (task.description || '');
   document.getElementById('det-desc').textContent = descTxt || '(no description)';
+
+  // Copilot usage: per-phase output-token consumption + the active model.
+  const usageEl = document.getElementById('det-usage');
+  if (usageEl) {
+    const ws = task.worker_session || {};
+    const total = tokenTotal(task);
+    const model = ws.model || '';
+    if (total !== null || model) {
+      let rows = '';
+      TOKEN_PHASES.forEach(ph => {
+        rows += '<tr><td>' + esc(ph.label) + '</td><td class="num">' + fmtTokens(phaseTokens(task, ph.statuses)) + '</td></tr>';
+      });
+      usageEl.innerHTML =
+        '<div class="usage-hd">Copilot usage' + (model ? '<span class="usage-model">' + esc(model) + '</span>' : '') + '</div>' +
+        '<table><thead><tr><th>Phase</th><th class="num">Output tokens</th></tr></thead><tbody>' +
+        rows +
+        '<tr class="usage-total"><td>Total</td><td class="num">' + fmtTokens(total) + '</td></tr>' +
+        '</tbody></table>';
+      usageEl.classList.remove('hidden');
+    } else {
+      usageEl.innerHTML = '';
+    }
+  }
 
   // Comments
   const cl = document.getElementById('det-comments');

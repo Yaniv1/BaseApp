@@ -63,11 +63,13 @@ uniquely named JSON file (e.g. `<utc-timestamp>-{id}.json`) into the status stor
 Request each status move via the `enqueue_status_update` tool (see "Task Status Updates" above), not by editing the ledger directly.
 
 1. Move the status of the task from `ToDo` to `InProgress` when you start working.
-2. Move the status of the task from `InProgress` to `Specified` when your design is ready for implementation.
-3. Move the status of the task from `Specified` to `Ready` when your implementation is ready.
-4. Move the status of the task from `Ready` to `Deployed` when your implementation is approved by the engineer and pushed to its branch.
-5. Move the status of the task from `Deployed` to `Approved` when the engineer approves integration (merge).
-6. Move the status of the task from `Approved` to `Done` when your implementation is approved by the engineer and merge to `main` branch.
+2. Move the status of the task from `InProgress` to `Specified` when your design/specification is ready for review.
+3. Move the status of the task from `Specified` to `SpecApproved` when the engineer approves the specification (spec-review gate); implementation may then proceed.
+4. Move the status of the task from `SpecApproved` to `Ready` when your implementation is ready for review.
+5. Move the status of the task from `Ready` to `CodeApproved` when the engineer approves the implementation (code-review gate); deployment may then proceed.
+6. Move the status of the task from `CodeApproved` to `Deployed` when the change is finalized and pushed to its branch.
+7. Move the status of the task from `Deployed` to `BuildApproved` when the engineer approves the deployed build for integration (build/integration-review gate).
+8. Move the status of the task from `BuildApproved` to `Done` when the task branch is merged into `main`.
 
 ## Engineer Reviews will take place:
 1. When the task is `Specified`.
