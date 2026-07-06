@@ -455,6 +455,50 @@
                                     "path": "scripts/task_manager.py::_read_worktree_session_usage"
                                 }
                             }
+                        },
+                        "3.6.18": {
+                            "name": "scripts.task_manager.ServerLifecycle",
+                            "description": "Couples the lifetime of the python server, the browser UI, and the helper background processes the server spawns so no orphaned servers, rogue background processes, or interrupted sessions linger. Provides: a single-instance guard (a <status_queue>/task_manager.lock file holding pid/host/port that makes a second launch refuse to start when a live instance already holds it, reclaiming a stale lock left by a dead pid and releasing on shutdown) combined with a fail-fast port bind (no more silent ephemeral-port fallback); a Windows kill-on-close process group (a Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE assigned to the server so helper children die with the chief even on a hard kill, while Copilot worker consoles and the browser break away and survive); a browser heartbeat channel (POST /api/heartbeat + an unload sendBeacon to POST /api/close) watched by a lifecycle-monitor thread that shuts the server down when the UI stops beating; an explicit Close control (POST /api/shutdown); UI self-shutdown when the server is unreachable; and a single orderly-shutdown path wired to SIGINT/SIGTERM, atexit, /api/shutdown, and the monitor. Parametrised by APP.TASK_MANAGER.single_instance / shutdown_on_browser_close / browser_heartbeat_seconds / browser_heartbeat_timeout and the --no-single-instance / --no-auto-shutdown CLI flags.",
+                            "type": "Folder.PyFile.FeatureGroup",
+                            "path": "scripts/task_manager.py",
+                            "features": {
+                                "3.6.18.1": {
+                                    "name": "scripts.task_manager._instance_lock_path",
+                                    "description": "Return the single-instance lock file path (<status_queue_root>/task_manager.lock) resolved from APP.TASK_MANAGER.status_queue, shared across checkouts so the guard is machine-wide.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/task_manager.py::_instance_lock_path"
+                                },
+                                "3.6.18.2": {
+                                    "name": "scripts.task_manager._acquire_instance_lock",
+                                    "description": "Acquire the single-instance lock: read any existing lock; if its pid is alive, return the existing {pid,host,port} so the caller can refuse to start and focus the running instance; otherwise (no lock or stale/dead pid) atomically write our {pid,host,port,started} and return None to signal we own it. No-op returning None when single_instance is disabled.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/task_manager.py::_acquire_instance_lock"
+                                },
+                                "3.6.18.3": {
+                                    "name": "scripts.task_manager._release_instance_lock",
+                                    "description": "Release the single-instance lock by removing the lock file when it is owned by this process (pid match); best-effort and idempotent so it never raises during shutdown.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/task_manager.py::_release_instance_lock"
+                                },
+                                "3.6.18.4": {
+                                    "name": "scripts.task_manager._ensure_kill_on_close_job",
+                                    "description": "On Windows, create a Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE (+ SILENT_BREAKAWAY_OK) via ctypes and assign the current server process to it, so helper child processes started afterwards are terminated by the OS when the server process (the only job-handle holder) dies. Returns the job handle (kept alive for the server's lifetime) or None off-Windows / on failure; failures are non-fatal.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/task_manager.py::_ensure_kill_on_close_job"
+                                },
+                                "3.6.18.5": {
+                                    "name": "scripts.task_manager._shutdown_server",
+                                    "description": "The single, idempotent orderly-shutdown path: signal the status-inbox and lifecycle-monitor stop events, reap tracked helper child PIDs, release the single-instance lock, and call server.shutdown()/server_close() from a worker thread (so it is safe to invoke from a request handler or signal handler). Wired to SIGINT/SIGTERM handlers, an atexit hook, the POST /api/shutdown endpoint, and the lifecycle monitor. Every step is best-effort so one failure never blocks exit.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/task_manager.py::_shutdown_server"
+                                },
+                                "3.6.18.6": {
+                                    "name": "scripts.task_manager._lifecycle_monitor",
+                                    "description": "Daemon thread that watches the browser heartbeat: once at least one heartbeat has been recorded, it triggers _shutdown_server when the time since the last heartbeat exceeds browser_heartbeat_timeout, so closing the UI tab stops the server. Honours shutdown_on_browser_close / --no-auto-shutdown (skips auto-shutdown when disabled) and exits promptly on its stop event.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/task_manager.py::_lifecycle_monitor"
+                                }
+                            }
                         }
                     }
                 },
