@@ -1199,7 +1199,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "Specified",
+            "status": "SpecApproved",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0001 worker",
@@ -1210,6 +1210,11 @@
                     "author": "BASE-TASK-260622-0001 worker",
                     "content": "Specification ready for review. Added requirement BASE-REQ-014.23 (Close button, browser-coupled shutdown via heartbeat, UI self-shutdown, Ctrl-C/SIGTERM child-process teardown via a Windows kill-on-close Job Object, single-instance guard with fail-fast port + PID/host/port lock file, and config knobs) and architecture features 3.6.18.1–3.6.18.6 in build/requirements/base.json and build/architecture/base.json. Design summary written to the task result store. Awaiting spec-review approval before implementing scripts/task_manager.py, resources/templates/task_manager.html, and config/base.json.",
                     "timestamp": "2026-07-06T21:03:06Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0001 worker",
+                    "content": "Specification approved by engineer. Moving to implementation of the server lifecycle features (single-instance guard, kill-on-close Job Object, heartbeat auto-shutdown, Close button, UI self-shutdown, orderly shutdown on SIGINT/SIGTERM) across scripts/task_manager.py, resources/templates/task_manager.html, and config/base.json, followed by tests.",
+                    "timestamp": "2026-07-06T22:37:16Z"
                 }
             ],
             "worker_session": {
@@ -1222,10 +1227,11 @@
                 "started_at": "2026-07-06T20:54:47Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 28206,
+                    "TOTAL": 29683,
                     "per_state": {
                         "InProgress": 7151,
-                        "Specified": 21055
+                        "Specified": 21055,
+                        "SpecApproved": 1477
                     }
                 }
             }
