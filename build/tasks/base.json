@@ -2581,6 +2581,11 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Structured HTML task summaries and reports",
                     "timestamp": "2026-07-03T02:18:19Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Started work on BASE-TASK-260703-0001: designing a structured, consistent HTML task-report generator (spec-review ordering, logically grouped changes, color-coded per-file diffs, VS Code diff links, and per-stage report files). Reviewing instructions, requirements, architecture, and existing HtmlDoc patterns.",
+                    "timestamp": "2026-07-06T23:03:14Z"
                 }
             ],
             "worker_session": {
@@ -2591,10 +2596,12 @@
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260703-0001",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260703-0001.md",
                 "started_at": "2026-07-06T23:00:40Z",
-                "model": null,
+                "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": null,
-                    "per_state": {}
+                    "TOTAL": 6808,
+                    "per_state": {
+                        "InProgress": 6808
+                    }
                 }
             }
         },
