@@ -1199,7 +1199,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "SpecApproved",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0001 worker",
@@ -1215,6 +1215,11 @@
                     "author": "BASE-TASK-260622-0001 worker",
                     "content": "Specification approved by engineer. Moving to implementation of the server lifecycle features (single-instance guard, kill-on-close Job Object, heartbeat auto-shutdown, Close button, UI self-shutdown, orderly shutdown on SIGINT/SIGTERM) across scripts/task_manager.py, resources/templates/task_manager.html, and config/base.json, followed by tests.",
                     "timestamp": "2026-07-06T22:37:16Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0001 worker",
+                    "content": "Implementation complete for the server/UI/process lifecycle coupling (Feature 3.6.18, Requirement BASE-REQ-014.23). scripts/task_manager.py: single-instance lock at <status_queue>/task_manager.lock (live-holder refuses + re-focuses existing browser; stale locks reclaimed), fail-fast _pick_available_port (raises PortInUseError instead of ephemeral fallback), Windows Job Object kill-on-close (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE|BREAKAWAY_OK) so helper/git-sync children die with the server while worker consoles + browser use CREATE_BREAKAWAY_FROM_JOB to survive, /api/heartbeat + /api/shutdown + /api/close endpoints, _lifecycle_monitor auto-shutdown after heartbeat timeout, unified idempotent _shutdown_server (SIGINT/SIGTERM/atexit/endpoint/monitor) that reaps helper PIDs and releases the lock, run() rewrite, and --no-single-instance/--no-auto-shutdown flags. UI (task_manager.html): Close button, heartbeat loop, pagehide/beforeunload sendBeacon('/api/close') (reload-safe: a fresh heartbeat supersedes the beacon), server-down overlay + self-shutdown. config/base.json: single_instance, shutdown_on_browser_close, browser_heartbeat_seconds, browser_heartbeat_timeout. Validation: all 101 tests in test/tests/base/task_manager.py pass; the build.py TST005 failure is pre-existing and unrelated (test_deployment.ps1 passes a --baseSource arg pullbase.py does not accept). build/updates/base.json updated; changed-files + diff HTML written to the task result store. Requesting Ready for code review.",
+                    "timestamp": "2026-07-06T23:01:29Z"
                 }
             ],
             "worker_session": {
@@ -1227,11 +1232,12 @@
                 "started_at": "2026-07-06T20:54:47Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 29683,
+                    "TOTAL": 96078,
                     "per_state": {
                         "InProgress": 7151,
                         "Specified": 21055,
-                        "SpecApproved": 1477
+                        "SpecApproved": 1477,
+                        "Ready": 66395
                     }
                 }
             }
@@ -2569,14 +2575,28 @@
                 "Each status/stage that is concluded in such a report should be kept separately, currently the report is being overwritten but not necessarily appended to, resulting in loss of information."
             ],
             "priority": "High",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Structured HTML task summaries and reports",
                     "timestamp": "2026-07-03T02:18:19Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 28804,
+                "window_title": "Structured HTML task summaries and reports (BASE-TASK-260703-0001)",
+                "mode": "work",
+                "branch": "BASE-TASK-260703-0001",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260703-0001",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260703-0001.md",
+                "started_at": "2026-07-06T23:00:40Z",
+                "model": null,
+                "tokens": {
+                    "TOTAL": null,
+                    "per_state": {}
+                }
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
