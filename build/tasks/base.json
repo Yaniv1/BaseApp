@@ -2351,7 +2351,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Deployed",
+            "status": "BuildApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2412,6 +2412,11 @@
                     "author": "BASE-TASK-260629-0001 Agentic Builder",
                     "content": "Engineer approved final deployment. Code/spec/doc/test changes committed (4a0c367) and pushed to branch BASE-TASK-260629-0001. Version bumped to 26.07.06.01 (app A26.07.06.01). Moving task to Deployed.",
                     "timestamp": "2026-07-06T20:17:20Z"
+                },
+                {
+                    "author": "BASE-TASK-260629-0001 Agentic Builder",
+                    "content": "Engineer approved the deployed build for integration (build/integration-review gate: Deployed -> BuildApproved). Proceeding to merge branch BASE-TASK-260629-0001 into main.",
+                    "timestamp": "2026-07-06T20:42:15Z"
                 }
             ],
             "worker_session": {
