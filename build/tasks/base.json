@@ -1025,7 +1025,7 @@
             ],
             "type": "Bug",
             "priority": "Medium",
-            "status": "Deleted",
+            "status": "ToDo",
             "comments": []
         },
         {
@@ -1063,8 +1063,7 @@
                 "started_at": "2026-06-29T20:41:01Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 14878,
-                    "per_state": {}
+                    "TOTAL": 14878
                 }
             }
         },
@@ -1078,7 +1077,7 @@
             ],
             "type": "Bug",
             "priority": "High",
-            "status": "Deleted",
+            "status": "ToDo",
             "comments": []
         },
         {
@@ -1189,8 +1188,7 @@
                 "started_at": "2026-06-26T23:06:57Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 45489,
-                    "per_state": {}
+                    "TOTAL": 45489
                 }
             }
         },
@@ -1749,8 +1747,7 @@
                 "started_at": "2026-06-26T23:06:30Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 124317,
-                    "per_state": {}
+                    "TOTAL": 124317
                 }
             }
         },
@@ -1790,7 +1787,7 @@
                 "The new task manager codebase will sit in a repo next to BaseApp's repo."
             ],
             "type": "Feature",
-            "priority": "Low",
+            "priority": "High",
             "status": "ToDo",
             "comments": [
                 {
@@ -1915,8 +1912,7 @@
                 "started_at": "2026-06-29T18:39:32Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 100719,
-                    "per_state": {}
+                    "TOTAL": 100719
                 }
             }
         },
@@ -1996,8 +1992,7 @@
                 "started_at": "2026-06-29T18:43:09Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 39284,
-                    "per_state": {}
+                    "TOTAL": 39284
                 }
             }
         },
@@ -2075,8 +2070,7 @@
                 "started_at": "2026-06-29T20:43:26Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 184120,
-                    "per_state": {}
+                    "TOTAL": 184120
                 }
             }
         },
@@ -2156,8 +2150,7 @@
                 "started_at": "2026-06-29T20:44:13Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 49738,
-                    "per_state": {}
+                    "TOTAL": 49738
                 }
             }
         },
@@ -2241,8 +2234,7 @@
                 "started_at": "2026-06-29T22:27:50Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 348401,
-                    "per_state": {}
+                    "TOTAL": 348401
                 }
             }
         },
@@ -2260,7 +2252,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "Ready",
+            "status": "CodeApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2269,214 +2261,13 @@
                 },
                 {
                     "author": "BASE-TASK-260629-0001 worker",
-                    "content": "Started working on BASE-TASK-260629-0001: tracking model and token consumption (TOTAL and per-state) in worker_session.",
-                    "timestamp": "2026-07-02T18:45:39Z"
+                    "content": "Code-review gate (Ready -> CodeApproved): engineer approved the implementation. Feature scope (BASE-REQ-014.22 / arch 3.6.17): Copilot model + token consumption tracking per task and per lifecycle state, surfaced in the Task Manager UI (sortable Tokens column with green->red heat colouring anchored to the whole ledger; per-phase Design/Develop/Deploy usage table in the detail pane); null/blank rendering for tasks with no recorded usage; expanded lifecycle (SpecApproved, CodeApproved, BuildApproved). Also: default ledger file resolves to base.json for BaseApp via COMMON.APP_NAME; the selected tasks dir now persists across reloads (localStorage); immediate git-sync on task creation; and a new built-in \"By Tokens\" view. Proceeding to deployment finalization.",
+                    "timestamp": "2026-07-06T19:50:44Z"
                 },
                 {
                     "author": "BASE-TASK-260629-0001 worker",
-                    "content": "Design ready for review. Requirements: added BASE-REQ-014.22 (model + token accounting per task/state). Architecture: added features 3.6.17 (_record_worker_session_usage), 3.6.17.1 (_resolve_session_state_dir), 3.6.17.2 (_read_worktree_session_usage). Design: Task Manager reads the Copilot CLI event log (~/.copilot/session-state/<id>/events.jsonl), matches sessions to the task by worktree cwd, sums assistant.message outputTokens for tokens.TOTAL and captures the model; on each status transition it adds the token delta to tokens.per_state[current status] (accumulating on revisits). worker_session gains model + tokens{TOTAL, per_state}. Reading is best-effort/non-blocking. Summary: C:/data/MyApp/task_results/BASE-TASK-260629-0001/BASE-TASK-260629-0001.html",
-                    "timestamp": "2026-07-03T02:23:54Z"
-                },
-                {
-                    "author": "BASE-TASK-260629-0001 worker",
-                    "content": "Extended the spec per engineer request to include the Task Manager UI: (a) task-list table gains a numeric, sortable 'Tokens' column showing cumulative worker_session.tokens.TOTAL; (b) task-details pane gains a per-step Copilot-usage table aggregating per_state into four steps -- Specification (ToDo/InProgress/Specified), Implementation (Ready), Deployment (Deployed), Integration (Approved/Done) -- with per-step subtotals, a TOTAL row, and the model. Both derived client-side from worker_session (no new API). Updated BASE-REQ-014.22 and architecture 11.2.2 (task_manager.html) accordingly; summary HTML refreshed.",
-                    "timestamp": "2026-07-03T02:36:54Z"
-                },
-                {
-                    "author": "BASE-TASK-260629-0001 worker",
-                    "content": "Spec updated per engineer to expand the approval lifecycle. New order: ToDo -> InProgress -> Specified -> SpecApproved -> Ready -> CodeApproved -> Deployed -> BuildApproved -> Done (SpecApproved inserted after Specified; CodeApproved inserted after Ready; Approved renamed BuildApproved). Review gates: Specified->SpecApproved (spec), Ready->CodeApproved (code), Deployed->BuildApproved (build/integration). Token gating regrouped into 3 phases for the details pane: Spec (ToDo->SpecApproved: InProgress/Specified/SpecApproved), Code (SpecApproved->CodeApproved: Ready/CodeApproved), Build (CodeApproved->Done: Deployed/BuildApproved/Done). Planned edits: template.json status enum, instructions (base.md/task.md), UI tabs/normalizeStatus/statusCls/badges/selects, README lifecycle, plus the Tokens column and per-phase usage table. Updated BASE-REQ-014.22 and architecture 11.2.2; summary HTML refreshed. Awaiting spec approval (SpecApproved) before implementing.",
-                    "timestamp": "2026-07-03T02:48:29Z"
-                },
-                {
-                    "author": "BASE-TASK-260629-0001 worker",
-                    "content": "Specification approved by engineer. Beginning implementation of the model/token tracking + expanded approval lifecycle (SpecApproved/CodeApproved/BuildApproved).",
-                    "timestamp": "2026-07-03T03:07:56Z"
-                },
-                {
-                    "author": "BASE-TASK-260629-0001 worker",
-                    "content": "Implementation complete. Added Copilot model + token accounting to worker_session: Task Manager reads per-session events.jsonl, matches sessions to the task worktree by cwd, sums assistant.message outputTokens, and on each status transition adds the delta to tokens.per_state[current status] (accumulating on revisit) and updates TOTAL + model (scripts/task_manager.py: _resolve_session_state_dir/3.6.17.1, _read_worktree_session_usage/3.6.17.2, _record_worker_session_usage/3.6.17; wired into _apply_status_request_file; model/tokens initialised and preserved across relaunches in _start_copilot_for_task). Expanded lifecycle to ToDo->InProgress->Specified->SpecApproved->Ready->CodeApproved->Deployed->BuildApproved->Done (renamed Approved->BuildApproved) across template.json, base.md, task.md, and the UI (tabs, STATUS_TABS, normalizeStatus, statusCls, badge CSS, create/edit selects). UI adds a sortable Tokens column and a per-phase Design/Develop/Deploy usage table with model in the details pane. Added config APP.TASK_MANAGER.session_state_dir (default ~/.copilot/session-state). Tests: pytest test/tests/base/task_manager.py -> 82 passed (11 new); base.py + config.py pass. Awaiting code review before deployment.",
-                    "timestamp": "2026-07-03T03:24:25Z"
-                },
-                {
-                    "author": "BASE-TASK-260629-0001 worker",
-                    "content": "Review refinement: removed the APP.TASK_MANAGER.session_state_dir config key (it was a confusing observation-only pointer that couldn't control the CLI and could silently mismatch). The Copilot CLI has no session-state-only override, but it does honour COPILOT_HOME (state root = <COPILOT_HOME>/session-state, default ~/.copilot). The reader now resolves the session-state root from COPILOT_HOME via new helper _copilot_home_dir, so it always tracks wherever the CLI actually writes (workers inherit the Task Manager's env, so read and write locations never diverge). config/base.json is back to its committed state; requirements/architecture/tests updated accordingly. Tests: pytest test/tests/base/task_manager.py -> 83 passed (the one port-fallback failure is pre-existing and unrelated); base.py + config.py pass. Still Ready for review.",
-                    "timestamp": "2026-07-03T18:01:36Z"
-                },
-                {
-                    "author": "BASE-TASK-260629-0001 worker",
-                    "content": "Engineer approved the implementation (model + per-state token tracking, null/blank token display, green→red token heat coloring, and immediate git sync on task creation). Advancing Ready → CodeApproved ahead of deployment.",
-                    "timestamp": "2026-07-03T19:10:19Z"
-                },
-                {
-                    "author": "BASE-TASK-260629-0001 worker",
-                    "content": "Reverting CodeApproved → Ready: the CodeApproved transition was only a live test of per-state token tracking and immediate main sync (both confirmed working). Code review is still in progress. Also fixed the token heat-color scale to anchor its min/max to the whole ledger (allTasks) instead of the visible rows, so colors no longer shift with the active tab/filter/sort.",
-                    "timestamp": "2026-07-03T19:14:12Z"
-                }
-            ],
-            "worker_session": {
-                "pid": 17332,
-                "window_title": "Task Manager Track model used by copilot and number of Tokens consumed (BASE-TASK-260629-0001)",
-                "mode": "work",
-                "branch": "BASE-TASK-260629-0001",
-                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260629-0001",
-                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260629-0001.md",
-                "started_at": "2026-07-02T18:44:26Z",
-                "model": "claude-opus-4.8",
-                "tokens": {
-                    "TOTAL": 213286,
-                    "per_state": {
-                        "CodeApproved": 16041
-                    }
-                }
-            }
-        },
-        {
-            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
-            "id": "BASE-TASK-260702-0001",
-            "uuid": "308dfb34-e1d2-4d07-8cef-f9360dfea104",
-            "type": "Feature",
-            "title": "Let the user decide which config files to use and in what order",
-            "description": [
-                "Currently, config is derived alphabetically from the config folder.",
-                "Change this to let the user have more control.",
-                "Each config file will be able to list which other config files to read, and in what order.",
-                "the first config file that will be used (config/base.json by default, or whatever the user will pass as a parameter) will define which additional config files or folders to read. By default, base.json/COMMON.CONFIG_FILES is a dict  that will include {\"app.json\":true}",
-                "app.json can include additional items like local.json or test.json or any specific config file (e.g. run.json)",
-                "configs will patch each other in the order of appearance. if a folder is listed, the files in the folder will patch over alphabetically."
-            ],
-            "priority": "Medium",
-            "status": "Done",
-            "comments": [
-                {
-                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
-                    "content": "Task created: Let the user decide which config files to use and in what order",
-                    "timestamp": "2026-07-02T18:43:51Z"
-                },
-                {
-                    "author": "BASE-TASK-260702-0001 worker",
-                    "content": "Started work on BASE-TASK-260702-0001: making config load order user-controlled via COMMON.CONFIG_FILES.",
-                    "timestamp": "2026-07-02T18:46:47Z"
-                },
-                {
-                    "author": "BASE-TASK-260702-0001 worker",
-                    "content": "Design + implementation ready for review. Requirement BASE-REQ-001.6 added. Config now reads COMMON.CONFIG_FILES (ordered dict of files/folders) to control which overlays load and in what order; overlays patch in order (last wins), folders alphabetically, false disables, each overlay may declare its own CONFIG_FILES (recursive, cycle-guarded); falls back to legacy alphabetical loading when CONFIG_FILES is absent. Defaults: base.json->{app.json:true}, app.json->{local.json:true}. New prep test test_config_files_ordering (5/5 PASS) plus existing test_local_config_override (4/4 PASS). Architecture 6.1.4.1-6.1.4.5 + test 5.3.1.6.2 updated. Report: C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001.html. Pre-existing unrelated TST005 (resolve_baseapp_source) failure confirmed present with changes stashed.",
-                    "timestamp": "2026-07-02T18:58:01Z"
-                },
-                {
-                    "author": "BASE-TASK-260702-0001 worker",
-                    "content": "Revised design per review (still Specified, awaiting approval). (1) Emphasized mandatory requirement/sub-requirement title in build/requirements/req-eng-instructions.md (item 3.2). (2) Redesigned to a candidate-list model: default seed = base file then its folder alphabetically; a declared COMMON.CONFIG_FILES REPLACES the default (empty dict = base only); each loaded file's CONFIG_FILES extends the ramp-up; evaluate/populate run once after all overlays; unified folder handling removes the separate alphabetical method (dropped _apply_config_dir_alphabetically; now 6.1.4.1-6.1.4.4). (3) Missing referenced files skipped with a logged warning, not an error. (4) Reverted all Python/config/test changes — only design artifacts (requirements, architecture, req-eng-instructions) modified at this stage. Report updated: C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001.html.",
-                    "timestamp": "2026-07-02T22:01:04Z"
-                },
-                {
-                    "author": "BASE-TASK-260702-0001 worker",
-                    "content": "Implementation complete (per approved design). Config overlay is user-controlled via COMMON.CONFIG_FILES: base file loads, then an ordered work-list is built (default = base's folder alphabetically, base skipped via visited guard); a declared CONFIG_FILES REPLACES the default (empty dict = base only); each overlaid file's CONFIG_FILES extends the work-list; folders expand alphabetically; missing referenced files warn (warnings.warn) without error; _/.-prefixed and LOADME:false skipped; evaluate/populate run once after all overlays. New helpers _get_config_files/_apply_config_files/_apply_config_file in utils/baseutils.py; default wiring base.json->{app.json:true}, app.json->{local.json:true}. New prep test test_config_files_ordering (9/9 PASS), existing test_local_config_override (4/4 PASS), live app run resolves base->app->local; full app run shows only the unrelated pre-existing resolve_baseapp_source (TST005) failure. Recorded progress in build/updates/base.json (step 3f). Report with colorized diffs: C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001.html. No commit/push yet — awaiting review.",
-                    "timestamp": "2026-07-03T02:06:19Z"
-                },
-                {
-                    "author": "BASE-TASK-260702-0001 worker",
-                    "content": "Addressed review feedback: missing config files are now reported via the logging system (WARN log, new message code BASEW07 'Config file not found: {config_file}') instead of Python warnings.warn. Since Config is constructed before the logger exists (logger settings derive from config.LOG), missing-file warnings are buffered in Config.load_warnings during load and flushed as WARN logs by the new public method Config.log_warnings(logger) (architecture 6.1.4.5), wired into app/base.py run() and test/tests/build.py run() right after the logger is created. Removed the now-unused 'import warnings' from utils/baseutils.py. Updated test test_config_files_ordering to assert the missing file is buffered in load_warnings AND emitted as a BASEW07 WARN log, then the buffer is cleared (now 10/10 criteria PASS; test_local_config_override 5/5). Updated requirement BASE-REQ-001.6, architecture 6.1.4.4/6.1.4.5, build/updates/base.json, and resources/message_codes/base.csv. Full app run shows only the unrelated pre-existing TST005 (resolve_baseapp_source) failure. HTML report refreshed. Remaining at Ready for engineer review; no commit/push.",
-                    "timestamp": "2026-07-03T02:21:52Z"
-                },
-                {
-                    "author": "BASE-TASK-260702-0001 worker",
-                    "content": "Engineer approved the implementation. Moving to deployment finalization: performed version bump to 26.07.02.01 (resources/version/base.txt=26.07.02.01, resources/version/app.txt=A26.07.02.01, config/base.json COMMON.VERSION=26.07.02.01), added the release-highlight section to docs/readme/base.md and updated its title, refreshed the overview 'Layered configuration' bullet in README.md (in place, no changelog), and updated build/updates/base.json to version 26.07.02.01. Full app run re-verified: config overlay tests pass; only the unrelated pre-existing TST005 (resolve_baseapp_source) fails. Builder approval recorded. NOT staged/committed/pushed — awaiting explicit final push approval before moving to Deployed.",
-                    "timestamp": "2026-07-03T02:49:32Z"
-                },
-                {
-                    "author": "BASE-TASK-260702-0001 worker",
-                    "content": "Engineer granted explicit approval to stage/commit/push. Committed all task changes (16 files, excluding the server-owned ledger) as 07dfb9f 'BASE-TASK-260702-0001 [6.1.4] User-controlled config file selection/order via COMMON.CONFIG_FILES' and pushed to the short-lived task branch origin/BASE-TASK-260702-0001 (new branch). Version 26.07.02.01. HTML work-summary/transcript saved to the task result store at C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001.html (full diffs of all 16 files + task.md). Not merged to main — awaiting the integration/merge step.",
-                    "timestamp": "2026-07-03T03:00:14Z"
-                },
-                {
-                    "author": "BASE-TASK-260702-0001 worker",
-                    "content": "Integration complete. Merged the task branch into main from the main worktree with a no-ff merge (merge commit 4b398f2, 16 files, conflict-free) and pushed origin/main. The short-lived task branch BASE-TASK-260702-0001 was deleted locally and on origin, and its git worktree was deregistered; main pulled and confirmed in sync at 4b398f2 (version 26.07.02.01). HTML report refreshed to the Done/merged state at C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001.html. Note: the physical (now git-untracked) task worktree folder C:\\Users\\ymordecai\\Code\\BaseApp\\BASE-TASK-260702-0001 could not be deleted because it is locked as this CLI session's working directory; it is empty of git tracking and can be removed manually once this session exits (or the CLI is restarted from another directory).",
-                    "timestamp": "2026-07-03T03:08:00Z"
-                }
-            ],
-            "worker_session": {
-                "pid": 40236,
-                "window_title": "Let the user decide which config files to use and in what order (BASE-TASK-260702-0001)",
-                "mode": "work",
-                "branch": "BASE-TASK-260702-0001",
-                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260702-0001",
-                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260702-0001.md",
-                "started_at": "2026-07-02T18:44:46Z",
-                "model": "claude-opus-4.8",
-                "tokens": {
-                    "TOTAL": 131611,
-                    "per_state": {}
-                }
-            }
-        },
-        {
-            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
-            "id": "BASE-TASK-260703-0001",
-            "uuid": "7e1a1f3b-a772-4851-90b3-26ffa9b36703",
-            "type": "Feature",
-            "title": "Structured HTML task summaries and reports",
-            "description": [
-                "Currently there is no structured template our outline for HTML task reports, resulting in a plethora of structures, styles, color schemes, and types of information provided in the summary.",
-                "We need to have a structure for the summary so that all reports look the same.",
-                "When you provide a specification review, which is essentially a design document that the engineer would want to read carefully to understand, challenge, and enhance your suggested design, the review should highlight artifacts in the logical order: first the requirements, then the architecture (additions/changes) and then the detailed design - what each component needs to do, what additional functionality is needed etc. Changes should be organized logically - user interface, configuration/resource changes, app functionality, utilities, deployment protocols/scripts, testing artifacts, etc.",
-                "It will be awesome to get a clear color-coded diff-like presentation of the changes in each one of the files (for spec and code artifacts). A nice example is provided here:  file:///C:/data/MyApp/task_results/BASE-TASK-260702-0001/BASE-TASK-260702-0001%20-%20Ready.html",
-                "Having each modified file reach VS CODE diff view in the source control tab would be awesome.",
-                "Each status/stage that is concluded in such a report should be kept separately, currently the report is being overwritten but not necessarily appended to, resulting in loss of information."
-            ],
-            "priority": "High",
-            "status": "ToDo",
-            "comments": [
-                {
-                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
-                    "content": "Task created: Structured HTML task summaries and reports",
-                    "timestamp": "2026-07-03T02:18:19Z"
-                }
-            ]
-        },
-        {
-            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
-            "id": "BASE-TASK-260703-0002",
-            "uuid": "3723665f-e858-422d-a539-c2b5339f1abe",
-            "type": "Feature",
-            "title": "Requirements Manager",
-            "description": [
-                "Introduce a systems engineering app that visualizes the requirements in a tabular hierarchical structure and the architecture and how it maps to the code.",
-                "The requirements manager will visualize the requirements, the architectural features hierarchy and their mapping.",
-                "Architecture features will point to the code and allow the user to browse the code.",
-                "Architecture items without attached code will be flagged as not implemented.",
-                "Reports: the tool will generate requirement reports - requirements by status, flow, etc. architecture feature report, mapping requirements to features / features to requirements, design documents that walk through all the features under a required root feature etc."
-            ],
-            "priority": "Medium",
-            "status": "ToDo",
-            "comments": [
-                {
-                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
-                    "content": "Task created: Requirements Manager",
-                    "timestamp": "2026-07-03T18:06:19Z"
-                }
-            ]
-        },
-        {
-            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
-            "id": "BASE-TASK-260703-0003",
-            "uuid": "df01bc99-74fa-4013-b94b-45458208521e",
-            "type": "Feature",
-            "title": "Requirements MCP",
-            "description": [
-                "Currently, requirements are numbered separately by each task, often causing conflicting requirement ids.",
-                "Implement a mechanism similar to task manager that provides a single access point for task workers to request requirement ids and update the requirements ledger in the main branch. The MCP will provide the most suitable and appropriate requirement id according to the feature being required.",
-                "for this purpose the task will have to provide the MCP with sufficient context to decide where to place the requirement in the hierarchy.",
-                "This MCP will therefore need to consult an LLM client to decide where to place the requirement, provide the relevant context from the main branch and the task's context, and produce a decision.",
-                "User instructions to the task worker regarding the requirement specification (location in hierarchy, enumeration, structure, etc.) should do two things:",
-                "a. engage the requirement manager mcp again to resolve the gaps",
-                "b. ask the mcp to modify its own internal requirements to take the generic methodological guidance from the engineer into account in future reqeusts. for example if the engineer asks that from now on requirements for some functionality will always be under a specific requirement root, or that a requirement needs to be broken down into a set of requirements with additional semantics then the mcp should respect this methodological instruction going forward."
-            ],
-            "priority": "Medium",
-            "status": "ToDo",
-            "comments": [
-                {
-                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
-                    "content": "Task created: Requirements MCP",
-                    "timestamp": "2026-07-03T18:13:13Z"
+                    "content": "Code-review gate (Ready -> CodeApproved): engineer approved the implementation. Feature scope (BASE-REQ-014.22 / arch 3.6.17): Copilot model + token consumption tracking per task and per lifecycle state, surfaced in the Task Manager UI (sortable Tokens column with green->red heat colouring anchored to the whole ledger; per-phase Design/Develop/Deploy usage table in the detail pane); null/blank rendering for tasks with no recorded usage; expanded lifecycle (SpecApproved, CodeApproved, BuildApproved). Also: default ledger file resolves to base.json for BaseApp via COMMON.APP_NAME; the selected tasks dir now persists across reloads (localStorage); immediate git-sync on task creation; and a new built-in \"By Tokens\" view. Proceeding to deployment finalization.",
+                    "timestamp": "2026-07-06T19:50:44Z"
                 }
             ]
         }
