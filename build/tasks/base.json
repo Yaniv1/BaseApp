@@ -1199,12 +1199,17 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0001 worker",
                     "content": "Started work on BASE-TASK-260622-0001. Reviewed the task description and prior investigation report, explored scripts/task_manager.py, the HTML template, and config. Beginning requirements/architecture/design specification for: Close button, browser-close→server-shutdown (heartbeat), Ctrl-C→child-process teardown, UI self-shutdown on server loss, single-instance guard (fail-fast port + PID lock), and rogue-process cleanup.",
                     "timestamp": "2026-07-06T20:57:26Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0001 worker",
+                    "content": "Specification ready for review. Added requirement BASE-REQ-014.23 (Close button, browser-coupled shutdown via heartbeat, UI self-shutdown, Ctrl-C/SIGTERM child-process teardown via a Windows kill-on-close Job Object, single-instance guard with fail-fast port + PID/host/port lock file, and config knobs) and architecture features 3.6.18.1–3.6.18.6 in build/requirements/base.json and build/architecture/base.json. Design summary written to the task result store. Awaiting spec-review approval before implementing scripts/task_manager.py, resources/templates/task_manager.html, and config/base.json.",
+                    "timestamp": "2026-07-06T21:03:06Z"
                 }
             ],
             "worker_session": {
@@ -1217,9 +1222,10 @@
                 "started_at": "2026-07-06T20:54:47Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 7151,
+                    "TOTAL": 28206,
                     "per_state": {
-                        "InProgress": 7151
+                        "InProgress": 7151,
+                        "Specified": 21055
                     }
                 }
             }
