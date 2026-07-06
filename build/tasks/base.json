@@ -1199,8 +1199,30 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "ToDo",
-            "comments": []
+            "status": "InProgress",
+            "comments": [
+                {
+                    "author": "BASE-TASK-260622-0001 worker",
+                    "content": "Started work on BASE-TASK-260622-0001. Reviewed the task description and prior investigation report, explored scripts/task_manager.py, the HTML template, and config. Beginning requirements/architecture/design specification for: Close button, browser-close→server-shutdown (heartbeat), Ctrl-C→child-process teardown, UI self-shutdown on server loss, single-instance guard (fail-fast port + PID lock), and rogue-process cleanup.",
+                    "timestamp": "2026-07-06T20:57:26Z"
+                }
+            ],
+            "worker_session": {
+                "pid": 12976,
+                "window_title": "Task Manager - Prevent multiple local instances of task manager servers, rogue background processes, (BASE-TASK-260622-0001)",
+                "mode": "work",
+                "branch": "BASE-TASK-260622-0001",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260622-0001",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260622-0001.md",
+                "started_at": "2026-07-06T20:54:47Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 7151,
+                    "per_state": {
+                        "InProgress": 7151
+                    }
+                }
+            }
         },
         {
             "id": "BASE-TASK-260622-0002",
