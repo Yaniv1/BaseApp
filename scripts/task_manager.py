@@ -43,7 +43,28 @@ def _now_iso():
     return dt.datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
 
 
+def _app_name_from_config(base_dir):
+    """Best-effort read of COMMON.APP_NAME from the app's config/base.json.
+
+    Returns an empty string when the config is missing or lacks APP_NAME.
+    """
+    common = _load_config_file_raw(Path(base_dir).resolve() / "config" / "base.json").get("COMMON")
+    if isinstance(common, dict):
+        name = common.get("APP_NAME")
+        if name:
+            return str(name).strip()
+    return ""
+
+
 def _default_task_filename_for_context(base_dir):
+    # BaseApp itself manages the base.json ledger; generated instance apps
+    # manage app.json. Identify BaseApp by its configured COMMON.APP_NAME so the
+    # default is correct even inside a git worktree whose folder name is a task
+    # id (e.g. BASE-TASK-260629-0001) rather than "BaseApp". Fall back to the
+    # base directory's folder name only when no config is available.
+    app_name = _app_name_from_config(base_dir)
+    if app_name:
+        return "base.json" if app_name.lower() == "baseapp" else "app.json"
     return "base.json" if Path(base_dir).name.lower() == "baseapp" else "app.json"
 
 
@@ -842,7 +863,7 @@ def _sync_task_store_to_git(store, message=None, wait=False, headless=False, bra
     try:
         task_rel = task_path.relative_to(repo_root)
     except ValueError:
-        task_rel = task_path.name
+        task_rel = Path(task_path.name)
 
     status = _run_git_command(repo_root, "status", "--porcelain", "--", str(task_rel), check=False)
     if status.returncode != 0:
@@ -1045,6 +1066,187 @@ def _move_inbox_file(src, dest_dir):
     return dest
 
 
+# Copilot CLI's per-session event-log root; each session writes one
+# <session-id>/events.jsonl there. Its location follows the Copilot CLI's own
+# COPILOT_HOME override (default $HOME/.copilot), so the Task Manager always
+# reads from wherever the CLI actually writes — no separate config knob.
+COPILOT_SESSION_STATE_SUBDIR = "session-state"
+
+
+def _copilot_home_dir():
+    """Return the Copilot CLI home directory (COPILOT_HOME env override, else ~/.copilot).
+
+    Mirrors the Copilot CLI's own resolution so the session-state root the Task
+    Manager reads matches wherever the CLI writes. Because workers are launched
+    by the Task Manager (via launch_task_agent.ps1) they inherit this same
+    environment, so the two never diverge under the normal launch path.
+    """
+    home = os.environ.get("COPILOT_HOME")
+    if home and home.strip():
+        return Path(home.strip()).expanduser()
+    return Path.home() / ".copilot"
+
+
+def _normalise_path_key(path):
+    """Normalise a filesystem path for case-insensitive worktree matching."""
+    try:
+        return Path(str(path)).resolve().as_posix().lower()
+    except (OSError, ValueError):
+        return str(path).replace("\\", "/").rstrip("/").lower()
+
+
+# Feature 3.6.17.1
+def _resolve_session_state_dir(store=None):
+    """Feature ID: 3.6.17.1. Resolve the Copilot CLI session-state directory.
+
+    Resolves ``<COPILOT_HOME>/session-state`` (COPILOT_HOME from the environment,
+    defaulting to ~/.copilot) — the same location the Copilot CLI uses to store
+    session state. Returns a ``Path`` when the directory exists, otherwise
+    ``None`` (so usage reading is skipped). The ``store`` argument is accepted
+    for call-site compatibility but is unused.
+    """
+    path = _copilot_home_dir() / COPILOT_SESSION_STATE_SUBDIR
+    try:
+        return path if path.is_dir() else None
+    except OSError:
+        return None
+
+
+# Feature 3.6.17.2
+def _read_worktree_session_usage(session_state_dir, worktree_path):
+    """Feature ID: 3.6.17.2. Sum Copilot output-token usage for a task's worktree.
+
+    Scans each ``<session>/events.jsonl`` under ``session_state_dir``, selects
+    sessions whose ``session.start`` context cwd matches ``worktree_path``
+    (normalised), sums the ``assistant.message`` ``outputTokens`` for the
+    cumulative total, and captures the latest model (assistant.message.model /
+    session.model_change.newModel). Returns ``{"model": str|None,
+    "total_tokens": int, "matched": bool}`` where ``matched`` distinguishes "no
+    session found for this worktree" (blank/null usage) from a genuine zero.
+    Robust to missing dirs and malformed lines (skipped).
+    """
+    result = {"model": None, "total_tokens": 0, "matched": False}
+    if not session_state_dir or not worktree_path:
+        return result
+    root = Path(session_state_dir)
+    if not root.is_dir():
+        return result
+    target = _normalise_path_key(worktree_path)
+
+    for session_dir in sorted(root.iterdir()):
+        events = session_dir / "events.jsonl"
+        if not events.is_file():
+            continue
+        matches = False
+        session_total = 0
+        session_model = None
+        try:
+            with events.open("r", encoding="utf-8", errors="replace") as handle:
+                for line in handle:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        event = json.loads(line)
+                    except (ValueError, TypeError):
+                        continue
+                    if not isinstance(event, dict):
+                        continue
+                    etype = event.get("type")
+                    data = event.get("data") or {}
+                    if not isinstance(data, dict):
+                        continue
+                    if etype == "session.start":
+                        cwd = (data.get("context") or {}).get("cwd") or data.get("cwd")
+                        if cwd and _normalise_path_key(cwd) == target:
+                            matches = True
+                    elif etype == "assistant.message":
+                        tok = data.get("outputTokens")
+                        if isinstance(tok, (int, float)) and not isinstance(tok, bool):
+                            session_total += int(tok)
+                        if data.get("model"):
+                            session_model = data.get("model")
+                    elif etype == "session.model_change":
+                        if data.get("newModel"):
+                            session_model = data.get("newModel")
+        except OSError:
+            continue
+        if matches:
+            result["matched"] = True
+            result["total_tokens"] += session_total
+            if session_model:
+                result["model"] = session_model
+    return result
+
+
+# Feature 3.6.17
+def _record_worker_session_usage(store, task):
+    """Feature ID: 3.6.17. Refresh a task's worker_session model + token usage.
+
+    Reads cumulative Copilot usage for the task's worktree and records it onto
+    ``worker_session``: sets ``model``, computes the increase since the last
+    recorded ``tokens.TOTAL`` and ADDS that delta to ``per_state[<current
+    status>]`` (accumulating on revisits so a re-entered state accrues its
+    return-trip tokens on top of the first round), then sets ``tokens.TOTAL`` to
+    the new cumulative value. Best-effort and non-blocking: any problem (missing
+    directory, unmatched session, malformed event) leaves existing values
+    unchanged and never fails the status update it accompanies.
+    """
+    try:
+        session = task.get("worker_session")
+        if not isinstance(session, dict):
+            return
+        worktree = session.get("worktree")
+        if not worktree:
+            return
+        state_dir = _resolve_session_state_dir(store)
+        if state_dir is None:
+            return
+        usage = _read_worktree_session_usage(state_dir, worktree)
+
+        tokens = session.get("tokens")
+        if not isinstance(tokens, dict):
+            tokens = {}
+            session["tokens"] = tokens
+        per_state = tokens.get("per_state")
+        if not isinstance(per_state, dict):
+            per_state = {}
+            tokens["per_state"] = per_state
+
+        prev_raw = tokens.get("TOTAL")
+        prev_is_num = isinstance(prev_raw, (int, float)) and not isinstance(prev_raw, bool)
+
+        if not usage.get("matched"):
+            # No Copilot session was found for this worktree yet: record an
+            # explicit null total so the UI shows a blank (not a misleading 0),
+            # while never clobbering a real total captured on a previous pass.
+            if not prev_is_num:
+                tokens["TOTAL"] = None
+            return
+
+        new_total = int(usage.get("total_tokens") or 0)
+        prev_total = int(prev_raw) if prev_is_num else 0
+
+        # A new reading can only add tokens; a lower reading (e.g. rotated logs)
+        # is ignored so the running totals never regress.
+        delta = new_total - prev_total
+        if delta < 0:
+            delta = 0
+            new_total = prev_total
+
+        status = str(task.get("status") or "").strip() or "InProgress"
+        try:
+            prev_state = int(per_state.get(status))
+        except (TypeError, ValueError):
+            prev_state = 0
+        per_state[status] = prev_state + delta
+        tokens["TOTAL"] = new_total
+        if usage.get("model"):
+            session["model"] = usage.get("model")
+    except Exception as exc:  # noqa: BLE001 - usage recording must never fail the status update
+        print(f"[task-manager] worker-session usage update skipped: {exc}")
+
+
 def _apply_status_request_file(store, request_file):
     """Apply one status-update request file to the ledger and sync it to main.
 
@@ -1073,6 +1275,10 @@ def _apply_status_request_file(store, request_file):
         if result is None:
             unmatched.append(str((update_task or {}).get("id", "")).strip() or "(missing id)")
         else:
+            # Capture the Copilot model + token consumption for this task (best
+            # effort) so each status transition records the tokens spent to
+            # reach it; never let a usage-read failure fail the status update.
+            _record_worker_session_usage(store, result)
             applied_ids.append(str(result.get("id", "")))
 
     if not applied_ids:
@@ -1360,6 +1566,12 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
 
     # Record the launched session on the task so a later "Ready" review can
     # trace and re-focus this console window instead of starting from scratch.
+    # Preserve any previously accumulated model/token usage across relaunches
+    # and reviews so restarting a worker never resets the running totals.
+    prior_session = task.get("worker_session") if isinstance(task.get("worker_session"), dict) else {}
+    prior_tokens = prior_session.get("tokens")
+    if not isinstance(prior_tokens, dict):
+        prior_tokens = {"TOTAL": None, "per_state": {}}
     task["worker_session"] = {
         "pid": getattr(process, "pid", None),
         "window_title": window_title,
@@ -1368,6 +1580,8 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
         "worktree": worktree_path.as_posix() if worktree_path is not None else None,
         "prompt_file": prompt_path.as_posix(),
         "started_at": _now_iso(),
+        "model": prior_session.get("model"),
+        "tokens": prior_tokens,
     }
     return prompt_path
 
@@ -1546,6 +1760,19 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
         if parsed.path == "/api/tasks":
             task = _create_task(data["TASKS"], self._read_body(), self.__class__.store.tasks_path)
             self._write_tasks(data)
+            # Immediately push new tasks to the ledger branch so a task created
+            # in the UI is never left sitting uncommitted in the working tree.
+            # The task is already persisted locally, so a sync failure is logged
+            # but never fails the creation (the next sync flushes it to origin).
+            try:
+                _sync_task_store_to_git(
+                    self.__class__.store,
+                    message=f"Create task ({task.get('id', '')}) {task.get('title', '')}",
+                    headless=True,
+                    branch=_resolve_ledger_branch(self.__class__.store),
+                )
+            except RuntimeError as error:
+                print(f"[task-manager] git sync after task creation failed: {error}")
             self._send_json(201, {"task": task})
             return
 

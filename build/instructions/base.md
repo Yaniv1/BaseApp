@@ -37,7 +37,7 @@ Do not do task work directly on the long-lived `main` branch. The repository use
 3. The branch and its worktree are short-lived: they exist only for the duration of the task and are dissolved (the branch deleted and the worktree removed) once the task is merged into `main` and reaches the `Done` status.
 4. The merge of the task branch into `main` is supervised by the integration engineer, who makes sure there are no conflicts that must be resolved before the merge can complete successfully. Do not merge into `main`, dissolve the branch, or remove the worktree yourself; that happens at the `Done` step, under the integration engineer's supervision.
 
-## Task Lifecycle: ToDo -> InProgress -> Specified -> Ready -> Deployed -> Approved -> Done
+## Task Lifecycle: ToDo -> InProgress -> Specified -> SpecApproved -> Ready -> CodeApproved -> Deployed -> BuildApproved -> Done
 
 Tasks move through the following steps.
 
@@ -88,6 +88,7 @@ Tasks move through the following steps.
 
 3. *Task Implementing*: This step is triggered by the engineer, and accomplished by you. If you are asked to work on a task:
         After the engineer approves the specification, you can continue to implementation based on the engineer-approved design, which may be different from your initial design.
+        3a0. Request a status change to `SpecApproved` via the task status store (this is the spec-review gate: `Specified` -> `SpecApproved`, marking the specification as fully approved so implementation may proceed).
         3a. Update the 
         3b. Make sure there are no duplicate requirement numbers between the current task and the main branch. If there are, renumber the requirements in the current task branch to avoid conflict.
         Update the task branch with the specification artifacts (local and remote).
@@ -105,8 +106,8 @@ Tasks move through the following steps.
 When asked to finalize and deploy the code change (i.e. to move the status of the task from `Ready` to `Deployed`):
 
 perform the Change Finalizing and Deployment steps below:
-        a. request a status change to `Approved` via the task status store.
-        b. request a builder-approval comment to be appended to the task (via the task status store).
+        a. request a status change to `CodeApproved` via the task status store (this is the code-review gate: `Ready` -> `CodeApproved`, marking the implementation as approved so deployment may proceed).
+        b. request a code-approval comment to be appended to the task (via the task status store).
         c. bump the versions of the BaseApp (`resources/version/base.txt`) and placeholder for the variant app (`resources/version/app.txt`) as well as the config files that contain the version. 
                 Update `resources/version/app.txt` to have the same value as the latest `resources/version/base.txt` but with the prefix letter `A`, so that future instantiations of new apps will start from the latest base version and then increment separately. For example if the base version is `26.05.27.03` then the app version will be `A26.05.27.03`
                 Update the `config/base.json` file `COMMON` dict to include the latest version id.
@@ -127,6 +128,7 @@ perform the Change Finalizing and Deployment steps below:
 5. *Task Outcome Integration*: This step includes merging the task's ad-hoc branch into the `main` branch.
         When asked to finalize the change (i.e. to move the status of the task from `Deployed` to `Done`):
         a. Ask the user (integration engineer) to review the documentation about the change as well as the code, run the app on the task branch and does whatever is necessary to make sure the functionality is implemented correctly, and supervise the merge of the task's branch into `main`, making sure there are no conflicts to solve in order to complete the merge successfully. Resolve or suggest resolutions to any conflicts surfaced during the merge before proceeding.
+        a2. Once the engineer approves the deployed build for integration, request a status change to `BuildApproved` via the task status store (this is the build/integration-review gate: `Deployed` -> `BuildApproved`, marking the deployed build as approved for merge into `main`), and request a build-approval comment to be appended to the task.
         When final merge approval is granted:
         b. Merge the task's branch into `main`. Perform the merge from **within the `main` worktree** (`{APP}/main`), e.g. `git -C {APP}/main merge --no-ff <task-id>` followed by `git -C {APP}/main push origin main` (or merge via a GitHub pull request). Because all worktrees share the single bare object/ref store under `{APP}/.bare`, merging here updates `refs/heads/main` in the bare store directly — there is no separate bare copy of `main` to update.
         c. request a status change to `Done` via the task status store.

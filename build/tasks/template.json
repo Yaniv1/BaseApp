@@ -6,7 +6,7 @@
             "title": "Template",
             "description": "This is the task template.",
             "priority": "Low|Medium|High|Critical",
-            "status": "ToDo|InProgress|Specified|Ready|Approved|Deployed|Done|Deleted",
+            "status": "ToDo|InProgress|Specified|SpecApproved|Ready|CodeApproved|Deployed|BuildApproved|Done|Deleted",
             "comments": [
                 {
                     "author": "User1",
@@ -20,7 +20,21 @@
                 "window_title": "{task.title} {task.id}",
                 "mode": "review",
                 "prompt_file": "{CONFIG.APP.TASK_MANAGER.prompt_store}/{task.id}.md",
-                "started_at": "2026-06-24T20:23:04Z"
+                "started_at": "2026-06-24T20:23:04Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 0,
+                    "per_state": {
+                        "InProgress": 0,
+                        "Specified": 0,
+                        "SpecApproved": 0,
+                        "Ready": 0,
+                        "CodeApproved": 0,
+                        "Deployed": 0,
+                        "BuildApproved": 0,
+                        "Done": 0
+                    }
+                }
             }
         }
     ]
