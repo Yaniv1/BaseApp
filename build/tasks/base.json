@@ -1199,7 +1199,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "Deployed",
+            "status": "BuildApproved",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0001 worker",
@@ -1235,6 +1235,11 @@
                     "author": "BASE-TASK-260622-0001 worker",
                     "content": "Engineer gave explicit approval to finalize and push (CodeApproved -> Deployed). Deploy prep complete: version bumped 26.07.06.01 -> 26.07.06.02 (resources/version/base.txt, app.txt=A26.07.06.02, config/base.json COMMON.VERSION); build/updates/base.json entry updated; docs/readme/base.md gains a Release Highlights (26.07.06.02) block; root README.md overview updated in place (no changelog). 112 task_manager tests passing across randomised runs. Committing code/spec/test to branch BASE-TASK-260622-0001 and pushing; the ledger is not committed from the task branch.",
                     "timestamp": "2026-07-07T03:52:15Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0001 worker",
+                    "content": "Integration engineer approved the deployed build for merge (Deployed -> BuildApproved). Reviewed the documentation and code on the task branch; functionality verified. Proceeding to merge branch BASE-TASK-260622-0001 into main via the main worktree (shared bare object/ref store), then Done + branch/worktree dissolution.",
+                    "timestamp": "2026-07-07T03:54:40Z"
                 }
             ],
             "worker_session": {
@@ -1247,14 +1252,15 @@
                 "started_at": "2026-07-06T20:54:47Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 250082,
+                    "TOTAL": 255395,
                     "per_state": {
                         "InProgress": 7151,
                         "Specified": 21055,
                         "SpecApproved": 1477,
                         "Ready": 118888,
                         "CodeApproved": 100121,
-                        "Deployed": 1390
+                        "Deployed": 1390,
+                        "BuildApproved": 5313
                     }
                 }
             }
