@@ -1220,6 +1220,11 @@
                     "author": "BASE-TASK-260622-0001 worker",
                     "content": "Implementation complete for the server/UI/process lifecycle coupling (Feature 3.6.18, Requirement BASE-REQ-014.23). scripts/task_manager.py: single-instance lock at <status_queue>/task_manager.lock (live-holder refuses + re-focuses existing browser; stale locks reclaimed), fail-fast _pick_available_port (raises PortInUseError instead of ephemeral fallback), Windows Job Object kill-on-close (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE|BREAKAWAY_OK) so helper/git-sync children die with the server while worker consoles + browser use CREATE_BREAKAWAY_FROM_JOB to survive, /api/heartbeat + /api/shutdown + /api/close endpoints, _lifecycle_monitor auto-shutdown after heartbeat timeout, unified idempotent _shutdown_server (SIGINT/SIGTERM/atexit/endpoint/monitor) that reaps helper PIDs and releases the lock, run() rewrite, and --no-single-instance/--no-auto-shutdown flags. UI (task_manager.html): Close button, heartbeat loop, pagehide/beforeunload sendBeacon('/api/close') (reload-safe: a fresh heartbeat supersedes the beacon), server-down overlay + self-shutdown. config/base.json: single_instance, shutdown_on_browser_close, browser_heartbeat_seconds, browser_heartbeat_timeout. Validation: all 101 tests in test/tests/base/task_manager.py pass; the build.py TST005 failure is pre-existing and unrelated (test_deployment.ps1 passes a --baseSource arg pullbase.py does not accept). build/updates/base.json updated; changed-files + diff HTML written to the task result store. Requesting Ready for code review.",
                     "timestamp": "2026-07-06T23:01:29Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0001 worker",
+                    "content": "Extended the implementation (still at Ready) with multi-app support — deterministic per-app port bands (Feature 3.6.18.7). Rationale: the instance lock + status queue are already scoped per app (COMMON.OUTPUT_PREFIX/APP_NAME), so different apps can each hold their own lock; the only blocker to running BaseApp and AI4EDG servers concurrently was the shared default port 8765. Now scripts/task_manager.py derives a deterministic, non-overlapping per-app port band by hashing COMMON.APP_NAME (zlib.crc32) onto a slot in a bounded pool of fixed-width bands anchored at port_base — BaseApp pinned to slot 0, every other app hashed into slots 1..N-1 — so the band is reproducible across launches with nothing written into per-app config (policy keys port_base/port_band_width/port_pool_bands live in base.json and are correctly inherited). _select_server_port scans the app's own band first, then hops forward through the remaining pool (self-healing a hash collision), and raises PortInUseError when the whole pool is exhausted rather than falling back to an arbitrary port; --port remains an explicit override. run() now resolves the port before acquiring the lock so the lock records the real port. Spec artifacts updated: BASE-REQ-014.23 gained clause (g), architecture feature 3.6.18.7 added, solution row added. Validation: all 107 unit tests pass; a runtime smoke test confirmed a second BaseApp instance bound 8766 while the existing server held 8765 (forward-probe within band [8765-8774]). Result HTML and build/updates/base.json refreshed. Still awaiting code review at Ready.",
+                    "timestamp": "2026-07-07T00:38:26Z"
                 }
             ],
             "worker_session": {
@@ -1232,12 +1237,12 @@
                 "started_at": "2026-07-06T20:54:47Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 96078,
+                    "TOTAL": 148571,
                     "per_state": {
                         "InProgress": 7151,
                         "Specified": 21055,
                         "SpecApproved": 1477,
-                        "Ready": 66395
+                        "Ready": 118888
                     }
                 }
             }
