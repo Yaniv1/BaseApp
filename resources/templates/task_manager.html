@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta id="server-meta" data-tasks-path="__TASKS_PATH__" data-tasks-dir="__TASKS_DIR__" data-app-name="__APP_NAME__" data-git-repo="__GIT_REPO__" data-git-repo-display="__GIT_REPO_DISPLAY__" data-git-repo-available="__GIT_REPO_AVAILABLE__">
+<meta id="server-meta" data-tasks-path="__TASKS_PATH__" data-tasks-dir="__TASKS_DIR__" data-app-name="__APP_NAME__" data-git-repo="__GIT_REPO__" data-git-repo-display="__GIT_REPO_DISPLAY__" data-git-repo-available="__GIT_REPO_AVAILABLE__" data-heartbeat-seconds="__HEARTBEAT_SECONDS__">
 <title>__APP_NAME__ Task Manager</title>
 <style>
 :root{
@@ -75,6 +75,18 @@ textarea{resize:vertical;min-height:56px}
 .close-btn{background:transparent;border:none;color:var(--mu);font-size:.95rem;
   padding:3px 7px;border-radius:6px}
 .close-btn:hover{background:var(--sf2)}
+.danger{background:#b3261e;color:#fff;border-color:#8f1d17}
+.danger:hover{opacity:.88}
+/* ── Server-stopped overlay (Feature 3.6.18) ─────────────────── */
+#server-down-overlay{position:fixed;inset:0;z-index:9999;display:none;
+  align-items:center;justify-content:center;background:rgba(8,12,20,.82);
+  backdrop-filter:blur(2px)}
+#server-down-overlay.show{display:flex}
+#server-down-overlay .card{background:var(--sf,#fff);color:var(--tx,#111);
+  border-radius:12px;padding:1.6rem 2rem;max-width:420px;text-align:center;
+  box-shadow:0 14px 40px rgba(0,0,0,.5)}
+#server-down-overlay h2{margin:.2rem 0 .6rem;font-size:1.15rem}
+#server-down-overlay p{margin:.35rem 0;font-size:.9rem;color:var(--mu,#555)}
 .msg{font-size:.8rem;min-height:1em}
 .msg.err{color:var(--rd)}
 
@@ -251,9 +263,17 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
       <label class="flbl" for="file-select">File:</label>
       <select id="file-select" class="fsel"></select>
       <button id="reload-btn" class="btn sec" title="Reload tasks">&#8635;</button>
+      <button id="close-server-btn" class="btn danger" title="Stop the Task Manager server and close this tab">&#x23FB; Close</button>
     </div>
   </div>
 </header>
+<div id="server-down-overlay" role="alertdialog" aria-modal="true" aria-labelledby="server-down-title">
+  <div class="card">
+    <h2 id="server-down-title">&#128721; Task Manager stopped</h2>
+    <p>The Task Manager server is no longer running.</p>
+    <p>This tab will close automatically. You can close it now.</p>
+  </div>
+</div>
 <main>
   <aside class="sidebar">
     <h2>Create Task</h2>
@@ -522,7 +542,95 @@ function ensureGitSidebar() {
   initSearch();
   initDetail();
   initSplit();
+  initServerLifecycle();
 })().catch(e => setMsg('create-msg', e.message, true));
+
+// ── Server lifecycle: heartbeat, Close button, self-shutdown ──
+// (Feature 3.6.18) The UI and the python server share a lifetime:
+//  - a periodic heartbeat POST lets the server detect a closed tab and stop;
+//  - an unload beacon proactively asks the server to stop;
+//  - the Close button stops the server and closes this tab;
+//  - repeated heartbeat failures mean the server is gone, so the UI shows a
+//    "stopped" overlay and closes itself.
+function initServerLifecycle() {
+  const meta = document.getElementById('server-meta');
+  let seconds = parseInt(meta && meta.getAttribute('data-heartbeat-seconds'), 10);
+  if (!Number.isFinite(seconds) || seconds < 1) seconds = 3;
+  let missed = 0;
+  let closing = false;
+  const MAX_MISSED = 3; // consecutive failed heartbeats before declaring the server down
+  // Per-tab session id (Feature 3.6.18.8): the server tracks each open tab
+  // separately and only stops once every tab is gone, so closing one tab never
+  // shuts a server another tab is still using.
+  const SID = (window.crypto && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : (String(Date.now()) + '-' + Math.random().toString(16).slice(2));
+  const SQ = 'sid=' + encodeURIComponent(SID);
+
+  function tryCloseWindow() {
+    try { window.close(); } catch (e) {}
+    // window.close() is a no-op for tabs the script did not open; the overlay
+    // remains as the visible "server stopped" state in that case.
+  }
+
+  function showServerDown() {
+    const ov = document.getElementById('server-down-overlay');
+    if (ov) ov.classList.add('show');
+  }
+
+  async function requestShutdown(path) {
+    try {
+      await fetch(path, { method: 'POST', keepalive: true });
+    } catch (e) { /* server may already be gone */ }
+  }
+
+  async function beat() {
+    if (closing) return;
+    try {
+      const r = await fetch('/api/heartbeat?' + SQ, { method: 'POST', cache: 'no-store' });
+      if (!r.ok) throw new Error('bad status');
+      missed = 0;
+    } catch (e) {
+      missed += 1;
+      if (missed >= MAX_MISSED && !closing) {
+        closing = true;
+        showServerDown();
+        setTimeout(tryCloseWindow, 400);
+      }
+    }
+  }
+
+  // Close button: stop the server, then close the tab.
+  const closeBtn = document.getElementById('close-server-btn');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', async () => {
+      if (closing) return;
+      if (!window.confirm('Stop the Task Manager server and close this tab?')) return;
+      closing = true;
+      closeBtn.disabled = true;
+      await requestShutdown('/api/shutdown');
+      showServerDown();
+      setTimeout(tryCloseWindow, 300);
+    });
+  }
+
+  // Proactively tell the server to stop when the tab is closed/hidden.
+  function sendClose() {
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/api/close?' + SQ);
+      } else {
+        fetch('/api/close?' + SQ, { method: 'POST', keepalive: true });
+      }
+    } catch (e) {}
+  }
+  window.addEventListener('pagehide', sendClose);
+  window.addEventListener('beforeunload', sendClose);
+
+  beat();
+  setInterval(beat, seconds * 1000);
+}
+
 
 // ── Split-pane divider ────────────────────────────────────────
 // The task list and task details are stacked vertical blocks, each

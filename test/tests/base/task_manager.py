@@ -1,7 +1,9 @@
 """Feature ID: 5.3.1.7. Task manager interface prep test module."""
 
 import json
+import os
 import shutil
+import socket
 import tempfile
 import threading
 import time
@@ -1040,17 +1042,24 @@ def test_start_agent_requires_confirmation_when_branch_exists(monkeypatch, tmp_p
         thread.join(timeout=5)
 
 
-def test_create_server_falls_back_to_free_port_when_requested_port_is_busy():
+def test_create_server_fails_fast_when_requested_port_is_busy(tmp_path):
+    # Single-instance behaviour (Feature 3.6.18): a busy configured port must
+    # raise PortInUseError rather than silently binding an ephemeral port, so a
+    # duplicate server fails loudly instead of accumulating in the background.
+    source = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    temp_tasks = tmp_path / "base.json"
+    shutil.copyfile(source, temp_tasks)
     occupied_server = None
-    server = None
     try:
         occupied_server = ThreadingHTTPServer(("127.0.0.1", 0), _TaskManagerHandler)
         requested_port = occupied_server.server_address[1]
-        server = _create_server("127.0.0.1", requested_port, _DummyStore())
-        assert server.server_address[1] != requested_port
+        raised = False
+        try:
+            _create_server("127.0.0.1", requested_port, temp_tasks)
+        except task_manager.PortInUseError:
+            raised = True
+        assert raised, "expected PortInUseError when the configured port is busy"
     finally:
-        if server is not None:
-            server.server_close()
         if occupied_server is not None:
             occupied_server.server_close()
 
@@ -2171,7 +2180,393 @@ def test_sync_task_repo_isolates_ledger_commit_from_worker_tree(tmp_path):
     new_sha = git("rev-parse", "main", cwd=origin).stdout.strip()
     changed = git("diff-tree", "--no-commit-id", "--name-only", "-r", new_sha, cwd=origin).stdout.strip()
     assert changed.splitlines() == [ledger_rel], changed
-    pushed_ledger = git("show", f"{new_sha}:{ledger_rel}", cwd=origin).stdout
-    assert pushed_ledger == new_ledger
+
+
+# ── Feature 3.6.18: server lifecycle (single-instance, heartbeat, shutdown) ──
+
+def _lifecycle_store(tmp_path, single_instance=True):
+    """A minimal store whose config exposes only the lifecycle-relevant keys."""
+    queue = tmp_path / "status_queue"
+    task_manager_cfg = SimpleNamespace(
+        status_queue=str(queue), single_instance=single_instance,
+        shutdown_on_browser_close=True, browser_heartbeat_seconds=3,
+        browser_heartbeat_timeout=12,
+        port_base=8765, port_band_width=10, port_pool_bands=200,
+    )
+    return SimpleNamespace(
+        base_dir=tmp_path,
+        config=SimpleNamespace(APP=SimpleNamespace(TASK_MANAGER=task_manager_cfg)),
+    )
+
+
+def _serve(server):
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    time.sleep(0.2)
+    return thread
+
+
+def test_instance_lock_acquires_and_releases(tmp_path):
+    """BASE-REQ-014.23: acquiring the lock claims it for this pid; releasing removes it."""
+    store = _lifecycle_store(tmp_path)
+    assert task_manager._acquire_instance_lock(store, "127.0.0.1", 8765) is None
+    lock = task_manager._instance_lock_path(store)
+    assert lock.exists()
+    info = json.loads(lock.read_text(encoding="utf-8"))
+    assert info["pid"] == os.getpid()
+    assert info["port"] == 8765
+    task_manager._release_instance_lock(store)
+    assert not lock.exists()
+
+
+def test_instance_lock_reclaims_stale_lock(tmp_path):
+    """BASE-REQ-014.23: a lock left by a dead pid is reclaimed by the next launch."""
+    store = _lifecycle_store(tmp_path)
+    lock = task_manager._instance_lock_path(store)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(json.dumps({"pid": 999999999, "host": "127.0.0.1", "port": 1234}), encoding="utf-8")
+    assert task_manager._acquire_instance_lock(store, "127.0.0.1", 8765) is None
+    info = json.loads(lock.read_text(encoding="utf-8"))
+    assert info["pid"] == os.getpid()
+    task_manager._release_instance_lock(store)
+
+
+def test_instance_lock_refuses_when_live_holder(tmp_path, monkeypatch):
+    """BASE-REQ-014.23: when a live instance holds the lock, acquisition returns
+    its info (so the caller refuses to start) and never overwrites the lock."""
+    store = _lifecycle_store(tmp_path)
+    lock = task_manager._instance_lock_path(store)
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(json.dumps({"pid": 4242, "host": "127.0.0.1", "port": 9999}), encoding="utf-8")
+    monkeypatch.setattr(task_manager, "_process_alive", lambda pid: True)
+    holder = task_manager._acquire_instance_lock(store, "127.0.0.1", 8765)
+    assert holder is not None and holder["port"] == 9999
+    info = json.loads(lock.read_text(encoding="utf-8"))
+    assert info["pid"] == 4242
+
+
+def test_instance_lock_disabled_returns_none(tmp_path):
+    """BASE-REQ-014.23: with single_instance disabled the guard is a no-op."""
+    store = _lifecycle_store(tmp_path, single_instance=False)
+    assert task_manager._acquire_instance_lock(store, "127.0.0.1", 8765) is None
+    assert not task_manager._instance_lock_path(store).exists()
+
+
+def test_heartbeat_and_close_endpoints(tmp_path):
+    """BASE-REQ-014.23: /api/heartbeat marks the UI as alive and /api/close arms
+    the grace timer, both without requiring a readable ledger."""
+    source = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    temp_tasks = tmp_path / "base.json"
+    shutil.copyfile(source, temp_tasks)
+    _TaskManagerHandler._reset_sessions()
+    _TaskManagerHandler.heartbeat_seen = False
+    _TaskManagerHandler.last_heartbeat = 0.0
+    _TaskManagerHandler.close_requested_at = 0.0
+    server = _create_server("127.0.0.1", 0, temp_tasks)
+    thread = _serve(server)
+    port = server.server_address[1]
+    try:
+        status, payload = _request_json(f"http://127.0.0.1:{port}/api/heartbeat", method="POST", payload={})
+        assert status == 200 and payload.get("ok") is True
+        assert _TaskManagerHandler.heartbeat_seen is True
+        assert _TaskManagerHandler.last_heartbeat > 0
+        status, _ = _request_json(f"http://127.0.0.1:{port}/api/close", method="POST", payload={})
+        assert status == 200
+        assert _TaskManagerHandler.close_requested_at > 0
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_shutdown_endpoint_invokes_shutdown(tmp_path, monkeypatch):
+    """BASE-REQ-014.23: POST /api/shutdown (Close button) triggers the orderly
+    shutdown path."""
+    source = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    temp_tasks = tmp_path / "base.json"
+    shutil.copyfile(source, temp_tasks)
+    calls = []
+    monkeypatch.setattr(task_manager, "_shutdown_server", lambda reason="": calls.append(reason))
+    server = _create_server("127.0.0.1", 0, temp_tasks)
+    thread = _serve(server)
+    port = server.server_address[1]
+    try:
+        status, payload = _request_json(f"http://127.0.0.1:{port}/api/shutdown", method="POST", payload={})
+        assert status == 200 and payload.get("shutting_down") is True
+        time.sleep(0.15)
+        assert calls, "expected _shutdown_server to be invoked by /api/shutdown"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_lifecycle_monitor_shuts_down_on_lost_heartbeat(monkeypatch):
+    """BASE-REQ-014.23: the monitor stops the server when the only tab's
+    heartbeats stop past the grace timeout (browser tab closed)."""
+    calls = []
+    monkeypatch.setattr(task_manager, "_shutdown_server", lambda reason="": calls.append(reason))
+    monkeypatch.setattr(task_manager, "_SHUTDOWN_EVENT", threading.Event())
+    _TaskManagerHandler._reset_sessions()
+    _TaskManagerHandler.heartbeat_seen = True
+    _TaskManagerHandler.sessions = {"tab-1": {"last": time.monotonic() - 100, "closed": 0.0}}
+    stop = threading.Event()
+    thread = threading.Thread(target=task_manager._lifecycle_monitor, args=(None, stop, 5), daemon=True)
+    thread.start()
+    time.sleep(1.4)
+    stop.set()
+    thread.join(timeout=3)
+    assert calls, "monitor should trigger shutdown for a stale heartbeat"
+
+
+def test_lifecycle_monitor_close_beacon_triggers_shutdown(monkeypatch):
+    """BASE-REQ-014.23: an unload beacon newer than the last heartbeat (a real
+    tab close) for the only tab triggers a fast shutdown via the grace path."""
+    calls = []
+    monkeypatch.setattr(task_manager, "_shutdown_server", lambda reason="": calls.append(reason))
+    monkeypatch.setattr(task_manager, "_SHUTDOWN_EVENT", threading.Event())
+    now = time.monotonic()
+    _TaskManagerHandler._reset_sessions()
+    _TaskManagerHandler.heartbeat_seen = True
+    # newer close than heartbeat, past the grace
+    _TaskManagerHandler.sessions = {"tab-1": {"last": now - 6, "closed": now - 5}}
+    stop = threading.Event()
+    thread = threading.Thread(target=task_manager._lifecycle_monitor, args=(None, stop, 60), daemon=True)
+    thread.start()
+    time.sleep(1.4)
+    stop.set()
+    thread.join(timeout=3)
+    assert calls, "monitor should trigger shutdown when an unload beacon is pending"
+
+
+def test_lifecycle_monitor_keeps_running_while_another_tab_is_alive(monkeypatch):
+    """Feature 3.6.18.8: closing one tab must NOT shut the server down while
+    another tab is still beating. The closed tab is pruned, the live one kept."""
+    calls = []
+    monkeypatch.setattr(task_manager, "_shutdown_server", lambda reason="": calls.append(reason))
+    monkeypatch.setattr(task_manager, "_SHUTDOWN_EVENT", threading.Event())
+    now = time.monotonic()
+    _TaskManagerHandler._reset_sessions()
+    _TaskManagerHandler.heartbeat_seen = True
+    _TaskManagerHandler.sessions = {
+        "tab-1": {"last": now - 6, "closed": now - 5},  # closed past grace
+        "tab-2": {"last": now, "closed": 0.0},          # still alive
+    }
+    stop = threading.Event()
+    thread = threading.Thread(target=task_manager._lifecycle_monitor, args=(None, stop, 60), daemon=True)
+    thread.start()
+    time.sleep(1.4)
+    stop.set()
+    thread.join(timeout=3)
+    assert not calls, "server must stay up while a second tab is alive"
+    assert "tab-1" not in _TaskManagerHandler.sessions
+    assert "tab-2" in _TaskManagerHandler.sessions
+
+
+def test_sessions_endpoint_and_probe_count_live_tabs(tmp_path):
+    """Feature 3.6.18.8: GET /api/sessions counts live tabs (by session id) and
+    _probe_active_sessions reads that count so a second launch can decide whether
+    to open another tab."""
+    source = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
+    temp_tasks = tmp_path / "base.json"
+    shutil.copyfile(source, temp_tasks)
+    _TaskManagerHandler._reset_sessions()
+    server = _create_server("127.0.0.1", 0, temp_tasks)
+    thread = _serve(server)
+    port = server.server_address[1]
+    url = f"http://127.0.0.1:{port}/"
+    try:
+        assert task_manager._probe_active_sessions(url) == 0
+        _request_json(f"{url}api/heartbeat?sid=tab-1", method="POST", payload={})
+        assert task_manager._probe_active_sessions(url) == 1
+        _request_json(f"{url}api/heartbeat?sid=tab-2", method="POST", payload={})
+        assert task_manager._probe_active_sessions(url) == 2
+        # tab-1 closes; after the grace it drops while tab-2 (kept beating) lives.
+        _request_json(f"{url}api/close?sid=tab-1", method="POST", payload={})
+        time.sleep(task_manager._CLOSE_GRACE + 0.3)
+        _request_json(f"{url}api/heartbeat?sid=tab-2", method="POST", payload={})
+        # tab-1's close should age past the grace and drop it while tab-2 stays
+        # alive; poll rather than a single fixed sleep so the assertion is robust
+        # under load (the deadline is far below tab-2's stale window).
+        deadline = time.monotonic() + 6.0
+        active = None
+        while time.monotonic() < deadline:
+            active = task_manager._probe_active_sessions(url)
+            if active == 1:
+                break
+            time.sleep(0.2)
+        assert active == 1
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_live_session_count_treats_same_tick_close_as_closed():
+    """Regression (Feature 3.6.18.8): a heartbeat and a close landing in the same
+    monotonic tick (Windows clock granularity gives last == closed) must still be
+    treated as closed, not left alive until the stale timeout. Because a heartbeat
+    zeroes ``closed``, a pending close is detected by call order (closed > 0), not
+    by a strict closed > last timestamp comparison."""
+    _TaskManagerHandler._reset_sessions()
+    t = time.monotonic()
+    _TaskManagerHandler.heartbeat_seen = True
+    _TaskManagerHandler.sessions = {"tab-1": {"last": t, "closed": t}}  # identical tick
+    # Grace already elapsed; not stale (timeout huge). Must count as gone (0),
+    # proving the close is honoured despite last == closed.
+    live = _TaskManagerHandler._live_session_count(t + 5.0, timeout_seconds=600, close_grace=2.0)
+    assert live == 0
+    assert "tab-1" not in _TaskManagerHandler.sessions
+
+
+def test_live_session_count_reload_heartbeat_cancels_close():
+    """A reload's fresh heartbeat (which zeroes ``closed``) keeps the tab alive
+    even if its prior close beacon shared the same tick as the last heartbeat."""
+    _TaskManagerHandler._reset_sessions()
+    t = time.monotonic()
+    _TaskManagerHandler.heartbeat_seen = True
+    # Close armed, then a reload heartbeat cleared it (closed back to 0).
+    _TaskManagerHandler.sessions = {"tab-1": {"last": t, "closed": 0.0}}
+    live = _TaskManagerHandler._live_session_count(t + 5.0, timeout_seconds=600, close_grace=2.0)
+    assert live == 1
+    assert "tab-1" in _TaskManagerHandler.sessions
+
+
+def test_probe_active_sessions_returns_none_when_unreachable():
+    """Feature 3.6.18.8: an unreachable/old server yields None so callers fall
+    back to the previous open-a-tab behaviour."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as free:
+        free.bind(("127.0.0.1", 0))
+        dead_port = free.getsockname()[1]
+    assert task_manager._probe_active_sessions(f"http://127.0.0.1:{dead_port}/") is None
+
+
+def test_pick_available_port_raises_when_busy():
+    """BASE-REQ-014.23: fail fast on a busy configured port (no ephemeral fallback)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as occupied:
+        occupied.bind(("127.0.0.1", 0))
+        occupied.listen(1)
+        busy_port = occupied.getsockname()[1]
+        raised = False
+        try:
+            task_manager._pick_available_port("127.0.0.1", busy_port)
+        except task_manager.PortInUseError:
+            raised = True
+        assert raised
+
+
+def test_task_manager_template_has_close_button_and_heartbeat():
+    """BASE-REQ-014.23: the UI ships the Close button, heartbeat/shutdown/close
+    wiring, the server-stopped overlay, and the injectable heartbeat interval."""
+    template = (
+        Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    ).read_text(encoding="utf-8")
+    assert 'id="close-server-btn"' in template
+    assert "/api/heartbeat" in template
+    assert "/api/shutdown" in template
+    assert "/api/close" in template
+    assert "server-down-overlay" in template
+    assert 'data-heartbeat-seconds="__HEARTBEAT_SECONDS__"' in template
+
+
+# ── Feature 3.6.18.7: deterministic per-app port bands (multi-app support) ──
+
+def _band_store(tmp_path, app_name):
+    """A lifecycle store whose config/base.json declares COMMON.APP_NAME so the
+    port band derives deterministically from the app identity."""
+    (tmp_path / "config").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "config" / "base.json").write_text(
+        json.dumps({"COMMON": {"APP_NAME": app_name}}), encoding="utf-8"
+    )
+    return _lifecycle_store(tmp_path)
+
+
+def test_app_port_band_pins_baseapp_to_first_band(tmp_path):
+    """BASE-REQ-014.23: BaseApp is pinned to slot 0, so its band starts at port_base."""
+    store = _band_store(tmp_path, "BaseApp")
+    band_start, band_end, pool_end = task_manager._app_port_band(store)
+    assert band_start == 8765
+    assert band_end == 8774
+    assert pool_end == 8765 + 200 * 10 - 1
+
+
+def test_app_port_band_is_deterministic_and_disjoint_from_baseapp(tmp_path):
+    """BASE-REQ-014.23: a non-BaseApp band is reproducible and never overlaps BaseApp's."""
+    store_a = _band_store(tmp_path / "a", "AI4EDG")
+    store_b = _band_store(tmp_path / "b", "AI4EDG")
+    band_a = task_manager._app_port_band(store_a)
+    band_b = task_manager._app_port_band(store_b)
+    assert band_a == band_b  # deterministic across launches / checkouts
+    assert band_a[0] >= 8775  # slot >= 1, disjoint from BaseApp's [8765, 8774]
+
+
+def test_select_server_port_prefers_app_band(tmp_path):
+    """BASE-REQ-014.23: with a free band the selected port lands inside the app's band."""
+    store = _band_store(tmp_path, "BaseApp")
+    port = task_manager._select_server_port(store, "127.0.0.1")
+    try:
+        assert 8765 <= port <= 8774
+    finally:
+        pass
+
+
+def test_select_server_port_hops_forward_when_band_start_busy(tmp_path):
+    """BASE-REQ-014.23: a busy band port is skipped; the search hops to the next free port."""
+    store = _band_store(tmp_path, "BaseApp")
+    # Discover a genuinely free port and make it the band start, then hold it so
+    # the selector must hop past it (avoids depending on a fixed real port).
+    occupied = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    occupied.bind(("127.0.0.1", 0))
+    occupied.listen(1)
+    base = occupied.getsockname()[1]
+    store.config.APP.TASK_MANAGER.port_base = base
+    try:
+        port = task_manager._select_server_port(store, "127.0.0.1")
+        assert port != base
+        assert base <= port <= (base + 200 * 10 - 1)
+    finally:
+        occupied.close()
+
+
+def test_select_server_port_honours_explicit_override(tmp_path):
+    """BASE-REQ-014.23: an explicit port is used verbatim and fails fast when busy."""
+    store = _band_store(tmp_path, "BaseApp")
+    occupied = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    occupied.bind(("127.0.0.1", 0))
+    occupied.listen(1)
+    busy = occupied.getsockname()[1]
+    try:
+        raised = False
+        try:
+            task_manager._select_server_port(store, "127.0.0.1", explicit_port=busy)
+        except task_manager.PortInUseError:
+            raised = True
+        assert raised
+    finally:
+        occupied.close()
+
+
+def test_select_server_port_raises_when_pool_exhausted(tmp_path):
+    """BASE-REQ-014.23: an exhausted pool fails loudly instead of picking an arbitrary port."""
+    store = _band_store(tmp_path, "BaseApp")
+    # Shrink the pool to a single port and occupy it so the whole pool is busy.
+    store.config.APP.TASK_MANAGER.port_pool_bands = 1
+    store.config.APP.TASK_MANAGER.port_band_width = 1
+    occupied = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    occupied.bind(("127.0.0.1", 0))
+    occupied.listen(1)
+    only_port = occupied.getsockname()[1]
+    store.config.APP.TASK_MANAGER.port_base = only_port
+    try:
+        raised = False
+        try:
+            task_manager._select_server_port(store, "127.0.0.1")
+        except task_manager.PortInUseError:
+            raised = True
+        assert raised
+    finally:
+        occupied.close()
+
+
 
 

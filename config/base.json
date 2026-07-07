@@ -8,7 +8,7 @@
             "app.json": true
         },
         "APP_NAME": "BaseApp",
-        "VERSION": "26.07.06.01",
+        "VERSION": "26.07.06.02",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -41,6 +41,13 @@
             "request_polling_frequency": 5,
             "ledger_branch": "main",
             "enable": true,
+            "single_instance": true,
+            "shutdown_on_browser_close": true,
+            "browser_heartbeat_seconds": 3,
+            "browser_heartbeat_timeout": 12,
+            "port_base": 8765,
+            "port_band_width": 10,
+            "port_pool_bands": 200,
             "templates": {
                 "Feature": "task.md",
                 "Bug": "task.md",
