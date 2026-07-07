@@ -1199,7 +1199,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "CodeApproved",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0001 worker",
@@ -1230,6 +1230,11 @@
                     "author": "BASE-TASK-260622-0001 worker",
                     "content": "Code review approved by the engineer (Ready -> CodeApproved). Reviewer validated the coupled server/UI/child-process lifecycle: Close button, browser-close shutdown, Ctrl-C/hard-stop child teardown (Windows Job Object), UI self-shutdown, single-instance lock + fail-fast port, deterministic per-app port bands for concurrent multi-app servers, and per-tab UI sessions (server stops only when the last tab closes; a second launch reuses the running server rather than opening a duplicate tab). During review a same-tick heartbeat/close race was found and fixed (Windows time.monotonic() granularity), plus a regression in /api/config restored. Full task_manager suite: 112 tests passing across randomised runs; live multi-app run observed BaseApp on 8765 and its band-mate on 8766 with AI4EDG independent. Proceeding to deployment prep.",
                     "timestamp": "2026-07-07T03:46:38Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0001 worker",
+                    "content": "Engineer gave explicit approval to finalize and push (CodeApproved -> Deployed). Deploy prep complete: version bumped 26.07.06.01 -> 26.07.06.02 (resources/version/base.txt, app.txt=A26.07.06.02, config/base.json COMMON.VERSION); build/updates/base.json entry updated; docs/readme/base.md gains a Release Highlights (26.07.06.02) block; root README.md overview updated in place (no changelog). 112 task_manager tests passing across randomised runs. Committing code/spec/test to branch BASE-TASK-260622-0001 and pushing; the ledger is not committed from the task branch.",
+                    "timestamp": "2026-07-07T03:52:15Z"
                 }
             ],
             "worker_session": {
@@ -1242,13 +1247,14 @@
                 "started_at": "2026-07-06T20:54:47Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 248692,
+                    "TOTAL": 250082,
                     "per_state": {
                         "InProgress": 7151,
                         "Specified": 21055,
                         "SpecApproved": 1477,
                         "Ready": 118888,
-                        "CodeApproved": 100121
+                        "CodeApproved": 100121,
+                        "Deployed": 1390
                     }
                 }
             }
