@@ -65,7 +65,12 @@ class DataConverter:
         "int": int,
         "str": str,
         "tryeval": tryeval,
-        "tryexcept": tryexcept
+        "tryexcept": tryexcept,
+        "isinstance": isinstance,
+        "set": set,
+        "any": any,
+        "all": all,
+        "dict": dict
     }
 
     def __init__(
