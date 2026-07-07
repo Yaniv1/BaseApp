@@ -1,4 +1,4 @@
-# BaseApp V-26.07.06.01
+# BaseApp V-26.07.07.01
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.07.07.01)
+
+- **Built-in standardized HTML task-stage report generator** (Feature 6.1.19; Requirement BASE-REQ-015): A new `TaskReport` class in `utils/baseutils.py` (a sibling of `HtmlDoc`) produces the HTML work-summary/report that agents write to the task result store, so every task report — across every task and every lifecycle stage — shares one structure, style, and colour scheme instead of being hand-rolled ad hoc. The generator is **config-driven**: `APP.TASK_MANAGER.reports.templates` (`config/base.json`) maps each stage template file to the lifecycle statuses it serves (`report_spec` → InProgress/Specified/SpecApproved, `report_implementation` → Ready/CodeApproved, `report_deployment` → Deployed/BuildApproved, `report_integration` → Done, and `report_summary` → the `"*"` always-regenerated summative template), so each stage focuses the report on the artifacts that matter then (spec review → requirements/architecture/design; implementation → python/config/test files; deployment → versioning/docs/build-test results; integration → merge/final versioning/overview). `TaskReport.resolve_template` selects the stage template by status; `add_section`/`add_change`/`add_validation`/`collect_git_changes` accumulate content; `classify_path` groups every section and changed file into a fixed logical category order (Requirements → Architecture → UI → Config → App → Utilities → Deployment → Testing → Docs); `render_diff` colour-codes per-file diffs (add `#7ee787`, del `#ff7b72`, hunk `#79c0ff`, meta `#c9a0ff`) with the shared palette injected from a single `STYLE` constant so templates stay DRY; and `vscode_uri` emits clickable `vscode://file/` links for each changed file. **Reports are preserved per stage**: `save()` writes `{task_id} - {Status}.html` (never overwriting a prior stage), mirrors the latest to a canonical `{task_id}.html`, and refreshes an evolving `{task_id} - Summary.html` whose per-stage highlights timeline is upserted-by-status and persisted to `highlights.json`. The generator ships with `DEFAULT_TEMPLATE`/`DEFAULT_SUMMARY_TEMPLATE` fallbacks so it works (and is unit-testable) even without the on-disk templates. `build/instructions/base.md` and `task.md` now mandate using the generator with the per-stage `{task_id} - {Status}.html` naming at every report-saving step. A 26-criterion prep test (`test_task_report`, Feature 5.3.1.3.9, in `test/tests/base/output.py`, registered as `prep_task_report`) validates config-driven template-by-status selection, logical section ordering, colour-coded diff spans, VS Code URIs, per-stage naming with canonical mirror, and summative highlight accumulation across stages.
 
 ## Release Highlights (26.07.06.01)
 

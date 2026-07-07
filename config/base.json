@@ -8,7 +8,7 @@
             "app.json": true
         },
         "APP_NAME": "BaseApp",
-        "VERSION": "26.07.06.01",
+        "VERSION": "26.07.07.01",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -46,6 +46,15 @@
                 "Bug": "task.md",
                 "PullBase": "pullbase.md",
                 "default": "task.md"
+            },
+            "reports": {
+                "templates": {
+                    "resources/templates/report_spec.html": ["InProgress", "Specified", "SpecApproved"],
+                    "resources/templates/report_implementation.html": ["Ready", "CodeApproved"],
+                    "resources/templates/report_deployment.html": ["Deployed", "BuildApproved"],
+                    "resources/templates/report_integration.html": ["Done"],
+                    "resources/templates/report_summary.html": ["*"]
+                }
             },
             "views": [
                 {

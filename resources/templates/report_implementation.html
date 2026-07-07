@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{$title$}</title>
+<style>{$style$}</style>
+</head>
+<body>
+<!-- Implementation-stage report (Feature 11.2.4): python, config, and test files. -->
+<h1>{$title$}</h1>
+<p class="note">{$stage_note$}</p>
+<p class="note">Implementation review &mdash; focus on <b>python files</b>, <b>config files</b>, and <b>test files</b>.
+Changes are grouped by logical category with color-coded diffs and VS Code links.</p>
+
+<h2>1. Task Instruction</h2>
+<details><summary>Show task.md instruction</summary><pre class="instr">{$instruction$}</pre></details>
+
+<h2>2. Implementation Notes</h2>
+{$sections$}
+
+<h2>3. Files changed</h2>
+{$files_table$}
+
+<h2>4. Diffs</h2>
+{$diffs$}
+
+<h2>5. Validation &amp; Tests</h2>
+{$validation$}
+</body>
+</html>

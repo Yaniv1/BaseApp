@@ -78,7 +78,7 @@ Request each status move via the `enqueue_status_update` tool (see "Task Status 
 You need to wait for the engineer to approve before moving to the next step.
 
 When you modify files, end your response with a "Files changed" section.
-Create an HTML file that contains a list of the files you changed. Write this HTML file (and any work-summary/report HTML) into the task result store at `{result_store}` (e.g. `{result_store}/{id}/{id}.html`).
+Create an HTML file that contains a list of the files you changed. Generate it with the built-in `TaskReport` generator (Feature 6.1.19 in `utils/baseutils.py`) so the report shares the standard structure, style, and color scheme, selects its template from `APP.TASK_MANAGER.reports.templates` by status, and is preserved per-stage. Write this HTML file (and any work-summary/report HTML) into the task result store at `{result_store}` as `{result_store}/{id}/{id} - {Status}.html`, mirrored to `{result_store}/{id}/{id}.html`.
 For each modified file, include a clickable VS Code URI string that opens the file in VS Code in diff mode. Because the Copilot CLI outputs plain text rather than a rich Markdown renderer, emit a clickable URI such as `vscode://file/C:/.../path/to/file` or `file:///C:/.../path/to/file` instead of Markdown link syntax. Use absolute workspace paths so the links are clickable. There is no reliable CLI-native URI for opening the Source Control diff view directly, so prefer a file-opening URI for the changed file.
 Open the HTML file list in a new window.
 
