@@ -70,7 +70,9 @@ class DataConverter:
         "set": set,
         "any": any,
         "all": all,
-        "dict": dict
+        "dict": dict,
+        "list": list,
+        "tuple": tuple
     }
 
     def __init__(
