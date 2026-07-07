@@ -1199,7 +1199,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "BuildApproved",
+            "status": "Done",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0001 worker",
@@ -1240,6 +1240,11 @@
                     "author": "BASE-TASK-260622-0001 worker",
                     "content": "Integration engineer approved the deployed build for merge (Deployed -> BuildApproved). Reviewed the documentation and code on the task branch; functionality verified. Proceeding to merge branch BASE-TASK-260622-0001 into main via the main worktree (shared bare object/ref store), then Done + branch/worktree dissolution.",
                     "timestamp": "2026-07-07T03:54:40Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0001 worker",
+                    "content": "Task branch BASE-TASK-260622-0001 merged into main via the main worktree (no-ff merge 95cae18, no conflicts) and pushed to origin/main. Version 26.07.06.02 now on main. The short-lived task branch and its worktree are being dissolved. Integration complete.",
+                    "timestamp": "2026-07-07T03:55:42Z"
                 }
             ],
             "worker_session": {
@@ -1252,7 +1257,7 @@
                 "started_at": "2026-07-06T20:54:47Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 255395,
+                    "TOTAL": 258226,
                     "per_state": {
                         "InProgress": 7151,
                         "Specified": 21055,
@@ -1260,7 +1265,8 @@
                         "Ready": 118888,
                         "CodeApproved": 100121,
                         "Deployed": 1390,
-                        "BuildApproved": 5313
+                        "BuildApproved": 5313,
+                        "Done": 2831
                     }
                 }
             }
