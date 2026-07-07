@@ -1199,7 +1199,7 @@
             ],
             "type": "Feature",
             "priority": "Critical",
-            "status": "Ready",
+            "status": "CodeApproved",
             "comments": [
                 {
                     "author": "BASE-TASK-260622-0001 worker",
@@ -1225,6 +1225,11 @@
                     "author": "BASE-TASK-260622-0001 worker",
                     "content": "Extended the implementation (still at Ready) with multi-app support — deterministic per-app port bands (Feature 3.6.18.7). Rationale: the instance lock + status queue are already scoped per app (COMMON.OUTPUT_PREFIX/APP_NAME), so different apps can each hold their own lock; the only blocker to running BaseApp and AI4EDG servers concurrently was the shared default port 8765. Now scripts/task_manager.py derives a deterministic, non-overlapping per-app port band by hashing COMMON.APP_NAME (zlib.crc32) onto a slot in a bounded pool of fixed-width bands anchored at port_base — BaseApp pinned to slot 0, every other app hashed into slots 1..N-1 — so the band is reproducible across launches with nothing written into per-app config (policy keys port_base/port_band_width/port_pool_bands live in base.json and are correctly inherited). _select_server_port scans the app's own band first, then hops forward through the remaining pool (self-healing a hash collision), and raises PortInUseError when the whole pool is exhausted rather than falling back to an arbitrary port; --port remains an explicit override. run() now resolves the port before acquiring the lock so the lock records the real port. Spec artifacts updated: BASE-REQ-014.23 gained clause (g), architecture feature 3.6.18.7 added, solution row added. Validation: all 107 unit tests pass; a runtime smoke test confirmed a second BaseApp instance bound 8766 while the existing server held 8765 (forward-probe within band [8765-8774]). Result HTML and build/updates/base.json refreshed. Still awaiting code review at Ready.",
                     "timestamp": "2026-07-07T00:38:26Z"
+                },
+                {
+                    "author": "BASE-TASK-260622-0001 worker",
+                    "content": "Code review approved by the engineer (Ready -> CodeApproved). Reviewer validated the coupled server/UI/child-process lifecycle: Close button, browser-close shutdown, Ctrl-C/hard-stop child teardown (Windows Job Object), UI self-shutdown, single-instance lock + fail-fast port, deterministic per-app port bands for concurrent multi-app servers, and per-tab UI sessions (server stops only when the last tab closes; a second launch reuses the running server rather than opening a duplicate tab). During review a same-tick heartbeat/close race was found and fixed (Windows time.monotonic() granularity), plus a regression in /api/config restored. Full task_manager suite: 112 tests passing across randomised runs; live multi-app run observed BaseApp on 8765 and its band-mate on 8766 with AI4EDG independent. Proceeding to deployment prep.",
+                    "timestamp": "2026-07-07T03:46:38Z"
                 }
             ],
             "worker_session": {
@@ -1237,12 +1242,13 @@
                 "started_at": "2026-07-06T20:54:47Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 148571,
+                    "TOTAL": 248692,
                     "per_state": {
                         "InProgress": 7151,
                         "Specified": 21055,
                         "SpecApproved": 1477,
-                        "Ready": 118888
+                        "Ready": 118888,
+                        "CodeApproved": 100121
                     }
                 }
             }
