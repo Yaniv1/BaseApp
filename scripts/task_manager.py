@@ -2,6 +2,7 @@
 """Feature ID: 3.6. Local web interface for managing task files."""
 
 import argparse
+import atexit
 import datetime as dt
 import getpass
 import html
@@ -9,6 +10,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -16,9 +18,11 @@ import threading
 import time
 import uuid
 import webbrowser
+import zlib
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode, urlparse
+import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from utils.baseutils import Config, Params
@@ -1557,7 +1561,11 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     if enable_full_execution:
         launch_args.extend(["-EnableFullExecution"])
 
-    creationflags = subprocess.CREATE_NEW_CONSOLE if sys.platform == "win32" else 0
+    # The worker runs in its own console that intentionally outlives the server,
+    # so it breaks away from the server's kill-on-close job (Feature 3.6.18).
+    creationflags = 0
+    if sys.platform == "win32":
+        creationflags = subprocess.CREATE_NEW_CONSOLE | CREATE_BREAKAWAY_FROM_JOB
     process = subprocess.Popen(
         launch_args,
         cwd=str(caller_root),
@@ -1586,6 +1594,348 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
     return prompt_path
 
 
+# ---------------------------------------------------------------------------
+# Feature 3.6.18: server lifecycle (single-instance guard, kill-on-close job,
+# browser heartbeat auto-shutdown, and one orderly-shutdown path).
+# ---------------------------------------------------------------------------
+
+# Windows creation flag that lets a child process leave the server's
+# kill-on-close job so intentionally user-facing windows survive the server.
+CREATE_BREAKAWAY_FROM_JOB = getattr(subprocess, "CREATE_BREAKAWAY_FROM_JOB", 0x01000000)
+INSTANCE_LOCK_FILENAME = "task_manager.lock"
+
+# Shared lifecycle state populated by run(). Holds the live server, the thread
+# stop events, and the store so any shutdown trigger (signal handler, atexit,
+# /api/shutdown, or the heartbeat monitor) can reach them.
+_LIFECYCLE = {"server": None, "stop_events": [], "store": None}
+_SHUTDOWN_EVENT = threading.Event()
+
+# Helper child PIDs the server owns (e.g. detached git-sync windows). The Windows
+# job object is the hard-kill safety net; this registry drives cooperative reaping
+# in the orderly-shutdown path (and is the only teardown available off-Windows).
+_HELPER_CHILD_PIDS = set()
+_HELPER_CHILD_LOCK = threading.Lock()
+
+# Kept alive for the server's whole lifetime: closing this handle (on process
+# exit) is what makes Windows kill the remaining processes in the job.
+_KILL_ON_CLOSE_JOB = None
+
+
+class PortInUseError(RuntimeError):
+    """Raised when the configured Task Manager port is already bound."""
+
+
+def _task_manager_cfg_value(store, key, default):
+    """Read an APP.TASK_MANAGER.<key> scalar from the store config with a default."""
+    app_cfg = getattr(getattr(store, "config", None), "APP", None)
+    task_manager_cfg = getattr(app_cfg, "TASK_MANAGER", None) if app_cfg else None
+    value = getattr(task_manager_cfg, key, default) if task_manager_cfg else default
+    return default if value is None else value
+
+
+def _heartbeat_seconds(store):
+    """Client heartbeat interval (seconds) from config; sane lower bound of 1."""
+    try:
+        return max(1, int(_task_manager_cfg_value(store, "browser_heartbeat_seconds", 3)))
+    except (TypeError, ValueError):
+        return 3
+
+
+def _heartbeat_timeout(store):
+    """Server grace period (seconds) before a silent browser triggers shutdown."""
+    try:
+        return max(4, int(_task_manager_cfg_value(store, "browser_heartbeat_timeout", 12)))
+    except (TypeError, ValueError):
+        return 12
+
+
+def _register_helper_pid(pid):
+    """Track a helper child PID the server owns so it can be reaped on shutdown."""
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return
+    if pid <= 0:
+        return
+    with _HELPER_CHILD_LOCK:
+        _HELPER_CHILD_PIDS.add(pid)
+
+
+def _terminate_helper_children():
+    """Best-effort teardown of tracked helper child processes (PID-targeted)."""
+    with _HELPER_CHILD_LOCK:
+        pids = list(_HELPER_CHILD_PIDS)
+        _HELPER_CHILD_PIDS.clear()
+    for pid in pids:
+        try:
+            if not _process_alive(pid):
+                continue
+            if sys.platform == "win32":
+                # PID-targeted tree kill (never name-based).
+                subprocess.run(
+                    ["taskkill", "/PID", str(pid), "/T", "/F"],
+                    capture_output=True, check=False,
+                )
+            else:
+                os.kill(int(pid), signal.SIGTERM)
+        except Exception:
+            pass
+
+
+def _instance_lock_path(store):
+    """Feature 3.6.18.1. Path to the machine-wide single-instance lock file
+    (<status_queue_root>/task_manager.lock), or None when unconfigured."""
+    root = _resolve_task_manager_path(store, "status_queue")
+    if root is None:
+        return None
+    return root / INSTANCE_LOCK_FILENAME
+
+
+def _read_lock_info(path):
+    """Read a lock file into a dict, or None when missing/unreadable/malformed."""
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def _acquire_instance_lock(store, host, port):
+    """Feature 3.6.18.2. Acquire the single-instance lock.
+
+    Returns the live holder's info dict when another running instance already
+    holds the lock (so the caller refuses to start a duplicate). Otherwise
+    (no lock, or a stale lock left by a dead pid) atomically claims the lock for
+    this process and returns None. Returns None when single-instance is disabled.
+    """
+    if not bool(_task_manager_cfg_value(store, "single_instance", True)):
+        return None
+    path = _instance_lock_path(store)
+    if path is None:
+        return None
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        return None
+    existing = _read_lock_info(path)
+    if existing and _process_alive(existing.get("pid")):
+        return existing
+    info = {"pid": os.getpid(), "host": host, "port": int(port), "started": _now_iso()}
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.tmp")
+    try:
+        with tmp.open("w", encoding="utf-8") as handle:
+            json.dump(info, handle)
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            tmp.unlink()
+        except OSError:
+            pass
+        return None
+    return None
+
+
+def _release_instance_lock(store):
+    """Feature 3.6.18.3. Remove the single-instance lock when owned by this pid."""
+    if store is None:
+        return
+    path = _instance_lock_path(store)
+    if path is None:
+        return
+    info = _read_lock_info(path)
+    if info and str(info.get("pid")) == str(os.getpid()):
+        try:
+            path.unlink()
+        except OSError:
+            pass
+
+
+def _ensure_kill_on_close_job():
+    """Feature 3.6.18.4. On Windows, assign this process to a Job Object with
+    JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE so helper child processes are terminated
+    by the OS when the server (the only job-handle holder) dies -- even on a hard
+    kill. BREAKAWAY_OK lets intentionally user-facing windows opt out via the
+    CREATE_BREAKAWAY_FROM_JOB flag. No-op (returns None) off-Windows or on error."""
+    global _KILL_ON_CLOSE_JOB
+    if sys.platform != "win32":
+        return None
+    if _KILL_ON_CLOSE_JOB is not None:
+        return _KILL_ON_CLOSE_JOB
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+
+        class JOBOBJECT_BASIC_LIMIT_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ("PerProcessUserTimeLimit", ctypes.c_int64),
+                ("PerJobUserTimeLimit", ctypes.c_int64),
+                ("LimitFlags", wintypes.DWORD),
+                ("MinimumWorkingSetSize", ctypes.c_size_t),
+                ("MaximumWorkingSetSize", ctypes.c_size_t),
+                ("ActiveProcessLimit", wintypes.DWORD),
+                ("Affinity", ctypes.c_void_p),
+                ("PriorityClass", wintypes.DWORD),
+                ("SchedulingClass", wintypes.DWORD),
+            ]
+
+        class IO_COUNTERS(ctypes.Structure):
+            _fields_ = [
+                ("ReadOperationCount", ctypes.c_uint64),
+                ("WriteOperationCount", ctypes.c_uint64),
+                ("OtherOperationCount", ctypes.c_uint64),
+                ("ReadTransferCount", ctypes.c_uint64),
+                ("WriteTransferCount", ctypes.c_uint64),
+                ("OtherTransferCount", ctypes.c_uint64),
+            ]
+
+        class JOBOBJECT_EXTENDED_LIMIT_INFORMATION(ctypes.Structure):
+            _fields_ = [
+                ("BasicLimitInformation", JOBOBJECT_BASIC_LIMIT_INFORMATION),
+                ("IoInfo", IO_COUNTERS),
+                ("ProcessMemoryLimit", ctypes.c_size_t),
+                ("JobMemoryLimit", ctypes.c_size_t),
+                ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                ("PeakJobMemoryUsed", ctypes.c_size_t),
+            ]
+
+        JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000
+        JOB_OBJECT_LIMIT_BREAKAWAY_OK = 0x00000800
+        JobObjectExtendedLimitInformation = 9
+
+        kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+        kernel32.CreateJobObjectW.argtypes = [wintypes.LPVOID, wintypes.LPCWSTR]
+        job = kernel32.CreateJobObjectW(None, None)
+        if not job:
+            return None
+
+        info = JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        info.BasicLimitInformation.LimitFlags = (
+            JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE | JOB_OBJECT_LIMIT_BREAKAWAY_OK
+        )
+        kernel32.SetInformationJobObject.argtypes = [
+            wintypes.HANDLE, ctypes.c_int, wintypes.LPVOID, wintypes.DWORD,
+        ]
+        if not kernel32.SetInformationJobObject(
+            job, JobObjectExtendedLimitInformation, ctypes.byref(info), ctypes.sizeof(info)
+        ):
+            kernel32.CloseHandle(job)
+            return None
+
+        kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+        if not kernel32.AssignProcessToJobObject(job, kernel32.GetCurrentProcess()):
+            # Fails only if this process cannot be added to a new job; not fatal
+            # (the cooperative shutdown path still reaps helpers).
+            kernel32.CloseHandle(job)
+            return None
+
+        _KILL_ON_CLOSE_JOB = job
+        return job
+    except Exception:
+        return None
+
+
+def _shutdown_server(reason="shutdown"):
+    """Feature 3.6.18.5. The single, idempotent orderly-shutdown path.
+
+    Signals the watcher/monitor threads to stop, reaps tracked helper children,
+    releases the single-instance lock, and stops the HTTP server from a worker
+    thread (server.shutdown() must not run on a request-handler thread). Safe to
+    call from a signal handler, atexit, a request handler, or the monitor.
+    """
+    if _SHUTDOWN_EVENT.is_set():
+        return
+    _SHUTDOWN_EVENT.set()
+    print(f"[task-manager] shutting down ({reason})...")
+    for event in list(_LIFECYCLE.get("stop_events") or []):
+        try:
+            event.set()
+        except Exception:
+            pass
+    try:
+        _terminate_helper_children()
+    except Exception:
+        pass
+    try:
+        _release_instance_lock(_LIFECYCLE.get("store"))
+    except Exception:
+        pass
+    server = _LIFECYCLE.get("server")
+    if server is not None:
+        threading.Thread(target=server.shutdown, daemon=True).start()
+
+
+# Grace window (seconds) after an unload beacon before a tab is considered gone.
+# Shared by the lifecycle monitor and GET /api/sessions so both agree on which
+# tabs are still alive.
+_CLOSE_GRACE = 2.0
+
+
+def _lifecycle_monitor(store, stop_event, timeout_seconds):
+    """Feature 3.6.18.6 / 3.6.18.8. Watch the per-tab browser heartbeats and
+    shut the server down only once *every* tab is gone. Acts only after at least
+    one heartbeat has been seen, so a UI that never loads does not self-terminate.
+
+    Each tab has its own session id; a tab is dropped when its unload beacon
+    (POST /api/close) ages past the grace with no newer heartbeat (a real close),
+    or when its heartbeats stop for the full timeout. A page reload's fresh
+    heartbeat supersedes its own close beacon. The server stops when the live
+    tab count reaches zero -- so closing one tab never tears the server out from
+    under another that is still open."""
+    while not stop_event.wait(1.0):
+        if _SHUTDOWN_EVENT.is_set():
+            return
+        if not _TaskManagerHandler.heartbeat_seen:
+            continue
+        now = time.monotonic()
+        live = _TaskManagerHandler._live_session_count(now, timeout_seconds, _CLOSE_GRACE)
+        if live == 0:
+            _shutdown_server(reason="browser closed (all tabs gone)")
+            return
+
+
+def _probe_active_sessions(url):
+    """Feature 3.6.18.8: ask an already-running server how many UI tabs are
+    currently alive (GET <url>api/sessions -> {"active": N}). Returns the count,
+    or None when it can't be determined (unreachable, or an older server without
+    the endpoint) so callers can fall back to the previous open-a-tab behaviour."""
+    try:
+        endpoint = url.rstrip("/") + "/api/sessions"
+        with urllib.request.urlopen(endpoint, timeout=2) as response:
+            data = json.loads(response.read().decode("utf-8") or "{}")
+        active = data.get("active")
+        return int(active) if active is not None else None
+    except Exception:
+        return None
+
+
+def _open_browser(url):
+    """Open the UI in a browser window that breaks away from the kill-on-close
+    job so the browser is not torn down with the server (the UI closes itself via
+    its own heartbeat when the server stops)."""
+    if sys.platform == "win32":
+        creationflags = CREATE_BREAKAWAY_FROM_JOB
+        browser_candidates = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+        ]
+        browser_path = next((p for p in browser_candidates if Path(p).exists()), None)
+        try:
+            if browser_path:
+                subprocess.Popen([browser_path, "--new-window", url], shell=False, creationflags=creationflags)
+            else:
+                subprocess.Popen(["cmd", "/c", "start", "", url], shell=False, creationflags=creationflags)
+        except OSError:
+            webbrowser.open(url, new=1, autoraise=True)
+    else:
+        webbrowser.open(url, new=1, autoraise=True)
+
+
 def _build_query_url(host, port, store):
     query = urlencode({
         "base_dir": store.base_dir.as_posix(),
@@ -1609,6 +1959,7 @@ def _render_index_html(store):
         "__GIT_REPO__": html.escape(repo_info["repo_root"].as_posix() if repo_info["repo_root"] else ""),
         "__GIT_REPO_DISPLAY__": html.escape(repo_info["repo_display"] or ""),
         "__GIT_REPO_AVAILABLE__": "true" if repo_info["repo_available"] else "false",
+        "__HEARTBEAT_SECONDS__": str(_heartbeat_seconds(store)),
     }
     for key, value in replacements.items():
         template = template.replace(key, value)
@@ -1631,6 +1982,75 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
     """HTTP request handler for the task manager JSON API and UI."""
 
     store = None
+    # Browser heartbeat state (Feature 3.6.18). The UI is tracked *per tab*
+    # (Feature 3.6.18.8): each open tab has its own session id and the server
+    # only shuts down once *every* tab is gone. This keeps the single-instance
+    # guard's "open a tab against the already-running server" behaviour safe --
+    # closing one tab must never tear a server out from under another tab.
+    #
+    # ``sessions`` maps a client session id -> {"last": monotonic-heartbeat,
+    # "closed": monotonic-unload-beacon}. A heartbeat newer than a session's
+    # close beacon supersedes it (a page reload). Access is guarded by
+    # ``sessions_lock`` because heartbeats, close beacons and the monitor thread
+    # all touch it concurrently.
+    sessions = {}
+    sessions_lock = threading.Lock()
+    # ``heartbeat_seen`` flips once any tab has beat at least once, so the
+    # lifecycle monitor never shuts down a server whose UI never loaded.
+    heartbeat_seen = False
+    # Back-compat mirrors of the most recent activity across all sessions, kept
+    # so older single-tab callers/tests that read these scalars still work.
+    last_heartbeat = 0.0
+    close_requested_at = 0.0
+
+    @classmethod
+    def _reset_sessions(cls):
+        with cls.sessions_lock:
+            cls.sessions = {}
+        cls.heartbeat_seen = False
+        cls.last_heartbeat = 0.0
+        cls.close_requested_at = 0.0
+
+    @classmethod
+    def _touch_session(cls, sid, now):
+        """Record a heartbeat for ``sid``; a fresh beat cancels a prior close."""
+        with cls.sessions_lock:
+            state = cls.sessions.setdefault(sid, {"last": 0.0, "closed": 0.0})
+            state["last"] = now
+            state["closed"] = 0.0
+            cls.heartbeat_seen = True
+            cls.last_heartbeat = now
+
+    @classmethod
+    def _close_session(cls, sid, now):
+        """Arm a short-grace close for ``sid`` (unload beacon)."""
+        with cls.sessions_lock:
+            state = cls.sessions.setdefault(sid, {"last": 0.0, "closed": 0.0})
+            state["closed"] = now
+            cls.close_requested_at = now
+
+    @classmethod
+    def _live_session_count(cls, now, timeout_seconds, close_grace):
+        """Return the number of tabs still considered alive, pruning any that
+        closed (unload beacon past the grace) or went stale (no heartbeat within
+        the timeout). Shared by the lifecycle monitor and GET /api/sessions."""
+        with cls.sessions_lock:
+            live = 0
+            for sid in list(cls.sessions.keys()):
+                state = cls.sessions[sid]
+                last = state.get("last", 0.0)
+                closed = state.get("closed", 0.0)
+                # A close is pending purely by call order: every heartbeat zeroes
+                # ``closed`` under the lock, so a reload's later heartbeat cancels
+                # a close even when both land in the same monotonic tick (Windows
+                # clock granularity makes timestamp comparison unreliable here).
+                is_closed = closed > 0.0 and (now - closed) > close_grace
+                is_stale = (now - last) > timeout_seconds
+                if is_closed or is_stale:
+                    del cls.sessions[sid]
+                else:
+                    live += 1
+            return live
 
     def _send_json(self, status_code, payload):
         encoded = json.dumps(payload, ensure_ascii=False, indent=4).encode("utf-8")
@@ -1701,6 +2121,15 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             self.wfile.write(body)
             return
 
+        if parsed.path == "/api/sessions":
+            # Feature 3.6.18.8: report how many UI tabs are currently alive so a
+            # second launch can decide whether to open another tab or just point
+            # the user at the already-open one.
+            timeout = _heartbeat_timeout(self.__class__.store)
+            active = self.__class__._live_session_count(time.monotonic(), timeout, _CLOSE_GRACE)
+            self._send_json(200, {"active": active})
+            return
+
         if parsed.path == "/api/config":
             store = self.__class__.store
             files = _scan_task_files(store.tasks_dir)
@@ -1756,6 +2185,42 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
+
+        # Lifecycle endpoints (Feature 3.6.18) are handled before loading the
+        # task store: the browser heartbeat fires frequently and must stay cheap,
+        # and shutdown must not depend on a readable ledger.
+        if parsed.path == "/api/heartbeat":
+            sid = (parse_qs(parsed.query).get("sid", [""])[0] or "_default").strip() or "_default"
+            self.__class__._touch_session(sid, time.monotonic())
+            self._read_body()
+            self._send_json(200, {"ok": True})
+            return
+
+        if parsed.path == "/api/shutdown":
+            # Explicit Close button: always an immediate, unconditional shutdown.
+            try:
+                self._read_body()
+            except Exception:
+                pass
+            self._send_json(200, {"ok": True, "shutting_down": True})
+            _shutdown_server(reason="close button")
+            return
+
+        if parsed.path == "/api/close":
+            # Unload beacon: only *arms* a short-grace shutdown for this tab. A
+            # page reload fires this too, so a fresh heartbeat for the same sid
+            # arriving right after (the reloaded page) cancels it; a real tab
+            # close sends no further heartbeat and the monitor drops the session
+            # after the grace. The server only stops once *all* tabs are gone.
+            try:
+                self._read_body()
+            except Exception:
+                pass
+            sid = (parse_qs(parsed.query).get("sid", [""])[0] or "_default").strip() or "_default"
+            self.__class__._close_session(sid, time.monotonic())
+            self._send_json(200, {"ok": True})
+            return
+
         data = self._get_tasks()
         if parsed.path == "/api/tasks":
             task = _create_task(data["TASKS"], self._read_body(), self.__class__.store.tasks_path)
@@ -1996,21 +2461,102 @@ def parse_args(argv=None):
     parser.add_argument("--tasks-dir", default="", help="Task files directory (defaults to <base-dir>/build/tasks)")
     parser.add_argument("--tasks-path", default="", help="Task file path or file name inside tasks-dir")
     parser.add_argument("--host", default=DEFAULT_HOST, help="Host interface to bind")
-    parser.add_argument("--port", default=DEFAULT_PORT, type=int, help="Port to bind")
+    parser.add_argument(
+        "--port", default=None, type=int,
+        help="Explicit port to bind (overrides the per-app port band); fails fast when busy",
+    )
     parser.add_argument("--browser-off", action="store_true", help="Do not open the UI in a browser after startup")
     parser.add_argument("--no-startup-sync", action="store_true", help="Do not auto-sync each app's task file with its git repo on startup")
     parser.add_argument("--no-status-inbox", action="store_true", help="Do not run the task status inbox watcher that applies agent status-update requests")
+    parser.add_argument("--no-single-instance", action="store_true", help="Do not enforce the single-instance lock (allow a second server to start)")
+    parser.add_argument("--no-auto-shutdown", action="store_true", help="Do not shut the server down when the browser UI is closed (disable heartbeat auto-shutdown)")
     return parser.parse_args(argv)
 
 
 def _pick_available_port(host, port):
-    """Return a free port, falling back to an ephemeral port when the preferred one is busy."""
+    """Bind the configured port and return it, failing fast when it is busy.
+
+    Previously this silently fell back to an OS-assigned ephemeral port when the
+    preferred one was busy, which hid duplicate servers accumulating in the
+    background. It now raises PortInUseError so a second launch fails loudly and
+    the single-instance guard can surface the already-running instance instead.
+    """
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
             sock.bind((host, int(port)))
             return sock.getsockname()[1]
-    except OSError:
-        return 0
+    except OSError as exc:
+        raise PortInUseError(f"Port {port} on {host} is already in use.") from exc
+
+
+def _app_identity(store):
+    """Best-effort stable identity for the running app (COMMON.APP_NAME, else the
+    base directory's folder name, else 'app'). Drives the per-app port band."""
+    base_dir = getattr(store, "base_dir", None)
+    name = ""
+    if base_dir is not None:
+        try:
+            name = _app_name_from_config(base_dir)
+        except Exception:
+            name = ""
+        if not name:
+            try:
+                name = Path(base_dir).name
+            except Exception:
+                name = ""
+    return name or "app"
+
+
+def _app_port_band(store):
+    """Feature 3.6.18.7. Deterministic, non-overlapping per-app port band.
+
+    Each app hashes its identity (COMMON.APP_NAME) onto a slot in a bounded pool
+    of fixed-width bands anchored at ``port_base``; the band it owns is therefore
+    reproducible across launches with no central registry and nothing written
+    into per-app config. BaseApp is pinned to slot 0 so its band is stable and
+    every other app hashes into slots 1..N-1, avoiding BaseApp's band. Returns
+    ``(band_start, band_end, pool_end)`` (all inclusive)."""
+    base = int(_task_manager_cfg_value(store, "port_base", DEFAULT_PORT))
+    width = max(1, int(_task_manager_cfg_value(store, "port_band_width", 10)))
+    pool = max(1, int(_task_manager_cfg_value(store, "port_pool_bands", 200)))
+    name = _app_identity(store)
+    if name.lower() == "baseapp" or pool <= 1:
+        slot = 0
+    else:
+        slot = 1 + (zlib.crc32(name.encode("utf-8")) % (pool - 1))
+    band_start = base + slot * width
+    band_end = band_start + width - 1
+    pool_end = base + pool * width - 1
+    return band_start, band_end, pool_end
+
+
+def _select_server_port(store, host, explicit_port=None):
+    """Feature 3.6.18.7. Choose the port this app's server should bind.
+
+    An explicit ``--port`` override is honoured verbatim and fails fast when
+    busy. Otherwise the app's deterministic band is scanned first, then the
+    search hops forward through the remaining pool bands (wrapping to the lower
+    pool once the top is reached) so a band collision self-heals onto a free
+    port. When the whole pool is exhausted it raises PortInUseError rather than
+    falling back to an arbitrary port, preserving the fail-loud guarantee."""
+    if explicit_port is not None:
+        return _pick_available_port(host, explicit_port)
+    band_start, band_end, pool_end = _app_port_band(store)
+    base = int(_task_manager_cfg_value(store, "port_base", DEFAULT_PORT))
+    band_end = min(band_end, pool_end)
+    # Own band first, then hop forward, then wrap to the lower pool bands.
+    candidates = list(range(band_start, band_end + 1))
+    candidates += list(range(band_end + 1, pool_end + 1))
+    candidates += list(range(base, band_start))
+    for candidate in candidates:
+        try:
+            return _pick_available_port(host, candidate)
+        except PortInUseError:
+            continue
+    raise PortInUseError(
+        f"No free port available in the pool {base}-{pool_end} on {host}; "
+        "every band is occupied."
+    )
 
 
 def _create_server(host, port, store):
@@ -2038,15 +2584,69 @@ def run(argv=None):
     tasks_dir = Path(args.tasks_dir).resolve() if args.tasks_dir else _default_tasks_dir_for_context(base_dir)
     initial_store = _TaskStore(base_dir=base_dir, tasks_dir=tasks_dir, tasks_path=(args.tasks_path or None))
 
+    # Single-instance guard (Feature 3.6.18): refuse to start a second server
+    # when a live instance already holds the lock; surface the running one.
+    single_instance = (not args.no_single_instance) and bool(
+        _task_manager_cfg_value(initial_store, "single_instance", True)
+    )
+
+    # Resolve the port up front from this app's deterministic band (or an
+    # explicit --port override) so the instance lock records the real port and
+    # separate apps never collide (Feature 3.6.18.7).
+    try:
+        selected_port = _select_server_port(initial_store, args.host, args.port)
+    except PortInUseError as error:
+        print(f"[task-manager] {error} Not starting a duplicate server.")
+        return 1
+
+    if single_instance:
+        holder = _acquire_instance_lock(initial_store, args.host, selected_port)
+        if holder is not None:
+            existing_url = f"http://{holder.get('host', args.host)}:{holder.get('port', '?')}/"
+            active = _probe_active_sessions(existing_url)
+            print(
+                f"A Task Manager for {initial_store.app_name} is already running "
+                f"(pid {holder.get('pid')}) at {existing_url}."
+            )
+            if active and active > 0:
+                # Feature 3.6.18.8: a UI tab is already open against the running
+                # server. Don't open a second tab (a second tab shares the same
+                # server and closing it could race the first). Point the user at
+                # the existing one instead -- most terminals render this URL as a
+                # clickable link.
+                print(
+                    f"A UI tab is already open ({active} active); not opening another. "
+                    f"Open the existing instance here: {existing_url}"
+                )
+            elif not args.browser_off:
+                # No UI is currently attached -- reconnect one.
+                print("Opening the UI for the already-running instance.")
+                _open_browser(existing_url)
+            else:
+                print(f"Open it here: {existing_url}")
+            return 0
+
     if not args.no_startup_sync:
         _sync_selected_app_on_startup(initial_store)
 
-    server = _create_server(args.host, args.port, initial_store)
+    # Place this process in a kill-on-close job so helper children die with it.
+    _ensure_kill_on_close_job()
+
+    try:
+        server = _create_server(args.host, selected_port, initial_store)
+    except PortInUseError as error:
+        print(f"[task-manager] {error} Another server may already be running; not starting a duplicate.")
+        _release_instance_lock(initial_store)
+        return 1
+
+    _LIFECYCLE["server"] = server
+    _LIFECYCLE["store"] = initial_store
     url = _build_query_url(server.server_address[0], server.server_address[1], initial_store)
 
-    status_stop = None
+    stop_events = []
     if not args.no_status_inbox:
         status_stop = threading.Event()
+        stop_events.append(status_stop)
         status_thread = threading.Thread(
             target=_status_inbox_watcher,
             args=(lambda: _TaskManagerHandler.store,),
@@ -2055,21 +2655,39 @@ def run(argv=None):
         )
         status_thread.start()
 
+    # Browser-coupled auto-shutdown (Feature 3.6.18): watch the UI heartbeat and
+    # stop the server when the tab/window is closed.
+    auto_shutdown = (not args.no_auto_shutdown) and bool(
+        _task_manager_cfg_value(initial_store, "shutdown_on_browser_close", True)
+    )
+    if auto_shutdown:
+        monitor_stop = threading.Event()
+        stop_events.append(monitor_stop)
+        monitor_thread = threading.Thread(
+            target=_lifecycle_monitor,
+            args=(initial_store, monitor_stop, _heartbeat_timeout(initial_store)),
+            daemon=True,
+        )
+        monitor_thread.start()
+
+    _LIFECYCLE["stop_events"] = stop_events
+
+    # Interrupted-session teardown (Feature 3.6.18): SIGINT/SIGTERM and process
+    # exit all funnel through the one orderly-shutdown path.
+    def _handle_signal(signum, _frame):
+        _shutdown_server(reason=f"signal {signum}")
+
+    for sig_name in ("SIGINT", "SIGTERM"):
+        sig = getattr(signal, sig_name, None)
+        if sig is not None:
+            try:
+                signal.signal(sig, _handle_signal)
+            except (ValueError, OSError):
+                pass
+    atexit.register(lambda: _shutdown_server(reason="atexit"))
+
     if not args.browser_off:
-        if sys.platform == "win32":
-            browser_candidates = [
-                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-                r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-                r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-            ]
-            browser_path = next((p for p in browser_candidates if Path(p).exists()), None)
-            if browser_path:
-                subprocess.Popen([browser_path, "--new-window", url], shell=False)
-            else:
-                subprocess.Popen(["cmd", "/c", "start", "", url], shell=False)
-        else:
-            webbrowser.open(url, new=1, autoraise=True)
+        _open_browser(url)
     try:
         print(f"Task manager listening at {url}")
         print(f"Caller: {initial_store.app_name}")
@@ -2079,9 +2697,17 @@ def run(argv=None):
     except KeyboardInterrupt:
         pass
     finally:
-        if status_stop is not None:
-            status_stop.set()
-        server.server_close()
+        _shutdown_server(reason="serve loop exit")
+        for event in stop_events:
+            try:
+                event.set()
+            except Exception:
+                pass
+        try:
+            server.server_close()
+        except Exception:
+            pass
+        _release_instance_lock(initial_store)
     return 0
 
 

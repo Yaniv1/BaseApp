@@ -1,4 +1,4 @@
-# BaseApp V-26.07.06.01
+# BaseApp V-26.07.06.02
 
 BaseApp is a reusable Python foundation for app projects that need:
 
@@ -7,6 +7,10 @@ BaseApp is a reusable Python foundation for app projects that need:
 - standard output artifacts (JSON + HTML) via template-based rendering
 - a clean workflow to instantiate new apps from the base
 - a manifest-driven way to pull base updates into already-instantiated apps
+
+## Release Highlights (26.07.06.02)
+
+- **Task Manager server, browser UI, and spawned processes now share one coupled lifecycle** (Feature 3.6.18; Requirement BASE-REQ-014.23): The Task Manager (`scripts/task_manager.py`) no longer leaves orphaned servers, rogue background processes, or interrupted sessions running. A header **Close** button stops the server and closes its own tab; **closing the browser tab stops the server** (a UI heartbeat over `POST /api/heartbeat` plus an unload `POST /api/close` beacon, watched by a lifecycle-monitor thread); and when the server becomes unreachable the UI shows a **"server stopped"** overlay and closes itself. Hard-stopping the foreground server (Ctrl-C/terminal close) also tears down the helper processes it spawned — on Windows via a **kill-on-close Job Object** — while Copilot worker consoles and the launched browser intentionally break away and survive. A **single-instance guard** (a per-app `task_manager.lock` holding pid/host/port, reclaimed if stale) plus a **fail-fast port bind** (no more silent ephemeral-port fallback) stop a second server from starting silently; a second launch instead surfaces the already-running instance. Because the lock and status queue are scoped per app, **separate apps (e.g. BaseApp and AI4EDG) can each run their own single server and browser at once**: each app deterministically selects a **non-overlapping port band** derived from its name (BaseApp anchored at the base port, others hashed into distinct bands, forward-probing on collision and failing loud when the pool is exhausted), so no per-app configuration is needed. Because the single-instance guard points a second launch at the already-running server, the server may have **several UI tabs open at once**, so lifecycle is tracked **per tab**: each tab has its own session id, the server only shuts down once **every** tab is gone, and a second launch that finds a tab already open declines to open another — surfacing the existing URL instead. New settings live under `APP.TASK_MANAGER` (`single_instance`, `shutdown_on_browser_close`, `browser_heartbeat_seconds`, `browser_heartbeat_timeout`, `port_base`, `port_band_width`, `port_pool_bands`) with `--no-single-instance` / `--no-auto-shutdown` / `--port` overrides. Covered by lifecycle/single-instance/heartbeat/shutdown/close/port-band/per-tab-session tests in `test/tests/base/task_manager.py` (all passing across randomised runs).
 
 ## Release Highlights (26.07.06.01)
 

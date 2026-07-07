@@ -156,6 +156,17 @@ How a task flows through the system:
   across the whole ledger, blank when no usage has been recorded yet), and a task's detail
   pane breaks its consumption down into **Design**, **Develop**, and **Deploy** phases
   alongside the model used.
+- **Coupled server lifecycle.** The server, its browser UI, and the background
+  processes it spawns start and stop together, so no orphaned servers or stray
+  processes accumulate. A header **Close** button stops the server and closes the tab;
+  closing the browser tab stops the server; and if the server goes away the UI shows a
+  "server stopped" notice and closes itself. Hard-stopping the server also tears down
+  the helpers it started. Only one server runs per app at a time — a second launch
+  surfaces the already-running instance instead of starting a duplicate or silently
+  grabbing another port — while **different apps can each run their own server and
+  browser concurrently**, since every app is assigned its own non-overlapping port band
+  automatically. Because a second launch reuses the running server, multiple UI tabs may
+  be open at once, and the server shuts down only once the last tab is closed.
 - **Isolation per task.** The repository uses a bare shared object store with every
   branch — including `main` — checked out as its own git worktree under one container.
   Each task is worked on a short-lived `task/<id>` branch in its own dedicated worktree,
@@ -177,9 +188,12 @@ How a task flows through the system:
 
 Useful Task Manager flags:
 
-- `--port` / `--host` — choose the bind address.
+- `--port` / `--host` — choose the bind address (`--port` overrides the automatic per-app port band).
 - `--no-startup-sync` — skip auto-syncing each app's task file with its git repo on start.
 - `--no-status-inbox` — disable the watcher that applies queued status-update requests.
+- `--no-single-instance` — allow more than one server for the app (bypass the single-instance guard).
+- `--no-auto-shutdown` — keep the server running even after the browser tab is closed.
+- `--browser-off` — serve the UI without opening a browser.
 
 ## Versioning
 
