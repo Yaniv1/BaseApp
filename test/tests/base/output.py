@@ -1288,3 +1288,107 @@ def test_dataconverter_json_column(manager=None, message=None, **kwargs):
             "errors": conv.errors,
         },
     )
+
+
+# Feature 5.3.1.3.9
+def test_task_report(manager=None, message=None, **kwargs):
+    """Feature ID: 5.3.1.3.9. Validate TaskReport standardized task-stage report generation.
+
+    Covers features:
+      - 6.1.19 (TaskReport: config-driven stage template selection, logical section ordering,
+        color-coded diffs, VS Code file URIs, category grouping, per-stage file naming, and
+        the evolving summative highlights report).
+    """
+    from utils.baseutils import TaskReport
+
+    features = ["6.1.19"]
+    criteria = []
+    workdir = tempfile.mkdtemp(prefix="taskreport_")
+    repo_root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    templates = {
+        "resources/templates/report_spec.html": ["InProgress", "Specified", "SpecApproved"],
+        "resources/templates/report_implementation.html": ["Ready", "CodeApproved"],
+        "resources/templates/report_summary.html": ["*"],
+    }
+
+    def check(name, ok, actual=None, expected=None):
+        criteria.append({
+            "name": name,
+            "success": bool(ok),
+            "status": "PASS" if ok else "FAIL",
+            "actual": actual,
+            "expected": expected,
+        })
+
+    try:
+        # Static helpers ------------------------------------------------ #
+        check("classify_requirements", TaskReport.classify_path("build/requirements/base.json") == "requirements")
+        check("classify_architecture", TaskReport.classify_path("build/architecture/base.json") == "architecture")
+        check("classify_utilities", TaskReport.classify_path("utils/baseutils.py") == "utilities")
+        check("classify_testing", TaskReport.classify_path("test/tests/base/output.py") == "testing")
+        check("classify_config", TaskReport.classify_path("config/base.json") == "config")
+        check("classify_ui", TaskReport.classify_path("resources/templates/report_spec.html") == "ui")
+        check("vscode_uri", TaskReport.vscode_uri("C:/x/y.py").startswith("vscode://file/"))
+
+        diff_txt = "diff --git a/f b/f\n@@ -1 +1 @@\n-old line\n+new line\n"
+        rendered_diff = TaskReport.render_diff(diff_txt)
+        check("diff_add_span", 'class="dadd"' in rendered_diff)
+        check("diff_del_span", 'class="ddel"' in rendered_diff)
+        check("diff_hunk_span", 'class="dhunk"' in rendered_diff)
+        check("diff_meta_span", 'class="dmeta"' in rendered_diff)
+        check("diff_escaped", "&" in TaskReport.render_diff("+a & b<c>"))
+
+        # Template resolution by status --------------------------------- #
+        rep = TaskReport("BASE-TASK-TST", "Report demo", "Specified", workdir,
+                         templates=templates, instruction="task instruction text",
+                         repo_root=repo_root, summary="Spec drafted.")
+        stage_tmpl, summary_tmpl = rep.resolve_template()
+        check("resolve_stage_template", stage_tmpl == "resources/templates/report_spec.html", stage_tmpl)
+        check("resolve_summary_template", summary_tmpl == "resources/templates/report_summary.html", summary_tmpl)
+
+        # Content + ordering + rendering -------------------------------- #
+        rep.add_section("ui", "UI change", "<p>ui body</p>")
+        rep.add_section("requirements", "New requirement", "<p>req body</p>")
+        rep.add_change("utils/baseutils.py", "added TaskReport", diff=diff_txt)
+        rep.add_change("build/requirements/base.json", "added BASE-REQ-015",
+                       diff="diff --git a/r b/r\n@@ -1 +1 @@\n+added\n")
+        rep.add_validation("json parse", "PASS")
+        out = rep.save()
+
+        html_text = open(out["stage"], encoding="utf-8").read()
+        check("spec_template_used", "Specification review" in html_text)
+        check("instruction_present", "task instruction text" in html_text)
+        check("requirements_before_ui",
+              "Requirements" in html_text and "User Interface" in html_text
+              and html_text.index("Requirements") < html_text.index("User Interface"))
+        check("vscode_link_in_files", "vscode://file/" in html_text)
+        check("diff_rendered_in_report", 'class="dadd"' in html_text)
+
+        # Per-stage file naming + canonical mirror ---------------------- #
+        check("stage_file_named", out["stage"].replace("\\", "/").endswith("BASE-TASK-TST - Specified.html"))
+        check("canonical_mirror", out["canonical"].replace("\\", "/").endswith("BASE-TASK-TST/BASE-TASK-TST.html"))
+        check("summary_file_named", out["summary"].replace("\\", "/").endswith("BASE-TASK-TST - Summary.html"))
+        check("stage_file_exists", os.path.isfile(out["stage"]))
+
+        # Summative accumulation: a second stage preserves prior stages -- #
+        rep2 = TaskReport("BASE-TASK-TST", "Report demo", "Ready", workdir,
+                          templates=templates, repo_root=repo_root, summary="Implemented.")
+        rep2.save()
+        prior_stage = os.path.join(workdir, "BASE-TASK-TST", "BASE-TASK-TST - Specified.html")
+        check("prior_stage_preserved", os.path.isfile(prior_stage))
+        highlights = json.load(open(os.path.join(workdir, "BASE-TASK-TST", "highlights.json"), encoding="utf-8"))
+        statuses = [h.get("status") for h in highlights]
+        check("summary_accumulates_stages", statuses == ["Specified", "Ready"], statuses)
+        summary_html = open(os.path.join(workdir, "BASE-TASK-TST", "BASE-TASK-TST - Summary.html"), encoding="utf-8").read()
+        check("summary_lists_both_stages", "Specified" in summary_html and "Ready" in summary_html)
+
+        overall = "PASS" if all(c["success"] for c in criteria) else "FAIL"
+        return _build_result(
+            status=overall,
+            message=message or "Validated TaskReport standardized task-stage report generation",
+            criteria=criteria,
+            features=features,
+        )
+    finally:
+        shutil.rmtree(workdir, ignore_errors=True)

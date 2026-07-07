@@ -748,6 +748,12 @@
                                             "description": "Post-test that validates per-type Logs/by_type output artifacts are created from runtime logs.",
                                             "type": "Folder.Folder.Folder.PyFile.Function",
                                             "path": "test/tests/base/output.py::test_logs_by_type"
+                                        },
+                                        "5.3.1.3.9": {
+                                            "name": "test.tests.base.output.test_task_report",
+                                            "description": "Pre-test that validates TaskReport (6.1.19) renders the fixed ordered sections, color-coded diff spans (add/del/hunk/meta), clickable vscode://file URIs, logical category grouping of changes, and per-stage '{task_id} - {Status}.html' file naming with a canonical '{task_id}.html' mirror.",
+                                            "type": "Folder.Folder.Folder.PyFile.Function",
+                                            "path": "test/tests/base/output.py::test_task_report"
                                         }
                                     }
                                 },
@@ -1192,6 +1198,74 @@
                                     "path": "utils/baseutils.py::AppManager.__init__"
                                 }
                             }
+                        },
+                        "6.1.19": {
+                            "name": "utils.baseutils.TaskReport",
+                            "description": "Build consistently structured, uniformly styled HTML task-stage reports for the task result store. Selects a stage-specific template by lifecycle status via the config-driven APP.TASK_MANAGER.reports.templates mapping (template file -> list of statuses; '*' = summative), so each stage emphasizes its relevant artifacts (specification -> requirements/architecture/design; implementation -> python/config/test files; deployment -> versioning/documentation/build-test results; integration -> merge issues/final versioning/overview). Renders a shared skeleton with logical ordering, category-grouped changes, per-file color-coded diffs, VS Code links, and validation so all reports look the same; preserves each concluded stage as its own file and maintains an evolving summative overview.",
+                            "type": "Folder.PyFile.Class",
+                            "path": "utils/baseutils.py::TaskReport",
+                            "features": {
+                                "6.1.19.1": {
+                                    "name": "utils.baseutils.TaskReport.add_section",
+                                    "description": "Register a spec/design narrative section (requirements, architecture, or a design category) so it renders in the fixed logical order.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.add_section"
+                                },
+                                "6.1.19.2": {
+                                    "name": "utils.baseutils.TaskReport.add_change",
+                                    "description": "Record a changed file (path, category, description, optional unified diff); classifies the path into a logical category, attaches a VS Code file URI, and buffers its color-coded diff.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.add_change"
+                                },
+                                "6.1.19.3": {
+                                    "name": "utils.baseutils.TaskReport.add_validation",
+                                    "description": "Record a validation/test result row (check + result) shown in the report's validation table.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.add_validation"
+                                },
+                                "6.1.19.4": {
+                                    "name": "utils.baseutils.TaskReport.render_diff",
+                                    "description": "Render unified diff text into HTML-escaped, color-coded diff lines (added, removed, hunk header, metadata) using the report's fixed palette.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.render_diff"
+                                },
+                                "6.1.19.5": {
+                                    "name": "utils.baseutils.TaskReport.classify_path",
+                                    "description": "Map a repo-relative file path to one of the fixed logical categories (ui, config, app, utilities, deployment, testing, requirements, architecture, docs).",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.classify_path"
+                                },
+                                "6.1.19.6": {
+                                    "name": "utils.baseutils.TaskReport.vscode_uri",
+                                    "description": "Build a clickable vscode://file/<absolute-path> URI for a changed file so it opens (with its Source Control diff) in VS Code.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.vscode_uri"
+                                },
+                                "6.1.19.7": {
+                                    "name": "utils.baseutils.TaskReport.resolve_template",
+                                    "description": "Resolve the report template path for the current status from APP.TASK_MANAGER.reports.templates (matching the status in a template's status list, and separately the '*' summative template), returning the stage template and the summative template.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.resolve_template"
+                                },
+                                "6.1.19.8": {
+                                    "name": "utils.baseutils.TaskReport.to_html",
+                                    "description": "Render the complete report HTML by populating the resolved stage template with the header/stage summary, task instruction, ordered stage-relevant sections, grouped files-changed index, per-file diffs, and validation table.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.to_html"
+                                },
+                                "6.1.19.9": {
+                                    "name": "utils.baseutils.TaskReport.update_summary",
+                                    "description": "Append the current stage's highlight to the persisted per-task overview (a highlights store under the task result folder) and re-render the summative '*' template to '{task_id} - Summary.html', producing a cumulative timeline of the task's progress.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.update_summary"
+                                },
+                                "6.1.19.10": {
+                                    "name": "utils.baseutils.TaskReport.save",
+                                    "description": "Write the per-stage report to '{result_root}/{task_id}/{task_id} - {Status}.html' (never overwriting other stages), mirror the latest render to the canonical '{task_id}.html', and update the summative overview.",
+                                    "type": "Folder.PyFile.Class.Method",
+                                    "path": "utils/baseutils.py::TaskReport.save"
+                                }
+                            }
                         }
                     }
                 },
@@ -1503,6 +1577,36 @@
                             "description": "Single-page HTML/CSS/JS template served by scripts/task_manager.py for the Task Manager UI: status tabs with count badges, a task list / task-details split-pane, create and edit forms, a task-search bar above the status tabs that locates a task by its id (exact then unique-substring, case-insensitive), and a saved-views bar below the status tabs. Views are a single flat array of objects { id, name, tabs:[...], sort:{col:dir,...}, filter:{col:[vals],...} } that store the current sort/filter configuration as named views (auto-named from the filters/sort). On a tab, every view renders as a chip but is enabled only when the current tab is in its 'tabs' list (others are grayed out); enabled user views can be applied, renamed, deleted, or have the current tab toggled off, a grayed user view can have the current tab included, and a grayed built-in view's include control clones it into a new user view. The table supports multi-column sort (ordered live sort state) and multi-value Type/Priority checkbox filters; applying a view restores its multi-column sort and multi-value filters. A set of read-only built-in default views ships in config/base.json under APP.TASK_MANAGER.views and is always presented (distinguished, with no delete/rename/tab-edit) so the user cannot delete, rename, or re-tab them; on top of the built-ins the server layers the user's own views from config/local.json (app-local) and config/machine.json (machine-specific) and serves the effective { views, active } payload via the /api/views endpoint, persisting only the user's views and the per-tab active-view map to config/machine.json so they survive sessions/browsers and are restored per tab on tab switch. The Type/Priority column filters always offer the canonical values (Feature/Bug/Chore/Doc; Critical/High/Medium/Low) regardless of the data. The task list table also has a numeric, sortable 'Tokens' column showing each task's cumulative worker_session.tokens.TOTAL (0 when absent), and the task-details pane shows a per-step Copilot usage table that aggregates worker_session.tokens.per_state into the three approval-gated phases -- Design (InProgress/Specified/SpecApproved), Develop (Ready/CodeApproved) and Deploy (Deployed/BuildApproved/Done) -- with a subtotal per phase, a TOTAL row, and the model used; both are derived client-side from the task's worker_session with no new API. The lifecycle exposes the expanded status set ToDo, InProgress, Specified, SpecApproved, Ready, CodeApproved, Deployed, BuildApproved, Done (plus Deleted/Other) via STATUS_TABS, normalizeStatus, statusCls and the create/edit status selects.",
                             "type": "Folder.Folder.HtmlFile",
                             "path": "resources/templates/task_manager.html"
+                        },
+                        "11.2.3": {
+                            "name": "resources.templates.report_spec",
+                            "description": "Specification-stage report template used by utils.baseutils.TaskReport for InProgress/Specified/SpecApproved. Focuses on requirements, architecture, and detailed design; shares the common report skeleton, diff palette, and {$...$} placeholders.",
+                            "type": "Folder.Folder.HtmlFile",
+                            "path": "resources/templates/report_spec.html"
+                        },
+                        "11.2.4": {
+                            "name": "resources.templates.report_implementation",
+                            "description": "Implementation-stage report template used by utils.baseutils.TaskReport for Ready/CodeApproved. Focuses on python files, config files, and test files (category-grouped changes with color-coded diffs and VS Code links).",
+                            "type": "Folder.Folder.HtmlFile",
+                            "path": "resources/templates/report_implementation.html"
+                        },
+                        "11.2.5": {
+                            "name": "resources.templates.report_deployment",
+                            "description": "Deployment-stage report template used by utils.baseutils.TaskReport for Deployed/BuildApproved. Focuses on versioning, documentation, and build/test results.",
+                            "type": "Folder.Folder.HtmlFile",
+                            "path": "resources/templates/report_deployment.html"
+                        },
+                        "11.2.6": {
+                            "name": "resources.templates.report_integration",
+                            "description": "Integration-stage report template used by utils.baseutils.TaskReport for Done. Focuses on merge issues, final versioning, and the capability overview.",
+                            "type": "Folder.Folder.HtmlFile",
+                            "path": "resources/templates/report_integration.html"
+                        },
+                        "11.2.7": {
+                            "name": "resources.templates.report_summary",
+                            "description": "Summative evolving overview template used by utils.baseutils.TaskReport (mapped to '*' / all statuses). Renders the accumulated per-stage highlights timeline into '{task_id} - Summary.html'.",
+                            "type": "Folder.Folder.HtmlFile",
+                            "path": "resources/templates/report_summary.html"
                         }
                     }
                 },

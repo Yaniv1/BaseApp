@@ -82,7 +82,7 @@ Tasks move through the following steps.
                 d2. Modifications to the Architecture spec (`build/architecture/{base_or_app}.json`)
                 d3. Intended Modifications to the Code (design) - what and how each aspect of the task will be implemented.
         j. Request a status change to `Specified` via the task status store.
-        k. Save the session summary to the task result store (the `{result_store}` location given in your `task.md` prompt), e.g. `<result_store>/{task_id}/{task_id}.html`. This summary has to include the task's instruction file (instance of `task.md`), and hyperlinks to the files that were modified in diff view, along with a textual explanation of what was changed and why (if it's not trivial).
+        k. Save the session summary to the task result store (the `{result_store}` location given in your `task.md` prompt) using the built-in `TaskReport` generator (Feature 6.1.19, in `utils/baseutils.py`) so every stage shares one structure, style, and color scheme. Write the report per-stage as `<result_store>/{task_id}/{task_id} - {Status}.html` (never overwrite prior stages) and mirror the latest to `<result_store>/{task_id}/{task_id}.html`. `TaskReport` selects the stage template from `APP.TASK_MANAGER.reports.templates` (config-driven, keyed by status) and also refreshes the evolving `{task_id} - Summary.html`. This summary has to include the task's instruction file (instance of `task.md`), and hyperlinks to the files that were modified in diff view, along with a textual explanation of what was changed and why (if it's not trivial).
         l. Wait for the engineer to authorize your solution specification (requirements, architecture, design).
         m. The engineer may ask you to change the specification or make manual changes that you need to track and respect.
 
@@ -97,7 +97,7 @@ Tasks move through the following steps.
         3e. Design, build, and run tests for the required feature. This includes running the `test/tests/build.py` script to execute the build tests, which include the build phase and app running in order to execute the prep/live/post tests once for the app. Maintain three tests for each feature if necessary and applicable: pre-test, live test, and post-test. Tests can be combined with other tests to simplify the test system. For example, if a single variable or object is sufficient for two separate tests, we can do away with a single test and two success criteria to match the two tests. Each test has to report which feature(s) it covers.
         3f. Update the relevant `build/updates/{base_or_app}.json` file with the prgoress that you made.
         3g. Request a progress-report comment to be appended to the task (via the task status store).
-        3h. Create a list of modified files and present them to the user. The files must be clickable and diff-reviewable. You can use a call to Visual Studio CODE to load the files in diff view to visualize the changes you made in each file, or you can create your own diff view in HTML and use the built-in HTML generator to create and store the file that shows the diff. Use a diff tool/package to visualize the changes clearly.
+        3h. Create a list of modified files and present them to the user. The files must be clickable and diff-reviewable. Generate the implementation-stage report with the built-in `TaskReport` generator (Feature 6.1.19), which produces the logically-grouped file index (VS Code `vscode://file/` links) and color-coded per-file diffs for you; save it per-stage as `<result_store>/{task_id}/{task_id} - {Status}.html` (mirrored to `{task_id}.html`) rather than hand-rolling a one-off diff view.
         3i. Request a status change to `Ready` via the task status store.
 
 **Await the engineer's review and approval of the implementation.**
@@ -121,7 +121,7 @@ perform the Change Finalizing and Deployment steps below:
         g. Append a comment on the task to indicate user approval.
         g. Request a comment to be appended to the task (via the task status store) indicating user approval.
         h. Request a status change to `Deployed` via the task status store.
-        i. Save the transcript of your work to the task result store (the `{result_store}` location given in your `task.md` prompt), e.g. `<result_store>/{task_id}/{task_id}.html`.
+        i. Save the transcript of your work to the task result store (the `{result_store}` location given in your `task.md` prompt) via the built-in `TaskReport` generator (Feature 6.1.19), writing the deployment-stage report per-stage as `<result_store>/{task_id}/{task_id} - {Status}.html` (mirrored to `{task_id}.html`).
         j. Stage and Commit your code/spec/test changes (not the task ledger, which the server owns) with a concise but informative commit message that includes the task id and essence of change.
         k. Push the changes to the git repository **on the task's short-lived branch** (not directly to `main`).
 
@@ -135,6 +135,6 @@ perform the Change Finalizing and Deployment steps below:
         d. request a deployment comment to be appended to the task (via the task status store) noting that the task branch was merged into `main`, and the branch and worktree dissolved.
         e. The Task Manager server applies the `Done` status and comment to the ledger on `main` (you do not commit the ledger yourself).
         f. Delete (dissolve) the short-lived task branch and remove its worktree (`git worktree remove {APP}/<task-id>` then `git branch -d <task-id>`), since they are no longer needed.
-        g. Update the task report in the task result store (the `{result_store}` location given in your `task.md` prompt), e.g. `<result_store>/{task_id}/{task_id}.html`.
+        g. Update the task report in the task result store (the `{result_store}` location given in your `task.md` prompt) via the built-in `TaskReport` generator (Feature 6.1.19), writing the integration-stage report per-stage as `<result_store>/{task_id}/{task_id} - {Status}.html` (mirrored to `{task_id}.html`).
         h. Perform `git pull` from within the `main` worktree (`git -C {APP}/main pull`) to have the local `main` in full sync with the remote `main` after integration. Since the `main` worktree and the bare repository share one object/ref store under `{APP}/.bare`, this single pull keeps both the local `main` working tree and the bare store in sync — no separate update of the bare copy is required. (If the merge was done locally in step b, this pull is simply a confirming no-op.)
         

@@ -1598,6 +1598,185 @@
                     "deployment": 0.0
                 }
             ]
+        },
+        {
+            "id": "BASE-REQ-015",
+            "title": "Generate Standardized HTML Task-Stage Reports",
+            "description": "The system shall provide a reusable generator that renders task work-summary/stage reports as consistently structured, uniformly styled HTML documents, so that every task report published to the task result store shares the same layout and color scheme instead of the current ad-hoc variety of structures and styles. A report presents a specification/implementation review that an engineer reads to understand, challenge, and enhance the change, ordering its artifacts logically: first the requirements, then the architecture additions/changes, then the detailed design of what each component must do and what additional functionality is needed; detailed-design and file changes are grouped into a fixed logical category order (user interface, configuration/resources, application functionality, utilities, deployment protocols/scripts, testing artifacts, documentation). The generator shall select a stage-specific report template by the task's lifecycle status through a config-driven mapping (APP.TASK_MANAGER.reports.templates, a dict of template file -> list of statuses), so each stage emphasizes the artifacts that matter at that stage: the specification stages focus on requirements, architecture, and design; the implementation stages focus on python files, config files, and test files; the deployment stages focus on versioning, documentation, and build/test results; the integration stage focuses on merge issues, final versioning, and the capability overview. In addition to the per-stage report, the generator shall maintain a single summative report -- a template mapped to all statuses (the '*' wildcard) -- that keeps an evolving overview of the task, appending a highlight for each concluded step as progress is made. The report shall present each changed spec/code artifact as a clear, color-coded diff-like view and expose each changed file through a clickable VS Code file URI so the engineer can open it (and its Source Control diff) in VS Code. Each concluded status/stage shall be preserved as its own report file rather than overwriting the previous one, so no stage information is lost across the task lifecycle.",
+            "priority": "High",
+            "comments": [],
+            "breakdown": [
+                {
+                    "id": "BASE-REQ-015.1",
+                    "title": "Config-Driven Stage-Specific Report Templates",
+                    "description": "Template-selection requirement: The generator shall choose the report template for a given lifecycle status from the config-driven mapping APP.TASK_MANAGER.reports.templates (a dict mapping each template file under resources/templates to the list of statuses it serves; no hard-coded template paths). Each stage template shall emphasize the artifacts relevant to that stage: specification (InProgress/Specified/SpecApproved) -> requirements, architecture, and design; implementation (Ready/CodeApproved) -> python files, config files, and test files; deployment (Deployed/BuildApproved) -> versioning, documentation, and build/test results; integration (Done) -> merge issues, final versioning, and the capability overview.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-015.2",
+                    "title": "Consistent Layout with Logical Ordering and Category Grouping",
+                    "description": "Structure requirement: Within any stage template the report shall share the same skeleton and color scheme and present artifacts in a logical order -- a header with a stage/status summary note, the task instruction, then the stage-relevant sections -- with detailed-design and file changes grouped by the fixed logical category order (user interface, configuration/resources, application functionality, utilities, deployment/scripts, testing, documentation), followed by a files-changed index, per-file diffs, and validation/test results, so that all reports look the same.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-015.3",
+                    "title": "Color-Coded Per-File Diff Presentation",
+                    "description": "Presentation requirement: The generator shall render each changed spec/code artifact's unified diff as color-coded HTML in a fixed palette that visually distinguishes added lines, removed lines, hunk headers, and diff metadata, escaping content safely.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-015.4",
+                    "title": "VS Code File Links for Changed Artifacts",
+                    "description": "Navigation requirement: Each changed file in the report shall carry a clickable VS Code file URI (vscode://file/<absolute-path>) so the engineer can open the file, and its Source Control diff view, directly in VS Code.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-015.5",
+                    "title": "Per-Stage Report Preservation",
+                    "description": "Preservation requirement: Each concluded status/stage report shall be persisted to its own file named '{task_id} - {Status}.html' under the task's result folder so prior stages are never overwritten, and a canonical '{task_id}.html' shall mirror the most recent stage for convenience.",
+                    "priority": "High",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-015.6",
+                    "title": "Summative Evolving Task Overview Report",
+                    "description": "Summative requirement: A summative report template, mapped to all statuses via the '*' wildcard in APP.TASK_MANAGER.reports.templates, shall be regenerated at every stage in addition to the per-stage report. It shall maintain an evolving overview of the task -- persisting accumulated per-stage highlights (one entry appended per concluded step) -- and render them as a cumulative timeline saved to '{task_id} - Summary.html', so the reader can follow the whole task's progress in one place.",
+                    "priority": "Medium",
+                    "comments": []
+                },
+                {
+                    "id": "BASE-REQ-015.7",
+                    "title": "Report Generator Verification",
+                    "description": "Verification requirement: A prep test shall confirm the generator selects the template by status from the config mapping, renders the logically ordered sections with color-coded diff spans and VS Code file URIs, groups changes by logical category, appends and renders summative highlights, and applies the per-stage '{task_id} - {Status}.html' file naming (with the canonical mirror).",
+                    "priority": "Medium",
+                    "comments": []
+                }
+            ],
+            "solution": [
+                {
+                    "feature": "6.1.19",
+                    "role": "utils.baseutils.TaskReport builds a consistently structured, styled HTML task-stage report from task metadata, spec/design sections, grouped file changes, per-file diffs, and validation rows.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.1",
+                    "role": "TaskReport.add_section registers a spec/design narrative section under a logical category in fixed order.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.2",
+                    "role": "TaskReport.add_change records a changed file (path, category, description, unified diff), classifying and grouping it and attaching a VS Code file URI.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.3",
+                    "role": "TaskReport.add_validation records a validation/test result row for the report.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.4",
+                    "role": "TaskReport.render_diff renders unified diff text as color-coded, HTML-escaped diff spans (add/del/hunk/meta).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.5",
+                    "role": "TaskReport.classify_path maps a repo-relative file path to one of the fixed logical categories.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.6",
+                    "role": "TaskReport.vscode_uri builds a clickable vscode://file/<absolute-path> URI for a changed file.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.7",
+                    "role": "TaskReport.resolve_template selects the stage template (and the '*' summative template) for the current status from APP.TASK_MANAGER.reports.templates.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.8",
+                    "role": "TaskReport.to_html renders the resolved stage template with ordered stage-relevant sections, grouped changes, diffs, and validation.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.9",
+                    "role": "TaskReport.update_summary appends the current stage's highlight to the persisted task overview and re-renders the summative '*' template to '{task_id} - Summary.html'.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "6.1.19.10",
+                    "role": "TaskReport.save writes the per-stage '{task_id} - {Status}.html' file (preserving prior stages), mirrors it to the canonical '{task_id}.html', and triggers update_summary.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "11.2.3",
+                    "role": "resources/templates/report_spec.html supplies the specification-stage report skeleton (requirements, architecture, design).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "11.2.4",
+                    "role": "resources/templates/report_implementation.html supplies the implementation-stage report skeleton (python/config/test files).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "11.2.5",
+                    "role": "resources/templates/report_deployment.html supplies the deployment-stage report skeleton (versioning, documentation, build/test results).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "11.2.6",
+                    "role": "resources/templates/report_integration.html supplies the integration-stage report skeleton (merge issues, final versioning, overview).",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "11.2.7",
+                    "role": "resources/templates/report_summary.html supplies the summative evolving overview skeleton with the per-stage highlights timeline.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                },
+                {
+                    "feature": "5.3.1.3.9",
+                    "role": "test.tests.base.output.test_task_report validates template-by-status selection, ordered sections, color-coded diff spans, VS Code URIs, category grouping, summative highlight accumulation, and per-stage file naming.",
+                    "implementation": 0.0,
+                    "verification": 0.0,
+                    "deployment": 0.0
+                }
+            ]
         }
     ]
 }

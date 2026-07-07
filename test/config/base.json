@@ -161,6 +161,14 @@
                 }
             },
             {
+                "id": "prep_task_report",
+                "name": "Prep TaskReport standardized task-stage reports",
+                "callable": "test.tests.base.output.test_task_report",
+                "inputs": {
+                    "message": "Validated TaskReport standardized task-stage report generation: config-driven stage template selection, logical section ordering, color-coded diffs, VS Code file URIs, per-stage file naming, and evolving summative highlights"
+                }
+            },
+            {
                 "id": "prep_instantiate_config_overrides",
                 "name": "Prep instantiate config overrides",
                 "callable": "test.tests.base.instantiate.test_instantiate_config_overrides",

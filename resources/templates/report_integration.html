@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>{$title$}</title>
+<style>{$style$}</style>
+</head>
+<body>
+<!-- Integration-stage report (Feature 11.2.6): merge issues, final versioning, overview. -->
+<h1>{$title$}</h1>
+<p class="note">{$stage_note$}</p>
+<p class="note">Integration review &mdash; focus on <b>merge issues</b>, <b>final versioning</b>, and the <b>capability overview</b>.</p>
+
+<h2>1. Task Instruction</h2>
+<details><summary>Show task.md instruction</summary><pre class="instr">{$instruction$}</pre></details>
+
+<h2>2. Integration Notes &amp; Overview</h2>
+{$sections$}
+
+<h2>3. Files changed</h2>
+{$files_table$}
+
+<h2>4. Diffs</h2>
+{$diffs$}
+
+<h2>5. Merge &amp; Validation</h2>
+{$validation$}
+</body>
+</html>

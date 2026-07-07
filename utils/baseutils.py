@@ -562,7 +562,394 @@ class HtmlDoc:
         with open(output_path, "w", encoding="utf-8") as f:
             f.write(self.to_html())
         return output_path
-    
+
+
+class TaskReport:
+    """Feature ID: 6.1.19. Build consistently structured, uniformly styled HTML task-stage reports.
+
+    The generator selects a stage-specific template by lifecycle status through the
+    config-driven APP.TASK_MANAGER.reports.templates mapping (template file -> list of
+    statuses; the '*' entry is the always-updated summative template). Every report shares
+    the same skeleton, diff color palette, logical section ordering, and category grouping
+    so all reports look the same. Each concluded stage is preserved as its own file
+    ('{task_id} - {Status}.html') and a canonical '{task_id}.html' mirrors the latest stage;
+    a summative '{task_id} - Summary.html' keeps an evolving per-stage highlights timeline.
+    """
+
+    # Fixed logical category order and display labels (Feature 6.1.19.1/6.1.19.5).
+    CATEGORY_ORDER = [
+        "requirements", "architecture", "ui", "config",
+        "app", "utilities", "deployment", "testing", "docs",
+    ]
+    CATEGORY_LABELS = {
+        "requirements": "Requirements",
+        "architecture": "Architecture",
+        "ui": "User Interface",
+        "config": "Configuration & Resources",
+        "app": "Application Functionality",
+        "utilities": "Utilities",
+        "deployment": "Deployment & Scripts",
+        "testing": "Testing",
+        "docs": "Documentation",
+    }
+
+    # Fallback skeleton used when a resolved template file cannot be read; keeps the
+    # generator usable (and unit-testable) without the on-disk templates.
+    DEFAULT_TEMPLATE = (
+        "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+        "<title>{$title$}</title><style>{$style$}</style></head><body>"
+        "<h1>{$title$}</h1><p class=\"note\">{$stage_note$}</p>"
+        "<h2>Task Instruction</h2><details><summary>Show task.md</summary>"
+        "<pre class=\"instr\">{$instruction$}</pre></details>"
+        "<h2>Specification &amp; Design</h2>{$sections$}"
+        "<h2>Files changed</h2>{$files_table$}"
+        "<h2>Diffs</h2>{$diffs$}"
+        "<h2>Validation</h2>{$validation$}</body></html>"
+    )
+    DEFAULT_SUMMARY_TEMPLATE = (
+        "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">"
+        "<title>{$title$}</title><style>{$style$}</style></head><body>"
+        "<h1>{$title$}</h1><p class=\"note\">Evolving overview &mdash; updated {$generated$}.</p>"
+        "<h2>Progress highlights</h2>{$highlights$}</body></html>"
+    )
+
+    # Shared diff/report palette injected wherever a template exposes {$style$}.
+    STYLE = (
+        "body{font-family:Segoe UI,Arial,sans-serif;margin:2rem;color:#1b1b1b;line-height:1.5}"
+        "h1{font-size:1.4rem}h2{font-size:1.15rem;margin-top:1.6rem;border-bottom:1px solid #ddd;padding-bottom:.2rem}"
+        "h3{font-size:1rem;margin-top:1.3rem;background:#eef;padding:.3rem .5rem;border-radius:4px}"
+        "table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px 9px;text-align:left;vertical-align:top}"
+        "th{background:#f0f4ff}a{color:#0b5cad;text-decoration:none}a:hover{text-decoration:underline}"
+        "code{background:#f4f4f4;padding:1px 4px;border-radius:4px}"
+        ".note{background:#eef6ff;border:1px solid #a9caff;padding:.6rem .8rem;border-radius:6px}"
+        ".stage{display:inline-block;background:#0b5cad;color:#fff;padding:.1rem .55rem;border-radius:10px;font-size:.8rem}"
+        "pre.diff{background:#1e1e1e;color:#d4d4d4;padding:.7rem;border-radius:6px;overflow:auto;font-size:.82rem;line-height:1.35}"
+        "pre.instr{background:#f7f7f7;border:1px solid #ddd;padding:.7rem;border-radius:6px;overflow:auto;font-size:.8rem;white-space:pre-wrap}"
+        ".dadd{color:#7ee787}.ddel{color:#ff7b72}.dhunk{color:#79c0ff}.dmeta{color:#c9a0ff}"
+        ".cat{color:#666;font-weight:normal;font-size:.85rem}"
+        "details>summary{cursor:pointer;font-weight:bold}"
+    )
+
+    def __init__(self, task_id, title, status, result_root, templates=None,
+                 instruction=None, repo_root=None, summary=None, wrappers=("{$", "$}")):
+        self.task_id = str(task_id)
+        self.title = str(title)
+        self.status = str(status)
+        self.result_root = os.path.abspath(result_root)
+        self.templates = dict(templates or {})
+        self.instruction = instruction or ""
+        self.repo_root = os.path.abspath(repo_root) if repo_root else None
+        self.summary = summary or ""
+        if not isinstance(wrappers, (list, tuple)) or len(wrappers) != 2:
+            raise ValueError("wrappers must be a 2-item list/tuple, for example ['{$', '$}']")
+        self.wrappers = (str(wrappers[0]), str(wrappers[1]))
+        self.sections = []      # list of {"category","heading","body"}
+        self.changes = []       # list of {"path","category","description","diff"}
+        self.validations = []   # list of {"check","result"}
+
+    # ------------------------------------------------------------------ #
+    # Content accumulation (Features 6.1.19.1 - 6.1.19.3)
+    # ------------------------------------------------------------------ #
+    def add_section(self, category, heading, html_body):
+        """Feature 6.1.19.1. Register a spec/design narrative section under a logical category."""
+        self.sections.append({
+            "category": category if category in self.CATEGORY_LABELS else "app",
+            "heading": heading,
+            "body": html_body,
+        })
+        return self
+
+    def add_change(self, path, description="", diff=None, category=None):
+        """Feature 6.1.19.2. Record a changed file, classify it, and buffer its diff."""
+        cat = category if category in self.CATEGORY_LABELS else self.classify_path(path)
+        self.changes.append({
+            "path": str(path).replace("\\", "/"),
+            "category": cat,
+            "description": description or "",
+            "diff": diff or "",
+        })
+        return self
+
+    def add_validation(self, check, result):
+        """Feature 6.1.19.3. Record a validation/test result row."""
+        self.validations.append({"check": str(check), "result": str(result)})
+        return self
+
+    # ------------------------------------------------------------------ #
+    # Static helpers (Features 6.1.19.4 - 6.1.19.6)
+    # ------------------------------------------------------------------ #
+    @staticmethod
+    def render_diff(text):
+        """Feature 6.1.19.4. Render unified diff text as HTML-escaped, color-coded lines."""
+        lines = []
+        for line in (text or "").split("\n"):
+            escaped = html.escape(line)
+            if line.startswith(("+++", "---", "diff ", "index ", "new file", "deleted file", "rename ")):
+                cls = "dmeta"
+            elif line.startswith("@@"):
+                cls = "dhunk"
+            elif line.startswith("+"):
+                cls = "dadd"
+            elif line.startswith("-"):
+                cls = "ddel"
+            else:
+                cls = ""
+            lines.append(f'<span class="{cls}">{escaped}</span>' if cls else escaped)
+        return "\n".join(lines)
+
+    @staticmethod
+    def classify_path(path):
+        """Feature 6.1.19.5. Map a repo-relative file path to a fixed logical category."""
+        p = str(path).replace("\\", "/").lower().lstrip("./")
+        if p.startswith("build/requirements/"):
+            return "requirements"
+        if p.startswith("build/architecture/"):
+            return "architecture"
+        if p.endswith(".html") or "templates/" in p:
+            return "ui"
+        if p.startswith("test/"):
+            return "testing"
+        if p.startswith("scripts/"):
+            return "deployment"
+        if p.startswith(("config/", "resources/")):
+            return "config"
+        if p.startswith("utils/"):
+            return "utilities"
+        if p.startswith("app/"):
+            return "app"
+        if p.endswith(".md") or p.startswith("docs/") or p == "readme.md":
+            return "docs"
+        return "app"
+
+    @staticmethod
+    def vscode_uri(abs_path):
+        """Feature 6.1.19.6. Build a clickable vscode://file/<absolute-path> URI."""
+        norm = os.path.abspath(str(abs_path)).replace("\\", "/")
+        return "vscode://file/" + norm
+
+    # ------------------------------------------------------------------ #
+    # Template resolution and rendering (Features 6.1.19.7 - 6.1.19.8)
+    # ------------------------------------------------------------------ #
+    def _ph(self, key):
+        return f"{self.wrappers[0]}{key}{self.wrappers[1]}"
+
+    def _resolve_path(self, rel_or_abs):
+        if not rel_or_abs:
+            return None
+        if os.path.isabs(rel_or_abs):
+            return rel_or_abs
+        base = self.repo_root or os.getcwd()
+        return os.path.abspath(os.path.join(base, rel_or_abs))
+
+    def _abs_file(self, rel_path):
+        base = self.repo_root or os.getcwd()
+        return os.path.abspath(os.path.join(base, rel_path))
+
+    def resolve_template(self, status=None):
+        """Feature 6.1.19.7. Resolve (stage_template, summary_template) for a status from config."""
+        status = status or self.status
+        stage = None
+        summary = None
+        first_stage = None
+        for tmpl, statuses in self.templates.items():
+            statuses = statuses or []
+            if "*" in statuses:
+                summary = tmpl
+                continue
+            if first_stage is None:
+                first_stage = tmpl
+            if status in statuses:
+                stage = tmpl
+        if stage is None:
+            stage = first_stage
+        return stage, summary
+
+    def _load_template(self, rel_or_abs, default):
+        path = self._resolve_path(rel_or_abs)
+        if path and os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    return f.read()
+            except OSError:
+                pass
+        return default
+
+    def _render_sections(self):
+        by_cat = {}
+        for sec in self.sections:
+            by_cat.setdefault(sec["category"], []).append(sec)
+        out = []
+        for cat in self.CATEGORY_ORDER:
+            for sec in by_cat.get(cat, []):
+                out.append(
+                    f'<section class="sec-{cat}"><h3 class="cat-{cat}">{html.escape(str(sec["heading"]))} '
+                    f'<span class="cat">[{html.escape(self.CATEGORY_LABELS[cat])}]</span></h3>'
+                    f'{sec["body"]}</section>'
+                )
+        return "".join(out)
+
+    def _render_files_table(self):
+        if not self.changes:
+            return "<p>No file changes recorded.</p>"
+        by_cat = {}
+        for ch in self.changes:
+            by_cat.setdefault(ch["category"], []).append(ch)
+        rows = []
+        for cat in self.CATEGORY_ORDER:
+            for ch in by_cat.get(cat, []):
+                uri = self.vscode_uri(self._abs_file(ch["path"]))
+                rows.append(
+                    f'<tr><td>{html.escape(self.CATEGORY_LABELS[cat])}</td>'
+                    f'<td><a href="{html.escape(uri)}">{html.escape(ch["path"])}</a></td>'
+                    f'<td>{ch["description"]}</td></tr>'
+                )
+        return ("<table><tr><th>Category</th><th>File (VS Code link)</th><th>Change</th></tr>"
+                + "".join(rows) + "</table>")
+
+    def _render_diffs(self):
+        blocks = []
+        for cat in self.CATEGORY_ORDER:
+            for ch in self.changes:
+                if ch["category"] != cat or not ch["diff"]:
+                    continue
+                blocks.append(
+                    f'<h3 id="{html.escape(ch["path"])}">{html.escape(ch["path"])} '
+                    f'<span class="cat">[{html.escape(self.CATEGORY_LABELS[cat])}]</span></h3>'
+                    f'<pre class="diff">{self.render_diff(ch["diff"])}</pre>'
+                )
+        return "".join(blocks) if blocks else "<p>No diffs recorded.</p>"
+
+    def _render_validation(self):
+        if not self.validations:
+            return "<p>No validation recorded.</p>"
+        rows = "".join(
+            f'<tr><td>{html.escape(v["check"])}</td><td>{html.escape(v["result"])}</td></tr>'
+            for v in self.validations
+        )
+        return f"<table><tr><th>Check</th><th>Result</th></tr>{rows}</table>"
+
+    def _stage_note(self):
+        generated = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        return (f'<span class="stage">Stage: {html.escape(self.status)}</span> &nbsp; '
+                f'Generated {generated}.' + (f' {self.summary}' if self.summary else ''))
+
+    def to_html(self, template=None):
+        """Feature 6.1.19.8. Render the resolved stage template into a full report document."""
+        if template is None:
+            template, _ = self.resolve_template()
+        text = self._load_template(template, self.DEFAULT_TEMPLATE)
+        generated = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        replacements = {
+            "title": html.escape(f"{self.task_id} \u2014 {self.title} ({self.status})"),
+            "task_id": html.escape(self.task_id),
+            "status": html.escape(self.status),
+            "generated": html.escape(generated),
+            "style": self.STYLE,
+            "stage_note": self._stage_note(),
+            "instruction": html.escape(self.instruction),
+            "sections": self._render_sections(),
+            "files_table": self._render_files_table(),
+            "diffs": self._render_diffs(),
+            "validation": self._render_validation(),
+        }
+        for key, value in replacements.items():
+            text = text.replace(self._ph(key), value)
+        return text
+
+    # ------------------------------------------------------------------ #
+    # Summative overview (Feature 6.1.19.9)
+    # ------------------------------------------------------------------ #
+    def _task_dir(self):
+        return os.path.join(self.result_root, self.task_id)
+
+    def _highlights_path(self):
+        return os.path.join(self._task_dir(), "highlights.json")
+
+    def update_summary(self):
+        """Feature 6.1.19.9. Append this stage's highlight and re-render the summative report."""
+        _, summary_template = self.resolve_template()
+        path = self._highlights_path()
+        highlights = []
+        if os.path.isfile(path):
+            try:
+                with open(path, "r", encoding="utf-8") as f:
+                    highlights = json.load(f)
+            except (OSError, ValueError):
+                highlights = []
+        if not isinstance(highlights, list):
+            highlights = []
+        generated = dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+        # Upsert one entry per status (revisiting a status refreshes and re-orders it).
+        highlights = [h for h in highlights if h.get("status") != self.status]
+        highlights.append({
+            "status": self.status,
+            "title": self.title,
+            "summary": self.summary or "",
+            "files_changed": len(self.changes),
+            "generated": generated,
+        })
+        os.makedirs(self._task_dir(), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(highlights, f, indent=2)
+
+        rows = "".join(
+            f'<tr><td><span class="stage">{html.escape(str(h.get("status", "")))}</span></td>'
+            f'<td>{html.escape(str(h.get("generated", "")))}</td>'
+            f'<td>{html.escape(str(h.get("files_changed", 0)))}</td>'
+            f'<td>{html.escape(str(h.get("summary", "")))}</td></tr>'
+            for h in highlights
+        )
+        timeline = ("<table><tr><th>Stage</th><th>Generated</th><th>Files</th><th>Highlight</th></tr>"
+                    + rows + "</table>")
+        text = self._load_template(summary_template, self.DEFAULT_SUMMARY_TEMPLATE)
+        replacements = {
+            "title": html.escape(f"{self.task_id} \u2014 {self.title} (Summary)"),
+            "task_id": html.escape(self.task_id),
+            "generated": html.escape(generated),
+            "style": self.STYLE,
+            "highlights": timeline,
+        }
+        for key, value in replacements.items():
+            text = text.replace(self._ph(key), value)
+        out_path = os.path.join(self._task_dir(), f"{self.task_id} - Summary.html")
+        with open(out_path, "w", encoding="utf-8") as f:
+            f.write(text)
+        return out_path
+
+    # ------------------------------------------------------------------ #
+    # Persistence (Feature 6.1.19.10)
+    # ------------------------------------------------------------------ #
+    def save(self, update_summary=True):
+        """Feature 6.1.19.10. Write the per-stage report, canonical mirror, and summary."""
+        os.makedirs(self._task_dir(), exist_ok=True)
+        rendered = self.to_html()
+        stage_path = os.path.join(self._task_dir(), f"{self.task_id} - {self.status}.html")
+        canonical_path = os.path.join(self._task_dir(), f"{self.task_id}.html")
+        for target in (stage_path, canonical_path):
+            with open(target, "w", encoding="utf-8") as f:
+                f.write(rendered)
+        result = {"stage": stage_path, "canonical": canonical_path}
+        if update_summary:
+            result["summary"] = self.update_summary()
+        return result
+
+    def collect_git_changes(self, base_ref="HEAD", descriptions=None):
+        """Convenience: run 'git diff <base_ref>' in repo_root and add each changed file."""
+        import subprocess
+        root = self.repo_root or os.getcwd()
+        descriptions = descriptions or {}
+        names = subprocess.run(
+            ["git", "-C", root, "--no-pager", "diff", "--name-only", base_ref],
+            capture_output=True, text=True,
+        ).stdout.split()
+        for rel in names:
+            diff = subprocess.run(
+                ["git", "-C", root, "--no-pager", "diff", base_ref, "--", rel],
+                capture_output=True, text=True,
+            ).stdout
+            self.add_change(rel, descriptions.get(rel, ""), diff=diff)
+        return self
+
 
 # Feature 6.1.7
 def load_message_lookup(paths):

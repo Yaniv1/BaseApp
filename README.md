@@ -167,6 +167,16 @@ How a task flows through the system:
   browser concurrently**, since every app is assigned its own non-overlapping port band
   automatically. Because a second launch reuses the running server, multiple UI tabs may
   be open at once, and the server shuts down only once the last tab is closed.
+- **Standardized task reports.** Every task produces a consistent HTML work-summary in
+  the task result store through a built-in report generator, so all reports share one
+  structure, style, and colour scheme rather than being hand-rolled per task. Each report
+  is **stage-aware** — its layout is chosen by the task's lifecycle status (spec review,
+  implementation, deployment, integration) so it foregrounds the artifacts that matter at
+  that point — with logically grouped sections, a changed-files index of clickable
+  `vscode://file/` links, and colour-coded per-file diffs. Reports are **preserved per
+  stage** (`{task_id} - {Status}.html`, mirrored to a canonical `{task_id}.html`),
+  alongside an evolving `{task_id} - Summary.html` that keeps a per-stage highlights
+  timeline of the task's progress.
 - **Isolation per task.** The repository uses a bare shared object store with every
   branch — including `main` — checked out as its own git worktree under one container.
   Each task is worked on a short-lived `task/<id>` branch in its own dedicated worktree,
