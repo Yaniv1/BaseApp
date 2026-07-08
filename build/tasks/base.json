@@ -2604,7 +2604,7 @@
                 "Each status/stage that is concluded in such a report should be kept separately, currently the report is being overwritten but not necessarily appended to, resulting in loss of information."
             ],
             "priority": "High",
-            "status": "SpecApproved",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2630,6 +2630,11 @@
                     "author": "BASE-TASK-260703-0001 worker",
                     "content": "Specification approved by engineer (spec-review gate). Proceeding to implementation of the TaskReport generator, five stage templates, config-driven APP.TASK_MANAGER.reports.templates mapping, prep test, and instruction updates.",
                     "timestamp": "2026-07-07T06:56:14Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Implementation complete for BASE-TASK-260703-0001 (Structured HTML task summaries and reports). Added built-in TaskReport generator (Feature 6.1.19) in utils/baseutils.py; five config-driven stage templates (resources/templates/report_spec|implementation|deployment|integration|summary.html); APP.TASK_MANAGER.reports.templates config mapping; 26-criterion prep test test_task_report (Feature 5.3.1.3.9) registered as prep_task_report; requirement BASE-REQ-015 and architecture 6.1.19 + templates 11.2.3-11.2.7 + test 5.3.1.3.9; and base.md/task.md instruction updates mandating the generator with per-stage {task_id} - {Status}.html naming. Validation: prep test 26/26 PASS, all edited JSON valid, end-to-end smoke test PASS. The Ready report was itself produced by the new generator and preserved as 'BASE-TASK-260703-0001 - Ready.html' (mirrored to canonical + Summary). Note: build phase shows one pre-existing, unrelated failure (pullbase_exit_code_zero: scripts/test_deployment.ps1 passes --baseSource which pullbase.py does not accept); neither file is touched by this task. Awaiting engineer code-review approval before Deployed. No commits/pushes made.",
+                    "timestamp": "2026-07-07T07:15:58Z"
                 }
             ],
             "worker_session": {
@@ -2646,7 +2651,8 @@
                     "per_state": {
                         "InProgress": 6808,
                         "Specified": 134741,
-                        "SpecApproved": 0
+                        "SpecApproved": 0,
+                        "Ready": 0
                     }
                 }
             }
