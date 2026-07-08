@@ -2604,7 +2604,7 @@
                 "Each status/stage that is concluded in such a report should be kept separately, currently the report is being overwritten but not necessarily appended to, resulting in loss of information."
             ],
             "priority": "High",
-            "status": "Ready",
+            "status": "CodeApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2635,6 +2635,11 @@
                     "author": "BASE-TASK-260703-0001 worker",
                     "content": "Implementation complete for BASE-TASK-260703-0001 (Structured HTML task summaries and reports). Added built-in TaskReport generator (Feature 6.1.19) in utils/baseutils.py; five config-driven stage templates (resources/templates/report_spec|implementation|deployment|integration|summary.html); APP.TASK_MANAGER.reports.templates config mapping; 26-criterion prep test test_task_report (Feature 5.3.1.3.9) registered as prep_task_report; requirement BASE-REQ-015 and architecture 6.1.19 + templates 11.2.3-11.2.7 + test 5.3.1.3.9; and base.md/task.md instruction updates mandating the generator with per-stage {task_id} - {Status}.html naming. Validation: prep test 26/26 PASS, all edited JSON valid, end-to-end smoke test PASS. The Ready report was itself produced by the new generator and preserved as 'BASE-TASK-260703-0001 - Ready.html' (mirrored to canonical + Summary). Note: build phase shows one pre-existing, unrelated failure (pullbase_exit_code_zero: scripts/test_deployment.ps1 passes --baseSource which pullbase.py does not accept); neither file is touched by this task. Awaiting engineer code-review approval before Deployed. No commits/pushes made.",
                     "timestamp": "2026-07-07T07:15:58Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Code review approved by engineer (instruction: \"deploy and merge\") — Ready -> CodeApproved. Deployment prep completed: version bumped to 26.07.07.01 (resources/version/base.txt, resources/version/app.txt -> A26.07.07.01, config/base.json COMMON.VERSION); docs/readme/base.md title bumped + new Release Highlights (26.07.07.01) section; build/updates/base.json prepended with the [6.1.19] TaskReport entry; README.md overview updated in place with a \"Standardized task reports\" capability bullet. All edited JSON validated. Proceeding to request final push approval before staging/committing/pushing.",
+                    "timestamp": "2026-07-07T07:22:40Z"
                 }
             ],
             "worker_session": {
@@ -2652,7 +2657,8 @@
                         "InProgress": 6808,
                         "Specified": 134741,
                         "SpecApproved": 0,
-                        "Ready": 0
+                        "Ready": 0,
+                        "CodeApproved": 0
                     }
                 }
             }
