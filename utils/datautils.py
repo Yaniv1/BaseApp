@@ -3,6 +3,7 @@ import numpy as np
 import json
 import os
 import concurrent.futures
+import uuid
 import datetime as dt
 from typing import Any, Dict, List, Optional
 
@@ -72,7 +73,10 @@ class DataConverter:
         "all": all,
         "dict": dict,
         "list": list,
-        "tuple": tuple
+        "tuple": tuple,        
+        "uuid": uuid,
+        "chr": chr,
+        "ord": ord
     }
 
     def __init__(
