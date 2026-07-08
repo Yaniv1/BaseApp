@@ -2604,7 +2604,7 @@
                 "Each status/stage that is concluded in such a report should be kept separately, currently the report is being overwritten but not necessarily appended to, resulting in loss of information."
             ],
             "priority": "High",
-            "status": "Specified",
+            "status": "SpecApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2625,6 +2625,11 @@
                     "author": "BASE-TASK-260703-0001 worker",
                     "content": "Spec revised per engineer feedback: report templates are config-driven and stage-specific under APP.TASK_MANAGER.reports.templates = { template_file: [statuses] }, with \"*\" for an always-updated summative template. Five templates (11.2.3-11.2.7): report_spec (requirements/architecture/design), report_implementation (python/config/test files), report_deployment (versioning/documentation/build-test results), report_integration (merge issues/final versioning/overview), and report_summary (evolving overview with per-stage highlights timeline -> {task_id} - Summary.html). TaskReport gains resolve_template (.7) and update_summary (.9); requirement adds BASE-REQ-015.1 (config-driven stage templates) and .6 (summative evolving report). Regenerated the Specified report. Still awaiting spec-review approval.",
                     "timestamp": "2026-07-07T05:01:42Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Specification approved by engineer (spec-review gate). Proceeding to implementation of the TaskReport generator, five stage templates, config-driven APP.TASK_MANAGER.reports.templates mapping, prep test, and instruction updates.",
+                    "timestamp": "2026-07-07T06:56:14Z"
                 }
             ],
             "worker_session": {
@@ -2640,7 +2645,8 @@
                     "TOTAL": 141549,
                     "per_state": {
                         "InProgress": 6808,
-                        "Specified": 134741
+                        "Specified": 134741,
+                        "SpecApproved": 0
                     }
                 }
             }
