@@ -2620,6 +2620,11 @@
                     "author": "BASE-TASK-260703-0001 worker",
                     "content": "Specification ready for review. Added requirement BASE-REQ-015 (Generate Standardized HTML Task-Stage Reports, .1-.5) and architecture 6.1.19 utils.baseutils.TaskReport (methods .1-.8), template 11.2.3 resources.templates.task_report, and prep test 5.3.1.3.9 test_task_report. Design: a reusable TaskReport generator + shared task_report.html template producing every report with one fixed section order (header/stage summary, task instruction, requirements, architecture, detailed design grouped by logical category, files-changed index, per-file color-coded diffs, validation), clickable vscode://file links, and per-stage '{task_id} - {Status}.html' files (never overwritten) plus a canonical mirror. Spec report saved to the task result store (per-stage + canonical) and opened. Awaiting spec-review approval before implementing.",
                     "timestamp": "2026-07-06T23:09:46Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Spec revised per engineer feedback: report templates are config-driven and stage-specific under APP.TASK_MANAGER.reports.templates = { template_file: [statuses] }, with \"*\" for an always-updated summative template. Five templates (11.2.3-11.2.7): report_spec (requirements/architecture/design), report_implementation (python/config/test files), report_deployment (versioning/documentation/build-test results), report_integration (merge issues/final versioning/overview), and report_summary (evolving overview with per-stage highlights timeline -> {task_id} - Summary.html). TaskReport gains resolve_template (.7) and update_summary (.9); requirement adds BASE-REQ-015.1 (config-driven stage templates) and .6 (summative evolving report). Regenerated the Specified report. Still awaiting spec-review approval.",
+                    "timestamp": "2026-07-07T05:01:42Z"
                 }
             ],
             "worker_session": {
@@ -2632,10 +2637,10 @@
                 "started_at": "2026-07-06T23:00:40Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 32131,
+                    "TOTAL": 141549,
                     "per_state": {
                         "InProgress": 6808,
-                        "Specified": 25323
+                        "Specified": 134741
                     }
                 }
             }
