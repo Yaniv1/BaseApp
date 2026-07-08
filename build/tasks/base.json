@@ -2604,7 +2604,7 @@
                 "Each status/stage that is concluded in such a report should be kept separately, currently the report is being overwritten but not necessarily appended to, resulting in loss of information."
             ],
             "priority": "High",
-            "status": "Specified",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2620,6 +2620,41 @@
                     "author": "BASE-TASK-260703-0001 worker",
                     "content": "Specification ready for review. Added requirement BASE-REQ-015 (Generate Standardized HTML Task-Stage Reports, .1-.5) and architecture 6.1.19 utils.baseutils.TaskReport (methods .1-.8), template 11.2.3 resources.templates.task_report, and prep test 5.3.1.3.9 test_task_report. Design: a reusable TaskReport generator + shared task_report.html template producing every report with one fixed section order (header/stage summary, task instruction, requirements, architecture, detailed design grouped by logical category, files-changed index, per-file color-coded diffs, validation), clickable vscode://file links, and per-stage '{task_id} - {Status}.html' files (never overwritten) plus a canonical mirror. Spec report saved to the task result store (per-stage + canonical) and opened. Awaiting spec-review approval before implementing.",
                     "timestamp": "2026-07-06T23:09:46Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Spec revised per engineer feedback: report templates are config-driven and stage-specific under APP.TASK_MANAGER.reports.templates = { template_file: [statuses] }, with \"*\" for an always-updated summative template. Five templates (11.2.3-11.2.7): report_spec (requirements/architecture/design), report_implementation (python/config/test files), report_deployment (versioning/documentation/build-test results), report_integration (merge issues/final versioning/overview), and report_summary (evolving overview with per-stage highlights timeline -> {task_id} - Summary.html). TaskReport gains resolve_template (.7) and update_summary (.9); requirement adds BASE-REQ-015.1 (config-driven stage templates) and .6 (summative evolving report). Regenerated the Specified report. Still awaiting spec-review approval.",
+                    "timestamp": "2026-07-07T05:01:42Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Specification approved by engineer (spec-review gate). Proceeding to implementation of the TaskReport generator, five stage templates, config-driven APP.TASK_MANAGER.reports.templates mapping, prep test, and instruction updates.",
+                    "timestamp": "2026-07-07T06:56:14Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Implementation complete for BASE-TASK-260703-0001 (Structured HTML task summaries and reports). Added built-in TaskReport generator (Feature 6.1.19) in utils/baseutils.py; five config-driven stage templates (resources/templates/report_spec|implementation|deployment|integration|summary.html); APP.TASK_MANAGER.reports.templates config mapping; 26-criterion prep test test_task_report (Feature 5.3.1.3.9) registered as prep_task_report; requirement BASE-REQ-015 and architecture 6.1.19 + templates 11.2.3-11.2.7 + test 5.3.1.3.9; and base.md/task.md instruction updates mandating the generator with per-stage {task_id} - {Status}.html naming. Validation: prep test 26/26 PASS, all edited JSON valid, end-to-end smoke test PASS. The Ready report was itself produced by the new generator and preserved as 'BASE-TASK-260703-0001 - Ready.html' (mirrored to canonical + Summary). Note: build phase shows one pre-existing, unrelated failure (pullbase_exit_code_zero: scripts/test_deployment.ps1 passes --baseSource which pullbase.py does not accept); neither file is touched by this task. Awaiting engineer code-review approval before Deployed. No commits/pushes made.",
+                    "timestamp": "2026-07-07T07:15:58Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Code review approved by engineer (instruction: \"deploy and merge\") — Ready -> CodeApproved. Deployment prep completed: version bumped to 26.07.07.01 (resources/version/base.txt, resources/version/app.txt -> A26.07.07.01, config/base.json COMMON.VERSION); docs/readme/base.md title bumped + new Release Highlights (26.07.07.01) section; build/updates/base.json prepended with the [6.1.19] TaskReport entry; README.md overview updated in place with a \"Standardized task reports\" capability bullet. All edited JSON validated. Proceeding to request final push approval before staging/committing/pushing.",
+                    "timestamp": "2026-07-07T07:22:40Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Engineer approved push (explicit final approval). CodeApproved -> Deployed. Staged and committed the 18-file change set (code/spec/test/docs; task ledger untouched) and pushed branch BASE-TASK-260703-0001 to origin. Version 26.07.07.01. Deployment-stage report generated by the TaskReport generator itself and saved as 'BASE-TASK-260703-0001 - Deployed.html' (mirrored to canonical + Summary). Next: merge branch into main (BuildApproved -> Done).",
+                    "timestamp": "2026-07-07T17:31:00Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Engineer approved the deployed build for integration (instruction: \"deploy and merge\"). Deployed -> BuildApproved. main worktree synced with origin/main (up to date). Proceeding to merge branch BASE-TASK-260703-0001 into main (--no-ff) from the main worktree.",
+                    "timestamp": "2026-07-07T17:31:25Z"
+                },
+                {
+                    "author": "BASE-TASK-260703-0001 worker",
+                    "content": "Integration complete. Branch BASE-TASK-260703-0001 merged into main (--no-ff, merge commit 87990e8) from the main worktree and pushed to origin. Merge conflicts on resources/version/base.txt+app.txt, config/base.json (VERSION), docs/readme/base.md, build/updates/base.json, and README.md were resolved by keeping the newer 26.07.07.01 release on top while preserving main's concurrently-merged 26.07.06.02 entries (updates array rebuilt as the new 6.1.19 entry prepended to main's list, no duplicates). Merged main revalidated: prep test test_task_report 26/26 PASS, no conflict markers, all JSON valid. Final version 26.07.07.01. Integration-stage report generated by the TaskReport generator and saved as 'BASE-TASK-260703-0001 - Done.html' (canonical + Summary refreshed). Next: dissolve the task branch and worktree.",
+                    "timestamp": "2026-07-07T17:37:56Z"
                 }
             ],
             "worker_session": {
@@ -2632,10 +2667,16 @@
                 "started_at": "2026-07-06T23:00:40Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 32131,
+                    "TOTAL": 141549,
                     "per_state": {
                         "InProgress": 6808,
-                        "Specified": 25323
+                        "Specified": 134741,
+                        "SpecApproved": 0,
+                        "Ready": 0,
+                        "CodeApproved": 0,
+                        "Deployed": 0,
+                        "BuildApproved": 0,
+                        "Done": 0
                     }
                 }
             }
@@ -2685,6 +2726,36 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Requirements MCP",
                     "timestamp": "2026-07-03T18:13:13Z"
+                }
+            ]
+        },
+        {
+            "id": "BASE-TASK-260708-0001",
+            "uuid": "0a77263c-10e6-4e7b-a0a8-f21e41ede3ff",
+            "title": "Task Manager default task-file resolution ignores instance app name (always resolves to base.json)",
+            "type": "Bug",
+            "description": [
+                "Feature 3.6.17 added _default_task_filename_for_context(base_dir) in scripts/task_manager.py to pick the default ledger file: base.json for BaseApp, app.json for generated instance apps. It decides via _app_name_from_config(base_dir), which reads COMMON.APP_NAME from ONLY config/base.json.",
+                "In every instantiated app, config/base.json is a base-owned file whose COMMON.APP_NAME is permanently 'BaseApp'; the instance's real name (e.g. 'AI4EDG') lives only in config/app.json, which this code path never reads. As a result _app_name_from_config always returns 'BaseApp' and the Task Manager defaults to build/tasks/base.json instead of the instance's build/tasks/app.json.",
+                "Observed in AI4EDG (worktree APP-TASK-260707-0001): _app_name_from_config('.') == 'BaseApp' and _default_task_filename_for_context('.') == 'base.json', even though config/app.json declares APP_NAME='AI4EDG'. The tasks DIRECTORY (_default_tasks_dir_for_context) is correct (build/tasks); only the default FILE is wrong.",
+                "Single-file reads are ambiguous and cannot be fixed by simply switching to app.json: BaseApp's own config/app.json APP_NAME is the placeholder 'MyApp', so reading app.json alone would misclassify BaseApp itself (MyApp -> app.json). base.json: {BaseApp,BaseApp-in-instance} vs app.json: {MyApp-in-BaseApp, AI4EDG-in-instance}.",
+                "Fix direction: resolve the EFFECTIVE app name using the same layered config load the app uses at runtime (base -> app -> local, honouring COMMON.CONFIG_FILES from feature 6.1.4) rather than reading a single raw config file; then classify BaseApp vs instance from that merged COMMON.APP_NAME. Equivalent alternative: overlay config/app.json over config/base.json with a placeholder guard (treat 'MyApp'/'BaseApp' appropriately) so BaseApp still maps to base.json while every real instance maps to app.json. Update/extend the unit tests in test/tests/base/task_manager.py that cover the APP_NAME-based default-file resolution (base.json/app.json + folder-name fallback) to include the instance case where base.json APP_NAME='BaseApp' but app.json APP_NAME names a real instance, asserting the default resolves to app.json.",
+                "Scope note: this is a BaseApp-owned defect in scripts/task_manager.py (feature 3.6.17). It surfaced during PullBase APP-TASK-260707-0001 in the AI4EDG instance; do not patch the pulled base file in the instance (it would diverge and be overwritten by the next pull) -- fix upstream in BaseApp so it flows back via a pull. Interim workaround for instances: select build/tasks/app.json in the Task Manager UI (persisted via localStorage tm_file) or launch with --tasks-path build/tasks/app.json.",
+                "UPDATE (engineer, 2026-07-08): the interim workarounds do NOT hold. (a) --tasks-path build/tasks/app.json is silently ignored because the single-instance guard (feature 3.6.18) detects an already-running server (started from main on the default base.json) and merely re-focuses it instead of starting a new server, so the new --tasks-path argument is dropped; you must stop the existing server first. (b) Selecting app.json in the UI does not stick across a server restart: PUT /api/config rebuilds only the in-memory self.store, while run() always rebuilds initial_store from the default at boot (_choose_tasks_path -> _default_task_filename_for_context -> base.json), so every restart reverts to base.json; the client-only localStorage tm_file restore is fragile (exact option-value match) and cannot override the server's boot default.",
+                "PREFERRED FIX (engineer): make the default ledger file config-driven instead of inferred from APP_NAME. Add CONFIG.APP.TASK_MANAGER.tasks_file (and optionally tasks_dir) to config/base.json (default 'base.json') and let each instance override it in config/app.json (e.g. 'app.json'); because config load is layered base->app->local (feature 6.1.4 CONFIG_FILES), the instance override wins. Read it via _task_manager_cfg_value(store, 'tasks_file', ...) inside _choose_tasks_path/_default_task_filename_for_context, and fall back to the existing APP_NAME/folder heuristic only when the key is unset. This removes the base.json-vs-app.json ambiguity entirely (BaseApp's base.json defaults to base.json; every instance's app.json sets app.json) and also gives the server a persistent, declared default at boot so it no longer reverts. Note _task_manager_cfg_value already resolves APP.TASK_MANAGER scalars from the merged store config (task_manager.py:1628), so the plumbing exists."
+            ],
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "GitHub Copilot",
+                    "content": "Task drafted from AI4EDG PullBase APP-TASK-260707-0001 review. Root cause: _app_name_from_config reads only config/base.json (APP_NAME hard-wired to 'BaseApp' in every instance), so _default_task_filename_for_context always returns base.json for instance apps. Fix by resolving the effective (layered) COMMON.APP_NAME. Draft only -- not committed or pushed.",
+                    "timestamp": "2026-07-08T17:05:49Z"
+                },
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Additional findings: --tasks-path is ignored while a server is already running (single-instance guard just re-focuses the existing base.json server), and UI file selection reverts to base.json on server restart because the boot default is recomputed. Preferred solution: expose the default ledger file as CONFIG.APP.TASK_MANAGER.tasks_file in config/base.json and override it in each app's config/app.json, rather than inferring it from APP_NAME.",
+                    "timestamp": "2026-07-08T17:07:54Z"
                 }
             ]
         }
