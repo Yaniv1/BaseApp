@@ -353,14 +353,11 @@
                 "template": "{$HTML_TEMPLATE$}"
             },
             "open": false
-        },
+        },        
         "logs_by_type_html": {
             "store": true,
             "split": 1,
             "source": "LOGS",
-            "context": {
-                "logs": "LOGS"
-            },
             "conversions": [
                 {
                     "scope": "df",
@@ -368,7 +365,7 @@
                 },
                 {
                     "scope": "df",
-                    "op": "{t: df.get(t, [{k: None for k in pd.DataFrame(logs).columns}]) for t in ['INFO', 'GOOD', 'WARN', 'ERROR']}"
+                    "op": "{t: (df[t] if t in df else [{k: None for k in ((list(df.values()) or [[{}]])[0] or [{}])[0].keys()}]) for t in ['INFO', 'GOOD', 'WARN', 'ERROR']}"
                 }
             ],
             "path": "{$OUTPUT_PATH$}/Logs/by_type",
@@ -382,9 +379,6 @@
             "store": true,
             "split": 1,
             "source": "LOGS",
-            "context": {
-                "logs": "LOGS"
-            },
             "conversions": [
                 {
                     "scope": "df",
@@ -392,11 +386,11 @@
                 },
                 {
                     "scope": "df",
-                    "op": "{t: df.get(t, [{k: None for k in pd.DataFrame(logs).columns}]) for t in ['INFO', 'GOOD', 'WARN', 'ERROR']}"
+                    "op": "{t: (df[t] if t in df else [{k: None for k in ((list(df.values()) or [[{}]])[0] or [{}])[0].keys()}]) for t in ['INFO', 'GOOD', 'WARN', 'ERROR']}"
                 }
             ],
             "path": "{$OUTPUT_PATH$}/Logs/by_type",
-            "format": "json",            
+            "format": "json",
             "open": false
         },
         "output_map": {

@@ -144,7 +144,7 @@ class DataConverter:
 
                     if scope == "custom":
                         # Evaluate expression with the full context; no DataFrame manipulation.
-                        df = self._safe_eval(op, {})
+                        df = self._safe_eval(op, {"df": df})
                     
                     elif scope == "df":
                         df = self._safe_eval(op, {"df": df})
