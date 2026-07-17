@@ -2792,6 +2792,28 @@
                     "timestamp": "2026-07-17T17:39:01Z"
                 }
             ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260717-0003",
+            "uuid": "1d406f53-b152-46a7-a91a-c1b251452663",
+            "type": "Feature",
+            "title": "Debriefing and Self Enhancement",
+            "description": [
+                "Add instructions at the end of each task to debrief the work that was done.",
+                "Focus on what could have been done better, faster, and with less tokens, through better up-front reasoning and big-picture understanding.",
+                "Estimate the effort on tangents/parallels that was allocated as part of the task.",
+                "Add instructions to update the instructions to have each agent's lessons integrated into the flow for future tasks."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Debriefing and Self Enhancement",
+                    "timestamp": "2026-07-17T17:51:42Z"
+                }
+            ]
         }
     ]
 }
