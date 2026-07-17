@@ -1,3 +1,18 @@
+# BaseApp V-26.07.17.01
+
+Task Manager no longer shuts itself down while its browser tab is still open.
+The browser-close auto-shutdown (Feature 3.6.18) treats a tab as gone when no
+heartbeat arrives within `APP.TASK_MANAGER.browser_heartbeat_timeout` seconds.
+The previous 12 s window was routinely exceeded by a still-open but backgrounded
+tab (browsers throttle `setInterval` in hidden/minimized tabs to as slow as
+~once per minute) and by machine sleep/CPU stalls (the monotonic clock advances
+across sleep, so every session looks stale on resume), causing frequent
+spurious server shutdowns. The timeout default is raised to 90 s, which clears
+the ~60 s background-throttle floor so a backgrounded tab stays alive; a
+genuinely closed tab is still stopped within the short close-beacon grace
+(`POST /api/close`), so real closes remain prompt. Config-only change (no code
+change) in `config/base.json`.
+
 # BaseApp V-26.07.07.16
 
 DataLoader now supports an `open` flag for each `INPUT` item, which is `true` by default (for backward compatibility).
