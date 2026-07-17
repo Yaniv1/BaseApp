@@ -8,7 +8,7 @@
             "app.json": true
         },
         "APP_NAME": "BaseApp",
-        "VERSION": "26.07.07.01",
+        "VERSION": "26.07.07.16",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -145,6 +145,13 @@
             "load": true,
             "path": "build/tasks",
             "target": "tasks",
+            "format": "json"
+        },
+        "instructions": {
+            "load": true,
+            "open": false,
+            "path": "build/instructions",
+            "target": "instructions",
             "format": "json"
         }
     },

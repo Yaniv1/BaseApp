@@ -2,11 +2,10 @@ import pandas as pd
 import numpy as np
 import json
 import os
-import concurrent.futures
 import uuid
+import concurrent.futures
 import datetime as dt
 from typing import Any, Dict, List, Optional
-
 
 
 def path_join(*parts):
@@ -71,12 +70,13 @@ class DataConverter:
         "set": set,
         "any": any,
         "all": all,
+        "sorted": sorted,
         "dict": dict,
         "list": list,
-        "tuple": tuple,        
+        "tuple": tuple,
         "uuid": uuid,
         "chr": chr,
-        "ord": ord
+        "ord": ord,
     }
 
     def __init__(
@@ -207,7 +207,8 @@ class DataLoader:
         # Per-file modification timestamps from prior loads; used to detect changes in delta mode.
         self.last_modified = dict(last_modified) if isinstance(last_modified, dict) else {}
         # Delta mode flag is sourced from the input settings so it lives next to other input options.
-        self.delta = bool(self.source.get("delta", False))
+        self.delta = bool(self.source.get("delta", False))        
+        self.open = bool(self.source.get("open", True))
 
         source_path = self.source.get("path", "")
         source_format = self.source.get("format", "")
@@ -279,7 +280,13 @@ class DataLoader:
         In delta mode, only load files that are new or whose mtime changed since the last load.
         Outside delta mode, (re)load every discovered file. ``self.last_modified`` is refreshed
         for every successfully loaded file so subsequent delta calls can compare against it.
+
+        When ``open`` is False on the source, no content is read: the ``{relpath: abspath}``
+        file map discovered in ``__init__`` is returned as-is.
         """
+        if not self.open:
+            return self.file_map
+
         loaded = 0
         skipped = 0
 

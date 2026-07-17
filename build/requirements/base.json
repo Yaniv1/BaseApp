@@ -175,12 +175,18 @@
                     "description": "Verification requirement: Prep tests shall validate delta behavior for first load, unchanged cycle, modified file, and added file scenarios.",
                     "priority": "High",
                     "comments": []
+                },
+                {
+                    "id": "BASE-REQ-003.5",
+                    "description": "the loader shall map the files in the input directory and if required to open them (true by default), it will also load their contents into the runtime results.",
+                    "priority": "High",
+                    "comments": []
                 }
             ],
             "solution": [
                 {
                     "feature": "6.2.2",
-                    "role": "DataLoader implements input source scanning, file loading, and delta mtime logic.",
+                    "role": "DataLoader implements input source scanning, file mapping, file loading (if required), and delta mtime logic.",
                     "implementation": 1.0,
                     "verification": 1.0,
                     "deployment": 1.0

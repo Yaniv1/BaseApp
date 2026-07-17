@@ -1297,7 +1297,7 @@
                             "features": {
                                 "6.2.2.1": {
                                     "name": "utils.datautils.DataLoader.load",
-                                    "description": "Load files from the configured source (file or folder), honoring delta mode and updating last_modified.",
+                                    "description": "Map the files in the configured source (file or folder), load the files if required (based on the `open` flag, which is `true` by default), and honor delta mode and updating last_modified.",
                                     "type": "Folder.PyFile.Class.Method",
                                     "path": "utils/datautils.py::DataLoader.load"
                                 }

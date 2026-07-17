@@ -26,7 +26,7 @@ You use BaseApp in two roles:
 - **Structured logging.** A built-in logger writes to the console, CSV, and HTML using
   message codes (defined in `resources/message_codes/`) rather than free text, records
   caller lineage on every entry, and prints an error summary on close.
-- **Data loading & transformation.** Inputs are loaded from file or folder sources
+- **Data loading & transformation.** Input folders are mapped and files are loaded from file or folder sources
   (with optional delta/incremental scanning) and passed through a configurable
   sequence of `DataConverter` transformation steps.
 - **Output artifacts.** Results are rendered as JSON and template-based HTML, with

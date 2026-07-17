@@ -1,3 +1,8 @@
+# BaseApp V-26.07.07.16
+
+DataLoader now supports an `open` flag for each `INPUT` item, which is `true` by default (for backward compatibility).
+When `open` is `false` the DataLoader will only map the files in the input location but will not read their content.
+
 # BaseApp V-26.07.07.01
 
 BaseApp is a reusable Python foundation for app projects that need:
