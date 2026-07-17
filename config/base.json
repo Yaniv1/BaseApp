@@ -8,7 +8,7 @@
             "app.json": true
         },
         "APP_NAME": "BaseApp",
-        "VERSION": "26.07.07.16",
+        "VERSION": "26.07.17.01",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -44,7 +44,7 @@
             "single_instance": true,
             "shutdown_on_browser_close": true,
             "browser_heartbeat_seconds": 3,
-            "browser_heartbeat_timeout": 12,
+            "browser_heartbeat_timeout": 90,
             "port_base": 8765,
             "port_band_width": 10,
             "port_pool_bands": 200,
