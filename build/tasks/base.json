@@ -2767,7 +2767,7 @@
             "title": "Task manager crashes very often",
             "description": "seems like task manager KA timeouts are causing the server to shut down very often.",
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "SpecApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2778,6 +2778,11 @@
                     "author": "BASE-TASK-260717-0001 worker",
                     "content": "Started work. Monitored both running Task Managers (BaseApp:8765 PID23452, Ai4edg:8766 PID11076); both stable while foregrounded. Diagnosed frequent shutdowns as browser-heartbeat (KA) timeouts: 12s browser_heartbeat_timeout is exceeded by (a) background-tab setInterval throttling and (b) machine sleep/CPU stalls (monotonic clock jumps make _lifecycle_monitor mark all sessions stale on resume). Genuine tab-close is already handled promptly by the /api/close beacon, so the KA timeout is only a backstop and can be made tolerant.",
                     "timestamp": "2026-07-17T18:03:44Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0001 worker",
+                    "content": "Spec approved by engineer. Scope confirmed config-only: raise APP.TASK_MANAGER.browser_heartbeat_timeout 12s -> 90s in config/base.json. No requirement/architecture changes (maintenance). Proceeding to implementation-review readiness.",
+                    "timestamp": "2026-07-17T18:14:08Z"
                 }
             ],
             "worker_session": {
@@ -2790,9 +2795,10 @@
                 "started_at": "2026-07-17T17:58:03Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 15121,
+                    "TOTAL": 24860,
                     "per_state": {
-                        "InProgress": 15121
+                        "InProgress": 15121,
+                        "SpecApproved": 9739
                     }
                 }
             }
