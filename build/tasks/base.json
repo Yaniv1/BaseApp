@@ -2775,6 +2775,23 @@
                     "timestamp": "2026-07-17T17:37:20Z"
                 }
             ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260717-0002",
+            "uuid": "8d178bef-2d5b-40e6-98f0-130da4595370",
+            "type": "Feature",
+            "title": "Job Manager",
+            "description": "Make the job manager a generic service that can run any app's jobs, spin up a dedicated environment for each job (including a remote vm) and run at scale, keep track of job progress, manage job lifecycle, collect metrics, etc.",
+            "priority": "High",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Job Manager",
+                    "timestamp": "2026-07-17T17:39:01Z"
+                }
+            ]
         }
     ]
 }
