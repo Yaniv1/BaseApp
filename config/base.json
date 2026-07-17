@@ -152,7 +152,7 @@
             "open": false,
             "path": "build/instructions",
             "target": "instructions",
-            "format": "json"
+            "format": "md"
         }
     },
     "PROCESS": {
