@@ -2773,6 +2773,11 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task manager crashes very often",
                     "timestamp": "2026-07-17T17:37:20Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0001 worker",
+                    "content": "Started work. Monitored both running Task Managers (BaseApp:8765 PID23452, Ai4edg:8766 PID11076); both stable while foregrounded. Diagnosed frequent shutdowns as browser-heartbeat (KA) timeouts: 12s browser_heartbeat_timeout is exceeded by (a) background-tab setInterval throttling and (b) machine sleep/CPU stalls (monotonic clock jumps make _lifecycle_monitor mark all sessions stale on resume). Genuine tab-close is already handled promptly by the /api/close beacon, so the KA timeout is only a backstop and can be made tolerant.",
+                    "timestamp": "2026-07-17T18:03:44Z"
                 }
             ],
             "worker_session": {
@@ -2783,10 +2788,12 @@
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260717-0001",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260717-0001.md",
                 "started_at": "2026-07-17T17:58:03Z",
-                "model": null,
+                "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": null,
-                    "per_state": {}
+                    "TOTAL": 15121,
+                    "per_state": {
+                        "InProgress": 15121
+                    }
                 }
             }
         },
