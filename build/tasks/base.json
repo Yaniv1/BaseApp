@@ -2758,6 +2758,23 @@
                     "timestamp": "2026-07-08T17:07:54Z"
                 }
             ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260717-0001",
+            "uuid": "e1784b1d-649d-4d0c-9ed1-6eb224bd78a7",
+            "type": "Bug",
+            "title": "Task manager crashes very often",
+            "description": "seems like task manager KA timeouts are causing the server to shut down very often.",
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task manager crashes very often",
+                    "timestamp": "2026-07-17T17:37:20Z"
+                }
+            ]
         }
     ]
 }
