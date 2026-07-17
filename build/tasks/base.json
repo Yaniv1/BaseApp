@@ -2767,7 +2767,7 @@
             "title": "Task manager crashes very often",
             "description": "seems like task manager KA timeouts are causing the server to shut down very often.",
             "priority": "Medium",
-            "status": "SpecApproved",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2783,6 +2783,11 @@
                     "author": "BASE-TASK-260717-0001 worker",
                     "content": "Spec approved by engineer. Scope confirmed config-only: raise APP.TASK_MANAGER.browser_heartbeat_timeout 12s -> 90s in config/base.json. No requirement/architecture changes (maintenance). Proceeding to implementation-review readiness.",
                     "timestamp": "2026-07-17T18:14:08Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0001 worker",
+                    "content": "Implementation ready for review. Config-only change applied: APP.TASK_MANAGER.browser_heartbeat_timeout 12s -> 90s in config/base.json. Validation: task_manager test module 112 passed; JSON parse + value check OK (=90). No code/requirement/architecture changes. Not committed/pushed yet (awaiting code-review approval before Deployed). Report: task_results/BASE-TASK-260717-0001/BASE-TASK-260717-0001 - Ready.html.",
+                    "timestamp": "2026-07-17T18:15:26Z"
                 }
             ],
             "worker_session": {
@@ -2795,10 +2800,11 @@
                 "started_at": "2026-07-17T17:58:03Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 24860,
+                    "TOTAL": 27457,
                     "per_state": {
                         "InProgress": 15121,
-                        "SpecApproved": 9739
+                        "SpecApproved": 9739,
+                        "Ready": 2597
                     }
                 }
             }
