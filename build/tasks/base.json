@@ -2767,14 +2767,28 @@
             "title": "Task manager crashes very often",
             "description": "seems like task manager KA timeouts are causing the server to shut down very often.",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task manager crashes very often",
                     "timestamp": "2026-07-17T17:37:20Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 20460,
+                "window_title": "Task manager crashes very often (BASE-TASK-260717-0001)",
+                "mode": "work",
+                "branch": "BASE-TASK-260717-0001",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260717-0001",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260717-0001.md",
+                "started_at": "2026-07-17T17:58:03Z",
+                "model": null,
+                "tokens": {
+                    "TOTAL": null,
+                    "per_state": {}
+                }
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2812,6 +2826,26 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Debriefing and Self Enhancement",
                     "timestamp": "2026-07-17T17:51:42Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260717-0004",
+            "uuid": "641584ab-4807-4e09-9baa-cbc11d6d84ba",
+            "type": "Feature",
+            "title": "Track Task Execution Time for each task",
+            "description": [
+                "currently only token count is tracked,",
+                "we want to track how much time the session was open from the moment it was generated till the moment it was closed."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Track Task Execution Time for each task",
+                    "timestamp": "2026-07-17T18:03:01Z"
                 }
             ]
         }
