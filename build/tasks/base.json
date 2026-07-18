@@ -2885,7 +2885,7 @@
                 "we want to track how much time the session was open from the moment it was generated till the moment it was closed."
             ],
             "priority": "Medium",
-            "status": "SpecApproved",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2916,6 +2916,11 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Specification approved by the engineer. Proceeding to implementation: session-open time (elapsed/active/idle) tracking with live now-based idle, periodic 60s refresh of all open tasks (also updating tokens), progress-bar Time column, and By Time desc view.",
                     "timestamp": "2026-07-18T02:10:53Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Implementation complete: session-open time tracking (elapsed/active/idle) mirrors token accounting on worker_session. Added _now_ms/_parse_iso_ms, _accumulate_metric, extended _read_worktree_session_usage (active=Σ agentStop−userPromptSubmitted hooks; open-session idle grows to now) and _record_worker_session_usage (returns changed), and _refresh_open_task_usage driven every 60s + on server start from the status-inbox watcher (also refreshes tokens). UI: sortable Time column with active/total progress bar (label {active}/{total} in whole hours/days rounded up), detail-pane per-phase Active|Idle|Total table, By Time desc view, usage_refresh_frequency=60 config, template.json elapsed/active/idle blocks. Validation: py_compile OK, node --check on HTML JS OK, JSON valid, 121/121 task_manager tests pass; only pre-existing pullbase exit=2 failure (also on clean main) remains. Requesting Ready for code review.",
+                    "timestamp": "2026-07-18T03:14:49Z"
                 }
             ],
             "worker_session": {
@@ -2928,11 +2933,12 @@
                 "started_at": "2026-07-18T00:58:01Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 67868,
+                    "TOTAL": 112997,
                     "per_state": {
                         "InProgress": 8412,
                         "Specified": 57284,
-                        "SpecApproved": 2172
+                        "SpecApproved": 2172,
+                        "Ready": 45129
                     }
                 }
             }
