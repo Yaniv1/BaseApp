@@ -2885,7 +2885,7 @@
                 "we want to track how much time the session was open from the moment it was generated till the moment it was closed."
             ],
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2896,6 +2896,11 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Started work on BASE-TASK-260717-0004: tracking task/session execution time (session-open duration) per task and per lifecycle state, mirroring the existing token-accounting mechanism on worker_session.",
                     "timestamp": "2026-07-18T01:01:25Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Specification ready for review. Added requirement BASE-REQ-014.24 (session-open time tracking, mirroring token accounting BASE-REQ-014.22) and architecture features 3.6.17/.2 (extended) + new 3.6.17.3 (_parse_iso_ms). Design: extend _read_worktree_session_usage (total_elapsed_ms) and _record_worker_session_usage (worker_session.elapsed TOTAL+per_state) in scripts/task_manager.py; add elapsed to build/tasks/template.json; add sortable Time column + per-phase time table in the UI; add a By Time config view; add mirrored tests. Specified-stage report generated via TaskReport.",
+                    "timestamp": "2026-07-18T01:06:12Z"
                 }
             ],
             "worker_session": {
@@ -2908,9 +2913,10 @@
                 "started_at": "2026-07-18T00:58:01Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 8412,
+                    "TOTAL": 24571,
                     "per_state": {
-                        "InProgress": 8412
+                        "InProgress": 8412,
+                        "Specified": 16159
                     }
                 }
             }
