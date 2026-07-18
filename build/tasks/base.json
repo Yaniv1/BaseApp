@@ -2767,7 +2767,7 @@
             "title": "Task manager crashes very often",
             "description": "seems like task manager KA timeouts are causing the server to shut down very often.",
             "priority": "Medium",
-            "status": "CodeApproved",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2793,6 +2793,21 @@
                     "author": "BASE-TASK-260717-0001 worker",
                     "content": "Implementation approved by engineer (code-review gate). Proceeding to finalize deployment artifacts (version bump 26.07.07.16 -> 26.07.17.01, docs/readme/base.md, build/updates/base.json). Will NOT commit/push until explicit final approval to push.",
                     "timestamp": "2026-07-17T18:53:32Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0001 worker",
+                    "content": "Deployed. Committed 5 files (commit 63eaa7c) and pushed branch BASE-TASK-260717-0001 to origin. Change: config-only KA-timeout fix (APP.TASK_MANAGER.browser_heartbeat_timeout 12s -> 90s) preventing spurious Task Manager self-shutdowns while a backgrounded/throttled tab is still open or after machine sleep. Version bumped to 26.07.17.01 (app A26.07.17.01); changelog entries added to docs/readme/base.md and build/updates/base.json. Validation: task_manager tests 112/112 pass. Awaiting build/integration review (Deployed -> BuildApproved) before merge to main.",
+                    "timestamp": "2026-07-17T19:01:27Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0001 worker",
+                    "content": "Deployed build approved by engineer (build/integration-review gate). Proceeding to merge branch BASE-TASK-260717-0001 into main under engineer supervision, then set Done.",
+                    "timestamp": "2026-07-17T21:26:04Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0001 worker",
+                    "content": "Done. Branch BASE-TASK-260717-0001 (commit 63eaa7c) merged into main via no-ff merge commit 3ac51e4 and pushed to origin (02036e1..3ac51e4), under engineer supervision with no conflicts (disjoint file sets: branch touched config/version/docs/updates; main had only ledger commits). KA-timeout fix is now integrated into main. Branch/worktree dissolution left to the launcher/integration tooling (worker is still running inside the task worktree).",
+                    "timestamp": "2026-07-17T21:27:42Z"
                 }
             ],
             "worker_session": {
@@ -2805,12 +2820,15 @@
                 "started_at": "2026-07-17T17:58:03Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 32322,
+                    "TOTAL": 68535,
                     "per_state": {
                         "InProgress": 15121,
                         "SpecApproved": 9739,
                         "Ready": 2597,
-                        "CodeApproved": 4865
+                        "CodeApproved": 4865,
+                        "Deployed": 7762,
+                        "BuildApproved": 23443,
+                        "Done": 5008
                     }
                 }
             }
@@ -2871,6 +2889,29 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Track Task Execution Time for each task",
                     "timestamp": "2026-07-17T18:03:01Z"
+                }
+            ]
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260717-0005",
+            "uuid": "2faa56da-5740-439f-bc9d-5f83fbb1ec86",
+            "type": "Bug",
+            "title": "Task Manager ledger git-sync fails when the server worktree differs from the ledger worktree",
+            "description": [
+                "The status-inbox git-sync fails with 'Ledger file not found in working tree: <worktree>/base.json' whenever the Task Manager server was launched in one git worktree (its base_dir, e.g. a task worktree) but the ledger it edits lives in a different worktree (e.g. main/build/tasks/base.json).",
+                "Root cause: scripts/task_manager.py _sync_task_store_to_git derives repo_root from base_dir via _detect_git_repo(base_dir), then computes task_rel = task_path.relative_to(repo_root). When the ledger is not under base_dir's worktree, relative_to raises ValueError and the fallback 'task_rel = Path(task_path.name)' silently drops the 'build/tasks/' prefix, so scripts/sync_task_repo.ps1 joins repo_root + 'base.json' and cannot find the ledger.",
+                "The status update itself is still applied to the local ledger (non-fatal), but the ledger commit/push to the remote ledger branch is skipped for that cycle.",
+                "Proposed fix: anchor the sync on the ledger's own repository/worktree, i.e. detect repo_root from task_path.parent (the directory that actually contains the ledger) instead of base_dir, so task_path.relative_to(repo_root) is always valid and yields build/tasks/base.json. Optionally harden sync_task_repo.ps1 to fail clearly (or search) when the joined ledger path is missing. Verified: git rev-parse --show-toplevel from main/build/tasks resolves to .../main and relative_to yields build/tasks/base.json.",
+                "Add/adjust a unit test in test/tests/base/task_manager.py covering the cross-worktree ledger path (server base_dir in worktree A, ledger in worktree B) so task_rel keeps the build/tasks/ prefix."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Task Manager ledger git-sync fails when the server worktree differs from the ledger worktree",
+                    "timestamp": "2026-07-17T19:09:10Z"
                 }
             ]
         }
