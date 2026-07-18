@@ -2906,6 +2906,11 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Spec updated to include the engineer's stretch: split session-open time into ACTIVE vs IDLE. Active = worker working a turn = sum(agentStop - preceding userPromptSubmitted hooks); Idle = open span - active (waiting for the engineer between turns, plus the lingering tail after work is done, realized once shutdown/next event is logged). worker_session gains elapsed/active/idle {TOTAL, per_state}; detail pane shows per-phase Active|Idle|Total. Requirement BASE-REQ-014.24 and architecture 3.6.17 updated; added helpers _parse_iso_ms (3.6.17.3) and _accumulate_metric (3.6.17.4). Awaiting spec approval.",
                     "timestamp": "2026-07-18T01:16:26Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Spec refined per engineer feedback: (1) still-open sessions use the CURRENT time as their effective end, so idle time waiting for the engineer / lingering after done grows live against the wall clock; (2) a periodic refresh (_refresh_open_task_usage) recomputes model/token/time for all open tasks on server start and every APP.TASK_MANAGER.usage_refresh_frequency seconds (default 60), driven from the status-inbox watcher loop and saved to the ledger the server serves; (3) the Time column renders a fixed-width progress bar (fill = active/total%, label {active}/{total} in whole hours or days rounded up); (4) By Time view sorts descending. Requirement BASE-REQ-014.24, architecture 3.6.17 (+new 3.6.17.5), and config updated; Specified report regenerated. Awaiting spec approval.",
+                    "timestamp": "2026-07-18T01:37:35Z"
                 }
             ],
             "worker_session": {
@@ -2918,10 +2923,10 @@
                 "started_at": "2026-07-18T00:58:01Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 42719,
+                    "TOTAL": 65696,
                     "per_state": {
                         "InProgress": 8412,
-                        "Specified": 34307
+                        "Specified": 57284
                     }
                 }
             }
