@@ -2885,7 +2885,7 @@
                 "we want to track how much time the session was open from the moment it was generated till the moment it was closed."
             ],
             "priority": "Medium",
-            "status": "Specified",
+            "status": "SpecApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2911,6 +2911,11 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Spec refined per engineer feedback: (1) still-open sessions use the CURRENT time as their effective end, so idle time waiting for the engineer / lingering after done grows live against the wall clock; (2) a periodic refresh (_refresh_open_task_usage) recomputes model/token/time for all open tasks on server start and every APP.TASK_MANAGER.usage_refresh_frequency seconds (default 60), driven from the status-inbox watcher loop and saved to the ledger the server serves; (3) the Time column renders a fixed-width progress bar (fill = active/total%, label {active}/{total} in whole hours or days rounded up); (4) By Time view sorts descending. Requirement BASE-REQ-014.24, architecture 3.6.17 (+new 3.6.17.5), and config updated; Specified report regenerated. Awaiting spec approval.",
                     "timestamp": "2026-07-18T01:37:35Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Specification approved by the engineer. Proceeding to implementation: session-open time (elapsed/active/idle) tracking with live now-based idle, periodic 60s refresh of all open tasks (also updating tokens), progress-bar Time column, and By Time desc view.",
+                    "timestamp": "2026-07-18T02:10:53Z"
                 }
             ],
             "worker_session": {
@@ -2923,10 +2928,11 @@
                 "started_at": "2026-07-18T00:58:01Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 65696,
+                    "TOTAL": 67868,
                     "per_state": {
                         "InProgress": 8412,
-                        "Specified": 57284
+                        "Specified": 57284,
+                        "SpecApproved": 2172
                     }
                 }
             }
