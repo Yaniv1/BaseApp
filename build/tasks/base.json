@@ -1973,7 +1973,7 @@
             ],
             "type": "Bug",
             "priority": "High",
-            "status": "Done",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "BASE-TASK-260626-0001 worker",
@@ -2002,12 +2002,14 @@
                 }
             ],
             "worker_session": {
-                "pid": 40432,
+                "pid": 21556,
                 "window_title": "Task Manager status-sync must commit only the task ledger, not sweep worker changes via git add -A (BASE-TASK-260626-0001)",
                 "mode": "work",
-                "branch": "task/BASE-TASK-260626-0001",
-                "prompt_file": "C:/data/MyApp/20260626/task_prompts/BASE-TASK-260626-0001.md",
-                "started_at": "2026-06-26T18:56:37Z",
+                "branch": "BASE-TASK-260626-0001",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0001",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260626-0001.md",
+                "started_at": "2026-07-18T00:56:36Z",
+                "model": null,
                 "tokens": {
                     "TOTAL": null,
                     "per_state": {}
@@ -2883,14 +2885,28 @@
                 "we want to track how much time the session was open from the moment it was generated till the moment it was closed."
             ],
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Track Task Execution Time for each task",
                     "timestamp": "2026-07-17T18:03:01Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 8612,
+                "window_title": "Track Task Execution Time for each task (BASE-TASK-260717-0004)",
+                "mode": "work",
+                "branch": "BASE-TASK-260717-0004",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260717-0004",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260717-0004.md",
+                "started_at": "2026-07-18T00:58:01Z",
+                "model": null,
+                "tokens": {
+                    "TOTAL": null,
+                    "per_state": {}
+                }
+            }
         },
         {
             "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2906,14 +2922,35 @@
                 "Add/adjust a unit test in test/tests/base/task_manager.py covering the cross-worktree ledger path (server base_dir in worktree A, ledger in worktree B) so task_rel keeps the build/tasks/ prefix."
             ],
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "InProgress",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Task Manager ledger git-sync fails when the server worktree differs from the ledger worktree",
                     "timestamp": "2026-07-17T19:09:10Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0005 worker",
+                    "content": "Started implementation: anchoring ledger git-sync on the ledger's own worktree so cross-worktree syncs keep the build/tasks/ prefix.",
+                    "timestamp": "2026-07-18T00:58:41Z"
                 }
-            ]
+            ],
+            "worker_session": {
+                "pid": 18164,
+                "window_title": "Task Manager ledger git-sync fails when the server worktree differs from the ledger worktree (BASE-TASK-260717-0005)",
+                "mode": "work",
+                "branch": "BASE-TASK-260717-0005",
+                "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260717-0005",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260717-0005.md",
+                "started_at": "2026-07-18T00:57:26Z",
+                "model": "claude-opus-4.8",
+                "tokens": {
+                    "TOTAL": 2895,
+                    "per_state": {
+                        "InProgress": 2895
+                    }
+                }
+            }
         }
     ]
 }
