@@ -2929,7 +2929,7 @@
                 "Add/adjust a unit test in test/tests/base/task_manager.py covering the cross-worktree ledger path (server base_dir in worktree A, ledger in worktree B) so task_rel keeps the build/tasks/ prefix."
             ],
             "priority": "Medium",
-            "status": "InProgress",
+            "status": "Specified",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2940,6 +2940,11 @@
                     "author": "BASE-TASK-260717-0005 worker",
                     "content": "Started implementation: anchoring ledger git-sync on the ledger's own worktree so cross-worktree syncs keep the build/tasks/ prefix.",
                     "timestamp": "2026-07-18T00:58:41Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0005 worker",
+                    "content": "Spec ready for review. Root cause: _sync_task_store_to_git derived repo_root from base_dir, so when the ledger lives in a different worktree, task_path.relative_to(repo_root) raised ValueError and the fallback dropped the build/tasks/ prefix. Fix: resolve task_path first and detect the repo from task_path.parent (the ledger's own worktree) so task_rel always stays build/tasks/base.json. Added regression test test_sync_task_store_keeps_ledger_prefix_across_worktrees (server base_dir in worktree A, ledger in worktree B). Validation: 5 sync tests + new test pass. No commits/pushes made. Specified report generated via TaskReport. Awaiting spec-review approval.",
+                    "timestamp": "2026-07-18T01:01:51Z"
                 }
             ],
             "worker_session": {
@@ -2952,9 +2957,10 @@
                 "started_at": "2026-07-18T00:57:26Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 2895,
+                    "TOTAL": 12071,
                     "per_state": {
-                        "InProgress": 2895
+                        "InProgress": 2895,
+                        "Specified": 9176
                     }
                 }
             }
