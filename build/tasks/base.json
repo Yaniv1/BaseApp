@@ -2901,6 +2901,11 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Specification ready for review. Added requirement BASE-REQ-014.24 (session-open time tracking, mirroring token accounting BASE-REQ-014.22) and architecture features 3.6.17/.2 (extended) + new 3.6.17.3 (_parse_iso_ms). Design: extend _read_worktree_session_usage (total_elapsed_ms) and _record_worker_session_usage (worker_session.elapsed TOTAL+per_state) in scripts/task_manager.py; add elapsed to build/tasks/template.json; add sortable Time column + per-phase time table in the UI; add a By Time config view; add mirrored tests. Specified-stage report generated via TaskReport.",
                     "timestamp": "2026-07-18T01:06:12Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Spec updated to include the engineer's stretch: split session-open time into ACTIVE vs IDLE. Active = worker working a turn = sum(agentStop - preceding userPromptSubmitted hooks); Idle = open span - active (waiting for the engineer between turns, plus the lingering tail after work is done, realized once shutdown/next event is logged). worker_session gains elapsed/active/idle {TOTAL, per_state}; detail pane shows per-phase Active|Idle|Total. Requirement BASE-REQ-014.24 and architecture 3.6.17 updated; added helpers _parse_iso_ms (3.6.17.3) and _accumulate_metric (3.6.17.4). Awaiting spec approval.",
+                    "timestamp": "2026-07-18T01:16:26Z"
                 }
             ],
             "worker_session": {
@@ -2913,10 +2918,10 @@
                 "started_at": "2026-07-18T00:58:01Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 24571,
+                    "TOTAL": 42719,
                     "per_state": {
                         "InProgress": 8412,
-                        "Specified": 16159
+                        "Specified": 34307
                     }
                 }
             }
