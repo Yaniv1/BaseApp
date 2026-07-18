@@ -2935,7 +2935,7 @@
                 "Add/adjust a unit test in test/tests/base/task_manager.py covering the cross-worktree ledger path (server base_dir in worktree A, ledger in worktree B) so task_rel keeps the build/tasks/ prefix."
             ],
             "priority": "Medium",
-            "status": "SpecApproved",
+            "status": "Ready",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2956,6 +2956,11 @@
                     "author": "BASE-TASK-260717-0005 worker",
                     "content": "Spec approved by engineer (spec-review gate). Implementation is already complete; proceeding to Ready for code review.",
                     "timestamp": "2026-07-18T01:08:55Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0005 worker",
+                    "content": "Implementation ready for code review. scripts/task_manager.py._sync_task_store_to_git now resolves task_path first and detects the repo from task_path.parent (the ledger's own worktree), so task_rel always stays build/tasks/base.json across worktrees. Added regression test test_sync_task_store_keeps_ledger_prefix_across_worktrees. Validation: targeted sync tests (5) + new test pass. Ready-stage report generated via TaskReport. No commits/pushes made. Awaiting code-review approval.",
+                    "timestamp": "2026-07-18T01:09:15Z"
                 }
             ],
             "worker_session": {
@@ -2968,11 +2973,12 @@
                 "started_at": "2026-07-18T00:57:26Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 13135,
+                    "TOTAL": 13713,
                     "per_state": {
                         "InProgress": 2895,
                         "Specified": 9176,
-                        "SpecApproved": 1064
+                        "SpecApproved": 1064,
+                        "Ready": 578
                     }
                 }
             }
