@@ -2891,6 +2891,11 @@
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
                     "content": "Task created: Track Task Execution Time for each task",
                     "timestamp": "2026-07-17T18:03:01Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Started work on BASE-TASK-260717-0004: tracking task/session execution time (session-open duration) per task and per lifecycle state, mirroring the existing token-accounting mechanism on worker_session.",
+                    "timestamp": "2026-07-18T01:01:25Z"
                 }
             ],
             "worker_session": {
@@ -2901,10 +2906,12 @@
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260717-0004",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260717-0004.md",
                 "started_at": "2026-07-18T00:58:01Z",
-                "model": null,
+                "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": null,
-                    "per_state": {}
+                    "TOTAL": 8412,
+                    "per_state": {
+                        "InProgress": 8412
+                    }
                 }
             }
         },
