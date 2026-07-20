@@ -872,6 +872,61 @@ def test_sync_task_store_launches_sync_window_even_when_task_file_is_clean(monke
     assert launched
 
 
+def test_sync_task_store_keeps_ledger_prefix_across_worktrees(monkeypatch, tmp_path):
+    """Regression: the server base_dir and the ledger may live in different git
+    worktrees. The sync must anchor on the ledger's OWN worktree so ``task_rel``
+    keeps the ``build/tasks/`` prefix instead of collapsing to ``base.json``.
+    """
+    # Worktree A: the server's base_dir (a task worktree).
+    worktree_a = tmp_path / "BASE-TASK-260717-0005"
+    worktree_a.mkdir()
+    # Worktree B: where the ledger actually lives (e.g. the main worktree).
+    worktree_b = tmp_path / "main"
+    ledger_path = worktree_b / "build" / "tasks" / "base.json"
+    ledger_path.parent.mkdir(parents=True, exist_ok=True)
+    ledger_path.write_text("{}", encoding="utf-8")
+
+    class DummyStore:
+        base_dir = worktree_a
+        tasks_path = ledger_path
+
+    class DummyResult:
+        def __init__(self, stdout="", stderr="", returncode=0):
+            self.stdout = stdout
+            self.stderr = stderr
+            self.returncode = returncode
+
+    def fake_run_git_command(repo_root, *args, check=False):
+        if args[:2] == ("rev-parse", "--show-toplevel"):
+            # The repo must be detected from the ledger's directory (worktree B),
+            # never from the server's base_dir (worktree A).
+            assert Path(repo_root).resolve() == (worktree_b / "build" / "tasks").resolve()
+            return DummyResult(stdout=str(worktree_b.resolve()) + "\n")
+        if args[:2] == ("remote", "get-url"):
+            return DummyResult(stdout="https://example.com/repo.git\n")
+        if args[:2] == ("status", "--porcelain"):
+            return DummyResult(stdout="")
+        return DummyResult(stdout="")
+
+    captured = {}
+
+    def fake_run(cmd, *args, **kwargs):
+        captured["cmd"] = cmd
+        return DummyResult(returncode=0)
+
+    monkeypatch.setattr(task_manager, "_run_git_command", fake_run_git_command)
+    monkeypatch.setattr(task_manager.subprocess, "run", fake_run)
+
+    result = task_manager._sync_task_store_to_git(DummyStore(), message="test", headless=True)
+
+    assert result["success"] is True
+    cmd = captured["cmd"]
+    # The ledger path passed to the sync script must retain the build/tasks/
+    # prefix (posix), not collapse to just the file name.
+    task_file = cmd[cmd.index("-TaskFile") + 1]
+    assert task_file == "build/tasks/base.json"
+
+
 def test_sync_selected_app_on_startup_syncs_only_selected_store(monkeypatch, tmp_path):
     source_tasks = Path(__file__).resolve().parents[3] / "build" / "tasks" / "base.json"
     selected = tmp_path / "base.json"

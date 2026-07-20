@@ -858,12 +858,21 @@ def _resolve_ledger_branch(store):
 
 def _sync_task_store_to_git(store, message=None, wait=False, headless=False, branch=None):
     base_dir = _get_store_base_dir(store)
-    repo_info = _detect_git_repo(base_dir)
+    task_path = Path(getattr(store, "tasks_path", base_dir / "tasks.json")).resolve()
+    # Anchor the sync on the ledger's OWN repository/worktree rather than on the
+    # server's base_dir. The Task Manager server may be launched inside one git
+    # worktree (its base_dir, e.g. a task worktree) while the ledger it edits
+    # lives in a different worktree (e.g. main/build/tasks/base.json). Detecting
+    # the repo from base_dir would then make task_path.relative_to(repo_root)
+    # raise ValueError, and the old fallback silently dropped the build/tasks/
+    # prefix so the sync script could not find the ledger. Detecting the repo
+    # from the directory that actually contains the ledger guarantees task_path
+    # is always under repo_root and yields build/tasks/base.json.
+    repo_info = _detect_git_repo(task_path.parent)
     if not repo_info["repo_available"]:
         raise RuntimeError("No linked git repo is available for this working directory.")
 
     repo_root = repo_info["repo_root"]
-    task_path = Path(getattr(store, "tasks_path", base_dir / "tasks.json")).resolve()
     try:
         task_rel = task_path.relative_to(repo_root)
     except ValueError:
