@@ -1283,7 +1283,7 @@
             ],
             "type": "Feature",
             "priority": "Medium",
-            "status": "ToDo",
+            "status": "Deleted",
             "comments": []
         },
         {
@@ -1414,7 +1414,7 @@
             ],
             "type": "Feature",
             "priority": "High",
-            "status": "ToDo",
+            "status": "Deleted",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -3016,6 +3016,28 @@
                     }
                 }
             }
+        },
+        {
+            "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+            "id": "BASE-TASK-260721-0001",
+            "uuid": "aac1f6f7-5825-4a2f-8520-a744498ae9bf",
+            "type": "Feature",
+            "title": "Request-level concurrency",
+            "description": [
+                "Switch from asset level concurrency to request level concurrency.",
+                "Currently each worker handles one asset but asset requests are handled serially.",
+                "This causes each cycle having a long tail waiting for the longest asset in the chunk.",
+                "If we line up all the requests into a single queue, after the smaller assets in the chunk are done, their workers can help with the requests for the bigger assets."
+            ],
+            "priority": "Medium",
+            "status": "ToDo",
+            "comments": [
+                {
+                    "author": "Yaniv Mordecai <ymordecai@gmail.com>",
+                    "content": "Task created: Request-level concurrency",
+                    "timestamp": "2026-07-21T18:12:33Z"
+                }
+            ]
         }
     ]
 }
