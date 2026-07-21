@@ -2964,7 +2964,7 @@
                 "Add/adjust a unit test in test/tests/base/task_manager.py covering the cross-worktree ledger path (server base_dir in worktree A, ledger in worktree B) so task_rel keeps the build/tasks/ prefix."
             ],
             "priority": "Medium",
-            "status": "Deployed",
+            "status": "BuildApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -3000,6 +3000,11 @@
                     "author": "BASE-TASK-260717-0005 worker",
                     "content": "Deployed: change finalized and pushed to branch BASE-TASK-260717-0005 (commit f750d6f). Fix anchors _sync_task_store_to_git on the ledger's own worktree (task_path.parent) so cross-worktree syncs keep the build/tasks/ prefix; regression test added. Deployed-stage report generated via TaskReport. Awaiting build/integration-review approval.",
                     "timestamp": "2026-07-20T15:45:38Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0005 worker",
+                    "content": "Build/integration-review approved by engineer. Proceeding to merge branch BASE-TASK-260717-0005 into main.",
+                    "timestamp": "2026-07-21T16:46:17Z"
                 }
             ],
             "worker_session": {
@@ -3012,14 +3017,15 @@
                 "started_at": "2026-07-18T00:57:26Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 16813,
+                    "TOTAL": 21361,
                     "per_state": {
                         "InProgress": 2895,
                         "Specified": 9176,
                         "SpecApproved": 1064,
                         "Ready": 578,
                         "CodeApproved": 1038,
-                        "Deployed": 2062
+                        "Deployed": 2062,
+                        "BuildApproved": 4548
                     }
                 }
             }
