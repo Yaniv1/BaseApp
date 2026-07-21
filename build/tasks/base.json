@@ -2964,7 +2964,7 @@
                 "Add/adjust a unit test in test/tests/base/task_manager.py covering the cross-worktree ledger path (server base_dir in worktree A, ledger in worktree B) so task_rel keeps the build/tasks/ prefix."
             ],
             "priority": "Medium",
-            "status": "BuildApproved",
+            "status": "Done",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -3005,6 +3005,11 @@
                     "author": "BASE-TASK-260717-0005 worker",
                     "content": "Build/integration-review approved by engineer. Proceeding to merge branch BASE-TASK-260717-0005 into main.",
                     "timestamp": "2026-07-21T16:46:17Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0005 worker",
+                    "content": "Done: branch BASE-TASK-260717-0005 merged into main (merge commit d2c536e) and pushed to origin. The cross-worktree ledger git-sync fix and its regression test are now on main. Integration (Done) report generated via TaskReport. No merge conflicts; the ledger was untouched by the merge.",
+                    "timestamp": "2026-07-21T16:47:24Z"
                 }
             ],
             "worker_session": {
@@ -3025,7 +3030,8 @@
                         "Ready": 578,
                         "CodeApproved": 1038,
                         "Deployed": 2062,
-                        "BuildApproved": 4548
+                        "BuildApproved": 4548,
+                        "Done": 0
                     }
                 }
             }
