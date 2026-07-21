@@ -1973,7 +1973,7 @@
             ],
             "type": "Bug",
             "priority": "High",
-            "status": "InProgress",
+            "status": "Done",
             "comments": [
                 {
                     "author": "BASE-TASK-260626-0001 worker",
@@ -1999,6 +1999,11 @@
                     "author": "BASE-TASK-260626-0001 worker",
                     "content": "Integration complete. Engineer approved deployment. Task branch task/BASE-TASK-260626-0001 merged into main via no-ff merge commit 545560d (8cd47a2..545560d pushed to origin/main). The short-lived task branch was deleted locally and on origin. Shipped fix: headless status-sync now commits ONLY the task ledger (build/tasks/base.json) via an isolated detached worktree against origin/main, never sweeping the worker's uncommitted changes or running autostash/rebase in the primary working tree (v26.06.26.01).",
                     "timestamp": "2026-06-26T19:32:29Z"
+                },
+                {
+                    "author": "BASE-TASK-260626-0001 worker",
+                    "content": "Reconciliation close-out: the status-sync ledger-isolation fix is already implemented and merged into main (isolated detached ledger-sync worktree in scripts/sync_task_repo.ps1; _resolve_ledger_branch + branch wiring in scripts/task_manager.py; APP.TASK_MANAGER.ledger_branch in config/base.json; regression test test_sync_task_repo_isolates_ledger_commit_from_worker_tree passes). The re-launched worktree branch BASE-TASK-260626-0001 had zero unique commits (fully contained in main, tip a40d822 is an ancestor of current main). Setting status to Done and dissolving the short-lived branch/worktree per engineer instruction.",
+                    "timestamp": "2026-07-21T16:19:04Z"
                 }
             ],
             "worker_session": {
@@ -2009,10 +2014,12 @@
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260626-0001",
                 "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260626-0001.md",
                 "started_at": "2026-07-18T00:56:36Z",
-                "model": null,
+                "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": null,
-                    "per_state": {}
+                    "TOTAL": 11644,
+                    "per_state": {
+                        "Done": 11644
+                    }
                 }
             }
         },
