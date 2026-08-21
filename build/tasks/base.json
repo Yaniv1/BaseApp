@@ -2928,24 +2928,29 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Implementation complete: session-open time tracking (elapsed/active/idle) mirrors token accounting on worker_session. Added _now_ms/_parse_iso_ms, _accumulate_metric, extended _read_worktree_session_usage (active=Σ agentStop−userPromptSubmitted hooks; open-session idle grows to now) and _record_worker_session_usage (returns changed), and _refresh_open_task_usage driven every 60s + on server start from the status-inbox watcher (also refreshes tokens). UI: sortable Time column with active/total progress bar (label {active}/{total} in whole hours/days rounded up), detail-pane per-phase Active|Idle|Total table, By Time desc view, usage_refresh_frequency=60 config, template.json elapsed/active/idle blocks. Validation: py_compile OK, node --check on HTML JS OK, JSON valid, 121/121 task_manager tests pass; only pre-existing pullbase exit=2 failure (also on clean main) remains. Requesting Ready for code review.",
                     "timestamp": "2026-07-18T03:14:49Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Engineering review adjustment requested: simplify BASE-TASK-260717-0004 to a single start-to-finish elapsed duration showing how long the task/session was open. Calculate from the session start until shutdown; if still open, calculate through the current time. Display the result in days, hours, and minutes. Active/idle splitting, per-state timing, progress bars, and other expanded timing behavior are not required for now. Keep the task in Ready pending these revisions.",
+                    "timestamp": "2026-08-21T23:05:38Z"
                 }
             ],
             "worker_session": {
-                "pid": 8612,
+                "pid": 22332,
                 "window_title": "Track Task Execution Time for each task (BASE-TASK-260717-0004)",
-                "mode": "work",
-                "branch": "BASE-TASK-260717-0004",
+                "mode": "review",
+                "branch": null,
                 "worktree": "C:/Users/ymordecai/Code/BaseApp/BASE-TASK-260717-0004",
-                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260717-0004.md",
-                "started_at": "2026-07-18T00:58:01Z",
+                "prompt_file": "C:/data/MyApp/task_prompts/BASE-TASK-260717-0004-review.md",
+                "started_at": "2026-08-21T22:46:16Z",
                 "model": "claude-opus-4.8",
                 "tokens": {
-                    "TOTAL": 112997,
+                    "TOTAL": 113514,
                     "per_state": {
                         "InProgress": 8412,
                         "Specified": 57284,
                         "SpecApproved": 2172,
-                        "Ready": 45129
+                        "Ready": 45646
                     }
                 }
             }
