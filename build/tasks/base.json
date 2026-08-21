@@ -2933,6 +2933,11 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Engineering review adjustment requested: simplify BASE-TASK-260717-0004 to a single start-to-finish elapsed duration showing how long the task/session was open. Calculate from the session start until shutdown; if still open, calculate through the current time. Display the result in days, hours, and minutes. Active/idle splitting, per-state timing, progress bars, and other expanded timing behavior are not required for now. Keep the task in Ready pending these revisions.",
                     "timestamp": "2026-08-21T23:05:38Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Implemented the requested simplified scope while keeping the task in Ready: one elapsed duration from the earliest matching session.start through the latest session.shutdown, or through the current time while any matching session remains open. The Task Manager displays a plain sortable Time value as days/hours/minutes. Removed active/idle splitting, per-state timing, progress bars, periodic ledger writes, and the By Time built-in view. Existing worker sessions are enriched through one batched event-log scan per task-list API load. Focused validation passes (119 Task Manager tests), and final code review found no significant issues.",
+                    "timestamp": "2026-08-21T23:23:16Z"
                 }
             ],
             "worker_session": {
