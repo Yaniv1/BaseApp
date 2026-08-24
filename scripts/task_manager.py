@@ -1108,6 +1108,36 @@ def _normalise_path_key(path):
         return str(path).replace("\\", "/").rstrip("/").lower()
 
 
+def _now_ms():
+    """Current wall-clock time in epoch milliseconds."""
+    return int(time.time() * 1000)
+
+
+# Feature 3.6.17.3
+def _parse_iso_ms(value):
+    """Feature ID: 3.6.17.3. Parse an ISO-8601 timestamp into epoch milliseconds.
+
+    Accepts the event-log form (e.g. ``2026-06-24T19:40:37.641Z``) including a
+    trailing ``Z`` (UTC) and explicit offsets. Returns an ``int`` number of
+    milliseconds since the epoch, or ``None`` when the value is
+    missing/malformed so the caller can keep timing best-effort.
+    """
+    if not isinstance(value, str):
+        return None
+    text = value.strip()
+    if not text:
+        return None
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    try:
+        parsed = dt.datetime.fromisoformat(text)
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt.timezone.utc)
+    return int(parsed.timestamp() * 1000)
+
+
 # Feature 3.6.17.1
 def _resolve_session_state_dir(store=None):
     """Feature ID: 3.6.17.1. Resolve the Copilot CLI session-state directory.
@@ -1126,33 +1156,55 @@ def _resolve_session_state_dir(store=None):
 
 
 # Feature 3.6.17.2
-def _read_worktree_session_usage(session_state_dir, worktree_path):
-    """Feature ID: 3.6.17.2. Sum Copilot output-token usage for a task's worktree.
+def _read_worktree_session_usages(session_state_dir, worktree_paths, now_ms=None):
+    """Feature ID: 3.6.17.2. Read usage for multiple worktrees in one scan.
 
     Scans each ``<session>/events.jsonl`` under ``session_state_dir``, selects
-    sessions whose ``session.start`` context cwd matches ``worktree_path``
+    sessions whose ``session.start`` context cwd matches one of ``worktree_paths``
     (normalised), sums the ``assistant.message`` ``outputTokens`` for the
-    cumulative total, and captures the latest model (assistant.message.model /
-    session.model_change.newModel). Returns ``{"model": str|None,
-    "total_tokens": int, "matched": bool}`` where ``matched`` distinguishes "no
-    session found for this worktree" (blank/null usage) from a genuine zero.
-    Robust to missing dirs and malformed lines (skipped).
+    cumulative token total, captures the latest model, and measures the task's
+    open time from its earliest matching ``session.start`` until the latest
+    ``session.shutdown``. If any matching session remains open, the effective
+    end is ``now_ms`` (the current wall clock). Returns the start/end timestamps
+    and total elapsed milliseconds alongside the existing model/token values.
+    Missing directories and malformed lines/timestamps are skipped.
     """
-    result = {"model": None, "total_tokens": 0, "matched": False}
-    if not session_state_dir or not worktree_path:
-        return result
+    def empty_usage():
+        return {
+            "model": None,
+            "total_tokens": 0,
+            "total_elapsed_ms": 0,
+            "started_at_ms": None,
+            "ended_at_ms": None,
+            "matched": False,
+        }
+
+    targets = {
+        _normalise_path_key(path)
+        for path in worktree_paths or []
+        if path
+    }
+    results = {target: empty_usage() for target in targets}
+    if not session_state_dir or not targets:
+        return results
     root = Path(session_state_dir)
     if not root.is_dir():
-        return result
-    target = _normalise_path_key(worktree_path)
+        return results
+    timing = {
+        target: {"earliest_start": None, "latest_shutdown": None, "any_open": False}
+        for target in targets
+    }
 
     for session_dir in sorted(root.iterdir()):
         events = session_dir / "events.jsonl"
         if not events.is_file():
             continue
-        matches = False
+        matched_target = None
         session_total = 0
         session_model = None
+        start_ts = None
+        shutdown_ts = None
+        session_open = False
         try:
             with events.open("r", encoding="utf-8", errors="replace") as handle:
                 for line in handle:
@@ -1169,10 +1221,20 @@ def _read_worktree_session_usage(session_state_dir, worktree_path):
                     data = event.get("data") or {}
                     if not isinstance(data, dict):
                         continue
+
+                    ts = _parse_iso_ms(event.get("timestamp"))
+
                     if etype == "session.start":
                         cwd = (data.get("context") or {}).get("cwd") or data.get("cwd")
-                        if cwd and _normalise_path_key(cwd) == target:
-                            matches = True
+                        cwd_key = _normalise_path_key(cwd) if cwd else None
+                        if cwd_key in targets:
+                            matched_target = cwd_key
+                            session_open = True
+                            if ts is not None and (start_ts is None or ts < start_ts):
+                                start_ts = ts
+                    elif etype == "session.resume":
+                        if matched_target is not None:
+                            session_open = True
                     elif etype == "assistant.message":
                         tok = data.get("outputTokens")
                         if isinstance(tok, (int, float)) and not isinstance(tok, bool):
@@ -1182,82 +1244,155 @@ def _read_worktree_session_usage(session_state_dir, worktree_path):
                     elif etype == "session.model_change":
                         if data.get("newModel"):
                             session_model = data.get("newModel")
+                    elif etype == "session.shutdown":
+                        if matched_target is not None and ts is not None:
+                            shutdown_ts = ts
+                            session_open = False
         except OSError:
             continue
-        if matches:
-            result["matched"] = True
-            result["total_tokens"] += session_total
-            if session_model:
-                result["model"] = session_model
-    return result
+
+        if matched_target is None:
+            continue
+
+        result = results[matched_target]
+        state = timing[matched_target]
+        result["matched"] = True
+        result["total_tokens"] += session_total
+        earliest_start = state["earliest_start"]
+        latest_shutdown = state["latest_shutdown"]
+        if start_ts is not None and (earliest_start is None or start_ts < earliest_start):
+            state["earliest_start"] = start_ts
+        if shutdown_ts is not None and (latest_shutdown is None or shutdown_ts > latest_shutdown):
+            state["latest_shutdown"] = shutdown_ts
+        if session_open:
+            state["any_open"] = True
+        if session_model:
+            result["model"] = session_model
+
+    for target, result in results.items():
+        state = timing[target]
+        earliest_start = state["earliest_start"]
+        if earliest_start is None:
+            continue
+        effective_end = now_ms if state["any_open"] else state["latest_shutdown"]
+        if effective_end is None:
+            effective_end = now_ms
+        if effective_end is not None:
+            result["started_at_ms"] = earliest_start
+            result["ended_at_ms"] = None if state["any_open"] else effective_end
+            result["total_elapsed_ms"] = max(0, effective_end - earliest_start)
+    return results
+
+
+def _read_worktree_session_usage(session_state_dir, worktree_path, now_ms=None):
+    """Read Copilot usage for one task worktree."""
+    key = _normalise_path_key(worktree_path) if worktree_path else ""
+    usages = _read_worktree_session_usages(
+        session_state_dir, [worktree_path], now_ms=now_ms
+    )
+    return usages.get(key, {
+        "model": None,
+        "total_tokens": 0,
+        "total_elapsed_ms": 0,
+        "started_at_ms": None,
+        "ended_at_ms": None,
+        "matched": False,
+    })
+
+
+def _accumulate_metric(session, key, matched, new_total, status):
+    """Accumulate one cumulative {TOTAL, per_state} usage metric.
+
+    Adds the non-negative increase in ``new_total`` since the last recorded
+    ``TOTAL`` to ``per_state[status]`` and sets ``TOTAL`` to the new cumulative
+    value. A lower reading (e.g. rotated logs, or a shutdown timestamp replacing
+    a live ``now``) is ignored so the running totals never regress. When
+    ``matched`` is false (no session yet), records an explicit null ``TOTAL``
+    -- but only when no real total was ever captured -- so the UI shows a blank
+    rather than a misleading 0.
+    """
+    metric = session.get(key)
+    if not isinstance(metric, dict):
+        metric = {}
+        session[key] = metric
+    per_state = metric.get("per_state")
+    if not isinstance(per_state, dict):
+        per_state = {}
+        metric["per_state"] = per_state
+
+    prev_raw = metric.get("TOTAL")
+    prev_is_num = isinstance(prev_raw, (int, float)) and not isinstance(prev_raw, bool)
+
+    if not matched:
+        if not prev_is_num:
+            metric["TOTAL"] = None
+        return
+
+    new_total = int(new_total or 0)
+    prev_total = int(prev_raw) if prev_is_num else 0
+    delta = new_total - prev_total
+    if delta < 0:
+        delta = 0
+        new_total = prev_total
+
+    try:
+        prev_state = int(per_state.get(status))
+    except (TypeError, ValueError):
+        prev_state = 0
+    per_state[status] = prev_state + delta
+    metric["TOTAL"] = new_total
 
 
 # Feature 3.6.17
-def _record_worker_session_usage(store, task):
-    """Feature ID: 3.6.17. Refresh a task's worker_session model + token usage.
+def _record_worker_session_usage(store, task, now_ms=None, usage=None):
+    """Feature ID: 3.6.17. Refresh a task's worker-session usage and elapsed time.
 
     Reads cumulative Copilot usage for the task's worktree and records it onto
-    ``worker_session``: sets ``model``, computes the increase since the last
-    recorded ``tokens.TOTAL`` and ADDS that delta to ``per_state[<current
-    status>]`` (accumulating on revisits so a re-entered state accrues its
-    return-trip tokens on top of the first round), then sets ``tokens.TOTAL`` to
-    the new cumulative value. Best-effort and non-blocking: any problem (missing
-    directory, unmatched session, malformed event) leaves existing values
-    unchanged and never fails the status update it accompanies.
+    ``worker_session``. Token accounting remains per state; elapsed time is a
+    single ``{TOTAL, started_at, ended_at}`` value. ``ended_at`` is null while
+    the session is open, allowing the UI to advance the duration against the
+    current time. Any read failure leaves existing values unchanged.
     """
     try:
         session = task.get("worker_session")
         if not isinstance(session, dict):
-            return
+            return False
         worktree = session.get("worktree")
         if not worktree:
-            return
-        state_dir = _resolve_session_state_dir(store)
-        if state_dir is None:
-            return
-        usage = _read_worktree_session_usage(state_dir, worktree)
+            return False
+        if now_ms is None:
+            now_ms = _now_ms()
+        if usage is None:
+            state_dir = _resolve_session_state_dir(store)
+            if state_dir is None:
+                return False
+            usage = _read_worktree_session_usage(state_dir, worktree, now_ms=now_ms)
 
-        tokens = session.get("tokens")
-        if not isinstance(tokens, dict):
-            tokens = {}
-            session["tokens"] = tokens
-        per_state = tokens.get("per_state")
-        if not isinstance(per_state, dict):
-            per_state = {}
-            tokens["per_state"] = per_state
-
-        prev_raw = tokens.get("TOTAL")
-        prev_is_num = isinstance(prev_raw, (int, float)) and not isinstance(prev_raw, bool)
-
-        if not usage.get("matched"):
-            # No Copilot session was found for this worktree yet: record an
-            # explicit null total so the UI shows a blank (not a misleading 0),
-            # while never clobbering a real total captured on a previous pass.
-            if not prev_is_num:
-                tokens["TOTAL"] = None
-            return
-
-        new_total = int(usage.get("total_tokens") or 0)
-        prev_total = int(prev_raw) if prev_is_num else 0
-
-        # A new reading can only add tokens; a lower reading (e.g. rotated logs)
-        # is ignored so the running totals never regress.
-        delta = new_total - prev_total
-        if delta < 0:
-            delta = 0
-            new_total = prev_total
-
+        before = json.dumps(session, sort_keys=True, default=str)
         status = str(task.get("status") or "").strip() or "InProgress"
-        try:
-            prev_state = int(per_state.get(status))
-        except (TypeError, ValueError):
-            prev_state = 0
-        per_state[status] = prev_state + delta
-        tokens["TOTAL"] = new_total
-        if usage.get("model"):
+        matched = bool(usage.get("matched"))
+
+        _accumulate_metric(session, "tokens", matched, usage.get("total_tokens"), status)
+        elapsed = session.get("elapsed")
+        if not isinstance(elapsed, dict):
+            elapsed = {}
+            session["elapsed"] = elapsed
+        if matched and usage.get("started_at_ms") is not None:
+            elapsed["TOTAL"] = int(usage.get("total_elapsed_ms") or 0)
+            elapsed["started_at"] = int(usage["started_at_ms"])
+            elapsed["ended_at"] = (
+                int(usage["ended_at_ms"]) if usage.get("ended_at_ms") is not None else None
+            )
+        elif not isinstance(elapsed.get("TOTAL"), (int, float)):
+            elapsed.update({"TOTAL": None, "started_at": None, "ended_at": None})
+        if matched and usage.get("model"):
             session["model"] = usage.get("model")
+
+        after = json.dumps(session, sort_keys=True, default=str)
+        return before != after
     except Exception as exc:  # noqa: BLE001 - usage recording must never fail the status update
         print(f"[task-manager] worker-session usage update skipped: {exc}")
+        return False
 
 
 def _apply_status_request_file(store, request_file):
@@ -1583,12 +1718,16 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
 
     # Record the launched session on the task so a later "Ready" review can
     # trace and re-focus this console window instead of starting from scratch.
-    # Preserve any previously accumulated model/token usage across relaunches
-    # and reviews so restarting a worker never resets the running totals.
+    # Preserve previously recorded usage across relaunches and reviews.
     prior_session = task.get("worker_session") if isinstance(task.get("worker_session"), dict) else {}
     prior_tokens = prior_session.get("tokens")
     if not isinstance(prior_tokens, dict):
         prior_tokens = {"TOTAL": None, "per_state": {}}
+
+    prior_elapsed = prior_session.get("elapsed")
+    if not isinstance(prior_elapsed, dict):
+        prior_elapsed = {"TOTAL": None, "started_at": None, "ended_at": None}
+
     task["worker_session"] = {
         "pid": getattr(process, "pid", None),
         "window_title": window_title,
@@ -1599,6 +1738,7 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
         "started_at": _now_iso(),
         "model": prior_session.get("model"),
         "tokens": prior_tokens,
+        "elapsed": prior_elapsed,
     }
     return prompt_path
 
@@ -2079,8 +2219,31 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length).decode("utf-8")
         return json.loads(raw or "{}")
 
-    def _get_tasks(self):
-        return _load_tasks_store(self.__class__.store.tasks_path)
+    def _get_tasks(self, refresh_usage=False):
+        data = _load_tasks_store(self.__class__.store.tasks_path)
+        if not refresh_usage:
+            return data
+        now_ms = _now_ms()
+        tasks = data.get("TASKS") or []
+        timed_tasks = []
+        for task in tasks:
+            session = task.get("worker_session")
+            if isinstance(session, dict) and session.get("worktree"):
+                timed_tasks.append(task)
+        state_dir = _resolve_session_state_dir(self.__class__.store)
+        usages = _read_worktree_session_usages(
+            state_dir,
+            [task["worker_session"]["worktree"] for task in timed_tasks],
+            now_ms=now_ms,
+        )
+        for task in timed_tasks:
+            worktree = task["worker_session"]["worktree"]
+            usage = usages.get(_normalise_path_key(worktree))
+            if usage is not None:
+                _record_worker_session_usage(
+                    self.__class__.store, task, now_ms=now_ms, usage=usage
+                )
+        return data
 
     def _write_tasks(self, data):
         _save_tasks_store(self.__class__.store.tasks_path, data)
@@ -2167,7 +2330,7 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
             return
 
         if parsed.path == "/api/tasks":
-            data = self._get_tasks()
+            data = self._get_tasks(refresh_usage=True)
             self._send_json(200, {
                 "tasks": data["TASKS"],
                 "summary": _tasks_summary(data["TASKS"]),
@@ -2182,7 +2345,7 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
 
         if parsed.path.startswith("/api/tasks/"):
             task_id = parsed.path.removeprefix("/api/tasks/").split("/", 1)[0]
-            data = self._get_tasks()
+            data = self._get_tasks(refresh_usage=True)
             _, task = _find_task(data["TASKS"], task_id)
             if task is None:
                 self._send_json(404, {"error": "task not found", "task_id": task_id})

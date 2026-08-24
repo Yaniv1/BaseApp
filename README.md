@@ -156,6 +156,11 @@ How a task flows through the system:
   across the whole ledger, blank when no usage has been recorded yet), and a task's detail
   pane breaks its consumption down into **Design**, **Develop**, and **Deploy** phases
   alongside the model used.
+- **Task duration tracking.** The same session logs provide each task's elapsed open
+  duration, measured from its earliest worker-session start through its latest shutdown,
+  or through the current time while the worker remains open. The sortable **Duration**
+  column displays days, hours, and minutes and uses the ledger-wide green→red heat scale
+  to make short and long-running tasks easy to compare.
 - **Coupled server lifecycle.** The server, its browser UI, and the background
   processes it spawns start and stop together, so no orphaned servers or stray
   processes accumulate. A header **Close** button stops the server and closes the tab;

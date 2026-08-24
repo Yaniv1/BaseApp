@@ -438,7 +438,7 @@
                         },
                         "3.6.17": {
                             "name": "scripts.task_manager._record_worker_session_usage",
-                            "description": "Populate a task's worker_session with the Copilot model used and token consumption (model + tokens.TOTAL + tokens.per_state) by reading the Copilot CLI event log. Helper _resolve_session_state_dir resolves the session-state root as <COPILOT_HOME>/session-state (via _copilot_home_dir, honouring the Copilot CLI's own COPILOT_HOME environment override, default ~/.copilot). Helper _read_worktree_session_usage scans each <session>/events.jsonl under that root, matches sessions to the task by comparing the session.start context cwd to the task's worker_session.worktree (normalised), sums assistant.message outputTokens across all matching sessions for the cumulative total, and takes the model from the most recent assistant.message/session.model_change. _record_worker_session_usage then computes the increase in cumulative tokens since the last recorded TOTAL and ADDS that delta to per_state[<task's current status>] (accumulating, never overwriting, so a revisited state accrues the return-trip tokens on top of the first round), sets TOTAL to the new cumulative value, and updates model. Called by _apply_status_request_file after each status-update request is applied so every transition captures the tokens spent to reach it. Best-effort and non-blocking: a missing/disabled directory, unmatched session, or malformed event line leaves existing values unchanged and never fails the status update.",
+                            "description": "Populate a task's worker_session with the Copilot model, token consumption, and one simple elapsed session-open duration. _read_worktree_session_usages scans event logs once for all task worktrees requested by the API, finds each task's earliest session.start, and uses its latest session.shutdown as the end; if a matching session remains open, the current wall-clock time is used instead. _record_worker_session_usage stores elapsed as {TOTAL, started_at, ended_at}, with ended_at null while open. The Task Manager UI displays the value as days, hours, and minutes, advances open sessions against the browser clock, and applies the same ledger-wide green-to-red heat scale used for token counts.",
                             "type": "Folder.PyFile.Function",
                             "path": "scripts/task_manager.py::_record_worker_session_usage",
                             "features": {
@@ -449,10 +449,16 @@
                                     "path": "scripts/task_manager.py::_resolve_session_state_dir"
                                 },
                                 "3.6.17.2": {
-                                    "name": "scripts.task_manager._read_worktree_session_usage",
-                                    "description": "Read cumulative Copilot usage for a task's worktree from the session-state root: iterate each <session>/events.jsonl, decode each newline-delimited JSON event, select sessions whose session.start context cwd matches the given worktree path (normalised), sum assistant.message outputTokens for the total, and capture the latest model (assistant.message.model / session.model_change.newModel). Returns {model, total_tokens}; robust to missing dirs and malformed lines (they are skipped).",
+                                    "name": "scripts.task_manager._read_worktree_session_usages",
+                                    "description": "Read cumulative Copilot usage for multiple task worktrees in one event-log scan and calculate each elapsed duration from the earliest matching session.start to the latest session.shutdown, or to now when any matching session remains open. The single-worktree wrapper returns model, tokens, total_elapsed_ms, started_at_ms, ended_at_ms, and matched; malformed data is skipped.",
                                     "type": "Folder.PyFile.Function",
-                                    "path": "scripts/task_manager.py::_read_worktree_session_usage"
+                                    "path": "scripts/task_manager.py::_read_worktree_session_usages"
+                                },
+                                "3.6.17.3": {
+                                    "name": "scripts.task_manager._parse_iso_ms",
+                                    "description": "Parse an ISO-8601 event timestamp into epoch milliseconds for the elapsed-duration calculation. Accepts UTC Z and offset forms and returns None for missing or malformed values.",
+                                    "type": "Folder.PyFile.Function",
+                                    "path": "scripts/task_manager.py::_parse_iso_ms"
                                 }
                             }
                         },

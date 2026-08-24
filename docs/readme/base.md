@@ -1,3 +1,19 @@
+# BaseApp V-26.08.24.01
+
+The Task Manager now tracks each task's worker-session open duration (Feature
+3.6.17; Requirement BASE-REQ-014.24). It reads Copilot CLI session events once
+per task-list request, attributes sessions by their `session.start` working
+directory, and measures from the earliest matching start through the latest
+`session.shutdown`; if any matching session remains open, the duration advances
+through the current wall-clock time. The task ledger's `worker_session.elapsed`
+value stores `TOTAL`, `started_at`, and `ended_at` milliseconds, with
+`ended_at: null` while open. Existing tasks are enriched when loaded without a
+periodic ledger writer. The task list exposes a sortable **Duration** column
+formatted as days, hours, and minutes and heat-coloured green (shortest) through
+red (longest) against the full ledger, matching the Tokens column. The feature
+intentionally does not split active/idle time or track duration by lifecycle
+state.
+
 # BaseApp V-26.07.17.01
 
 Task Manager no longer shuts itself down while its browser tab is still open.

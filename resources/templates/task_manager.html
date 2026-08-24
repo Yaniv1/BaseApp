@@ -218,6 +218,7 @@ details.cli-sect{margin-top:2px}
 .det-usage td.num,.det-usage th.num{text-align:right;font-variant-numeric:tabular-nums}
 .det-usage tr.usage-total td{font-weight:700;border-top:1px solid var(--ln);border-bottom:none}
 .col-tokens{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.col-time{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .det-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .perm-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--ln);border-radius:999px;background:rgba(30,41,59,.58);font-size:.8rem;color:var(--mu);cursor:pointer}
 .perm-toggle input{margin:0}
@@ -357,6 +358,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
                 <th class="sortable" data-col="priority">Priority<span class="sort-ind" id="sort-ind-priority"></span></th>
                 <th class="sortable col-status" data-col="status">Status<span class="sort-ind" id="sort-ind-status"></span></th>
                 <th class="sortable col-tokens" data-col="tokens">Tokens<span class="sort-ind" id="sort-ind-tokens"></span></th>
+                <th class="sortable col-time" data-col="time">Duration<span class="sort-ind" id="sort-ind-time"></span></th>
               </tr>
               <tr class="filter-row">
                 <th><input type="text" id="filter-id" class="col-filter" placeholder="Filter ID&hellip;" autocomplete="off"></th>
@@ -365,6 +367,7 @@ details.edit-sect>summary::-webkit-details-marker{display:none}
                 <th><div id="filter-priority" class="ms" data-all="All priorities"></div></th>
                 <th class="col-status"><select id="filter-status" class="col-filter"><option value="">All statuses</option></select></th>
                 <th class="col-tokens"></th>
+                <th class="col-time"></th>
               </tr>
             </thead>
             <tbody id="task-tbody"></tbody>
@@ -543,6 +546,7 @@ function ensureGitSidebar() {
   initDetail();
   initSplit();
   initServerLifecycle();
+  setInterval(renderTable, 60000);
 })().catch(e => setMsg('create-msg', e.message, true));
 
 // ── Server lifecycle: heartbeat, Close button, self-shutdown ──
@@ -908,6 +912,9 @@ function renderTable() {
   const tokVals = allTasks.map(tokenTotal).filter(v => v !== null);
   const tokMin = tokVals.length ? Math.min(...tokVals) : 0;
   const tokMax = tokVals.length ? Math.max(...tokVals) : 0;
+  const timeVals = allTasks.map(elapsedMs).filter(v => v !== null);
+  const timeMin = timeVals.length ? Math.min(...timeVals) : 0;
+  const timeMax = timeVals.length ? Math.max(...timeVals) : 0;
   tasks.forEach(task => {
     const tr = document.createElement('tr');
     tr.className = 'task-row' + (task.id === selectedId ? ' selected' : '');
@@ -917,13 +924,16 @@ function renderTable() {
     const st = normalizeStatus(task.status);
     const tv = tokenTotal(task);
     const tokStyle = tv === null ? '' : ' style="color:' + tokenColor(tv, tokMin, tokMax) + '"';
+    const elapsed = elapsedMs(task);
+    const timeStyle = elapsed === null ? '' : ' style="color:' + tokenColor(elapsed, timeMin, timeMax) + '"';
     tr.innerHTML =
       '<td class="id-col"><code>' + esc(task.id) + '</code></td>' +
       '<td class="title-col">' + esc(task.title || '') + '</td>' +
       '<td>' + esc(task.type || 'Feature') + '</td>' +
       '<td><span class="pri pri-' + p + '">' + esc(task.priority || 'Medium') + '</span></td>' +
       '<td class="col-status"><span class="sbadge ' + statusCls(st) + '">' + esc(st) + '</span></td>' +
-      '<td class="col-tokens"' + tokStyle + '>' + fmtTokens(tv) + '</td>';
+      '<td class="col-tokens"' + tokStyle + '>' + fmtTokens(tv) + '</td>' +
+      '<td class="col-time"' + timeStyle + '>' + fmtDuration(elapsed) + '</td>';
     tr.addEventListener('click', () => toggle(task));
     tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(task); } });
     tbody.appendChild(tr);
@@ -976,6 +986,11 @@ function compareCol(a, b, col) {
     // Tasks with no recorded usage (null) sort below any real count.
     return (ta === null ? -1 : ta) - (tb === null ? -1 : tb);
   }
+  if (col === 'time') {
+    const ta = elapsedMs(a), tb = elapsedMs(b);
+    // Tasks with no recorded time (null) sort below any real duration.
+    return (ta === null ? -1 : ta) - (tb === null ? -1 : tb);
+  }
   let va, vb;
   if (col === 'id') { va = a.id || ''; vb = b.id || ''; }
   else if (col === 'title') { va = a.title || ''; vb = b.title || ''; }
@@ -1000,7 +1015,7 @@ function cycleSort(col) {
 function updateSortIndicators() {
   const order = {};
   liveSort.forEach((s, i) => { order[s.column] = { dir: s.dir, pos: i + 1 }; });
-  ['id', 'title', 'type', 'priority', 'status', 'tokens'].forEach(c => {
+  ['id', 'title', 'type', 'priority', 'status', 'tokens', 'time'].forEach(c => {
     const el = document.getElementById('sort-ind-' + c);
     if (!el) return;
     const o = order[c];
@@ -1504,6 +1519,29 @@ function phaseTokens(task, statuses) {
   let sum = 0, seen = false;
   statuses.forEach(s => { const v = Number(per[s]); if (Number.isFinite(v)) { sum += v; seen = true; } });
   return seen ? sum : null;
+}
+
+// --- Copilot session-open time helpers -------------------------------------
+function elapsedMs(task) {
+  const elapsed = task && task.worker_session && task.worker_session.elapsed;
+  if (!elapsed || elapsed.started_at === null || elapsed.started_at === undefined) return null;
+  const start = Number(elapsed.started_at);
+  const storedEnd = elapsed.ended_at;
+  const end = storedEnd === null || storedEnd === undefined ? Date.now() : Number(storedEnd);
+  return Number.isFinite(start) && Number.isFinite(end) ? Math.max(0, end - start) : null;
+}
+function fmtDuration(ms) {
+  if (ms === null || ms === undefined || !Number.isFinite(Number(ms))) return '';
+  let minutes = Math.floor(Number(ms) / 60000);
+  const days = Math.floor(minutes / 1440);
+  minutes -= days * 1440;
+  const hours = Math.floor(minutes / 60);
+  minutes -= hours * 60;
+  const parts = [];
+  if (days) parts.push(days + 'd');
+  if (hours || days) parts.push(hours + 'h');
+  parts.push(minutes + 'm');
+  return parts.join(' ');
 }
 
 function showDetail(task) {

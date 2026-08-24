@@ -1456,7 +1456,14 @@ def test_read_worktree_session_usage_takes_latest_model_and_skips_malformed(tmp_
 
 def test_read_worktree_session_usage_missing_dir_is_empty(tmp_path):
     usage = task_manager._read_worktree_session_usage(tmp_path / "nope", tmp_path / "wt")
-    assert usage == {"model": None, "total_tokens": 0, "matched": False}
+    assert usage == {
+        "model": None,
+        "total_tokens": 0,
+        "total_elapsed_ms": 0,
+        "started_at_ms": None,
+        "ended_at_ms": None,
+        "matched": False,
+    }
 
 
 def test_resolve_session_state_dir_uses_copilot_home(monkeypatch, tmp_path):
@@ -1585,7 +1592,7 @@ def test_task_manager_template_has_tokens_column_and_usage_table():
     assert 'data-col="tokens"' in template
     assert "id=\"sort-ind-tokens\"" in template
     assert "function tokenTotal(" in template
-    assert "'id', 'title', 'type', 'priority', 'status', 'tokens'" in template
+    assert "'id', 'title', 'type', 'priority', 'status', 'tokens', 'time'" in template
     # Per-phase (Design/Develop/Deploy) usage breakdown in the detail pane.
     assert "TOKEN_PHASES" in template
     assert "'Design'" in template and "'Develop'" in template and "'Deploy'" in template
@@ -1612,6 +1619,157 @@ def test_config_base_has_by_tokens_builtin_view():
     assert tokens_view["sort"] == {"tokens": "desc"}
     # Available on the ALL tab (compare every task by cost).
     assert "ALL" in tokens_view["tabs"]
+
+
+# ---------------------------------------------------------------------------
+# Feature 3.6.17.2/.3: session-open elapsed-time tracking
+# ---------------------------------------------------------------------------
+_TS0 = "2026-06-24T10:00:00.000Z"
+
+
+def _iso(ms_offset):
+    """ISO-8601 timestamp ``ms_offset`` milliseconds after the base epoch."""
+    import datetime as _dt
+    base = _dt.datetime(2026, 6, 24, 10, 0, 0, tzinfo=_dt.timezone.utc)
+    t = base + _dt.timedelta(milliseconds=ms_offset)
+    return t.strftime("%Y-%m-%dT%H:%M:%S.") + f"{t.microsecond // 1000:03d}Z"
+
+
+def _write_timed_events(session_dir, cwd, end_offset, closed=True, tokens=0):
+    """Write a matching session with an optional shutdown."""
+    session_dir.mkdir(parents=True, exist_ok=True)
+    lines = [json.dumps({"type": "session.start", "timestamp": _iso(0),
+                         "data": {"context": {"cwd": cwd}}})]
+    if tokens:
+        lines.append(json.dumps({"type": "assistant.message", "timestamp": _iso(1),
+                                 "data": {"outputTokens": tokens, "model": "claude-opus-4.8"}}))
+    if closed:
+        lines.append(json.dumps({"type": "session.shutdown", "timestamp": _iso(end_offset),
+                                 "data": {}}))
+    (session_dir / "events.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_read_worktree_session_usage_computes_closed_elapsed(tmp_path):
+    """Feature 3.6.17.2: a closed task runs from start through shutdown."""
+    state_dir = tmp_path / "session-state"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    _write_timed_events(state_dir / "s1", worktree.as_posix(), 6000, tokens=42)
+    usage = task_manager._read_worktree_session_usage(state_dir, worktree)
+    assert usage["total_elapsed_ms"] == 6000
+    assert usage["started_at_ms"] == _parse_now(0)
+    assert usage["ended_at_ms"] == _parse_now(6000)
+    assert usage["total_tokens"] == 42
+
+
+def test_read_worktree_session_usage_open_session_grows_to_now(tmp_path):
+    """Feature 3.6.17.2: an open session ends at the current wall clock."""
+    state_dir = tmp_path / "session-state"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    _write_timed_events(state_dir / "s1", worktree.as_posix(), 0, closed=False)
+    usage = task_manager._read_worktree_session_usage(state_dir, worktree, now_ms=_parse_now(10000))
+    assert usage["total_elapsed_ms"] == 10000
+    assert usage["started_at_ms"] == _parse_now(0)
+    assert usage["ended_at_ms"] is None
+
+
+def _parse_now(ms_offset):
+    return task_manager._parse_iso_ms(_iso(ms_offset))
+
+
+def test_record_worker_session_usage_records_simple_elapsed(monkeypatch, tmp_path):
+    """Feature 3.6.17: elapsed records one start, end, and total duration."""
+    monkeypatch.setenv("COPILOT_HOME", str(tmp_path))
+    state_dir = tmp_path / "session-state"
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    session_dir = state_dir / "s1"
+
+    task = {"id": "T1", "status": "InProgress",
+            "worker_session": {"worktree": worktree.as_posix()}}
+    _write_timed_events(session_dir, worktree.as_posix(), 3000)
+    task_manager._record_worker_session_usage(None, task)
+    ws = task["worker_session"]
+    assert ws["elapsed"]["TOTAL"] == 3000
+    assert ws["elapsed"]["started_at"] == _parse_now(0)
+    assert ws["elapsed"]["ended_at"] == _parse_now(3000)
+    assert "per_state" not in ws["elapsed"]
+    assert "active" not in ws
+    assert "idle" not in ws
+
+
+def test_record_worker_session_usage_returns_changed_flag(monkeypatch, tmp_path):
+    """Feature 3.6.17: the recorder reports whether it changed the session so a
+    periodic refresh persists only real changes."""
+    monkeypatch.setenv("COPILOT_HOME", str(tmp_path))
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    _write_timed_events(tmp_path / "session-state" / "s1", worktree.as_posix(),
+                        3000)
+    task = {"id": "T1", "status": "InProgress",
+            "worker_session": {"worktree": worktree.as_posix()}}
+    assert task_manager._record_worker_session_usage(None, task) is True
+    # A second identical read makes no further change (closed session, same data).
+    assert task_manager._record_worker_session_usage(None, task) is False
+
+
+def test_tasks_api_enriches_existing_worker_without_elapsed(monkeypatch, tmp_path):
+    """Feature 3.6.17: existing worker sessions gain elapsed time on API load."""
+    monkeypatch.setenv("COPILOT_HOME", str(tmp_path))
+    worktree = tmp_path / "wt"
+    worktree.mkdir()
+    _write_timed_events(
+        tmp_path / "session-state" / "s1", worktree.as_posix(), 90000
+    )
+    tasks_path = tmp_path / "base.json"
+    _save_tasks_store(tasks_path, {"TASKS": [{
+        "id": "BASE-TASK-0001",
+        "status": "Ready",
+        "worker_session": {"worktree": worktree.as_posix()},
+    }]})
+
+    server = _create_server("127.0.0.1", 0, tasks_path)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        port = server.server_address[1]
+        status, payload = _request_json(f"http://127.0.0.1:{port}/api/tasks")
+        elapsed = payload["tasks"][0]["worker_session"]["elapsed"]
+        assert status == 200
+        assert elapsed["TOTAL"] == 90000
+        assert elapsed["started_at"] == _parse_now(0)
+        assert elapsed["ended_at"] == _parse_now(90000)
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_template_json_worker_session_has_elapsed_time():
+    template_path = Path(__file__).resolve().parents[3] / "build" / "tasks" / "template.json"
+    data = json.loads(template_path.read_text(encoding="utf-8"))
+    ws = data["TASKS"][0]["worker_session"]
+    assert ws["elapsed"] == {"TOTAL": None, "started_at": None, "ended_at": None}
+    assert "active" not in ws
+    assert "idle" not in ws
+
+
+def test_task_manager_template_has_simple_time_column():
+    template_path = Path(__file__).resolve().parents[3] / "resources" / "templates" / "task_manager.html"
+    template = template_path.read_text(encoding="utf-8")
+    assert 'data-col="time"' in template
+    assert 'data-col="time">Duration' in template
+    assert 'id="sort-ind-time"' in template
+    assert "function elapsedMs(" in template
+    assert "function fmtDuration(" in template
+    assert "days + 'd'" in template
+    assert "hours + 'h'" in template
+    assert "minutes + 'm'" in template
+    assert "timebar" not in template
+    assert "Session time" not in template
+    assert "const timeVals = allTasks.map(elapsedMs)" in template
+    assert "tokenColor(elapsed, timeMin, timeMax)" in template
 
 
 def test_process_status_inbox_applies_request_and_moves_to_processed(monkeypatch, tmp_path):
@@ -2621,7 +2779,3 @@ def test_select_server_port_raises_when_pool_exhausted(tmp_path):
         assert raised
     finally:
         occupied.close()
-
-
-
-
