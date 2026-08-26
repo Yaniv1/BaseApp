@@ -2892,7 +2892,7 @@
                 "we want to track how much time the session was open from the moment it was generated till the moment it was closed."
             ],
             "priority": "Medium",
-            "status": "CodeApproved",
+            "status": "Deployed",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2953,6 +2953,11 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Engineer approved the simplified task-duration implementation for deployment. Finalizing version 26.08.24.01, release documentation, deployment report, and task-branch validation before commit and push.",
                     "timestamp": "2026-08-24T23:52:16Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Deployment approved and completed on the short-lived task branch. Finalized BaseApp 26.08.24.01, generated the Deployed TaskReport, committed as aebe3f6, and pushed origin/BASE-TASK-260717-0004. Task Manager suite passes 120/120. Required build validation passed 24/25 deployment criteria plus the README check; the sole failure is the known baseline pullbase_exit_code_zero mismatch where test_deployment.ps1 passes obsolete --baseSource. The branch has not been merged into main; integration remains a separate supervised step.",
+                    "timestamp": "2026-08-24T23:56:03Z"
                 }
             ],
             "worker_session": {
@@ -2971,7 +2976,8 @@
                         "Specified": 57284,
                         "SpecApproved": 2172,
                         "Ready": 45646,
-                        "CodeApproved": 0
+                        "CodeApproved": 0,
+                        "Deployed": 0
                     }
                 },
                 "elapsed": {
