@@ -2938,6 +2938,16 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Implemented the requested simplified scope while keeping the task in Ready: one elapsed duration from the earliest matching session.start through the latest session.shutdown, or through the current time while any matching session remains open. The Task Manager displays a plain sortable Time value as days/hours/minutes. Removed active/idle splitting, per-state timing, progress bars, periodic ledger writes, and the By Time built-in view. Existing worker sessions are enriched through one batched event-log scan per task-list API load. Focused validation passes (119 Task Manager tests), and final code review found no significant issues.",
                     "timestamp": "2026-08-21T23:23:16Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Updated the simplified duration UI per engineering feedback: each non-empty Time value now uses the same ledger-wide green-to-red heat scale as token counts (shortest duration green, longest red), so colors remain stable across status tabs, filters, and sorting. Task remains Ready for review.",
+                    "timestamp": "2026-08-24T23:47:32Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Renamed the task-list timing column display label from Time to Duration. The internal time sort key remains unchanged for compatibility. Task remains Ready for review.",
+                    "timestamp": "2026-08-24T23:48:17Z"
                 }
             ],
             "worker_session": {
@@ -2957,6 +2967,11 @@
                         "SpecApproved": 2172,
                         "Ready": 45646
                     }
+                },
+                "elapsed": {
+                    "TOTAL": 913697242,
+                    "started_at": 1784336285545,
+                    "ended_at": 1785249982787
                 }
             }
         },
