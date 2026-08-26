@@ -13,6 +13,16 @@ Task Description:
 
 Please implement this task end-to-end in the workspace. Review the relevant instruction and requirement files, follow the existing code patterns, update the task ledger when appropriate, and run relevant tests or validation before finishing.
 
+
+**Before diving in, quickly establish:**
+1. **Outcome & check** — one line: what the finished task lets the user do, and how you'll prove it.
+2. **Contracts** — inspect real samples of any data/interface you'll build on; note their actual shape before coding.
+3. **Decomposition** — list enablers vs core vs polish; surface prerequisites as sub-tasks.
+4. **Acceptance artifact** — decide which real output (not just tests) you'll inspect to confirm correctness.
+
+(See "Working principles (apply to every task)" in `build/instructions/base.md` for the reasoning behind each.)
+
+
 ## Branch & Worktree
 
 Work this task on its own short-lived, ad-hoc branch (e.g. `{task_id}`) created off the latest `main`, never directly on `main`. The Task Manager launches you inside a **dedicated git worktree** for this task — a separate checkout directory that is a sibling of `main` under the `{APP}` container (`{APP}/<task-id>`), sharing the repository's bare object store but isolated from `main` and from other tasks' worktrees so that several task agents can run in parallel without colliding. Your `{workspace_root}` above is that worktree directory: do all of your file edits and commits there, and push the branch. After approval the task is finalized and pushed to that branch (the `Deployed` status); it is later merged into `main`, and the branch and its worktree are dissolved when the task is fully integrated (the `Done` status), under the integration engineer's supervision.

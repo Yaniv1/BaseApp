@@ -37,4 +37,17 @@ When logging, utilize logger functionality - use message codes instead of text, 
 
 If a generic functionality is needed, submit a task into the `build/tasks/base.json` file so that the functionality will be implemented as a base functionality and be available to all apps utilizing this framework.
 
+
+## Working with AI/model-driven features
+
+When a feature relies on a language model or other generative/AI component:
+
+- **The model generates content; code owns structure.** Never let the model decide counts, positions, labels, identifiers, or any invariant, and never let it classify or label its own output — that makes it the judge of its own work. Assign labels and enforce constraints deterministically in code.
+- **Generate distinct classes/partitions in isolation.** Producing multiple classes in one context lets the model self-decide boundaries, contaminating and correlating them. Generate each class separately with its own rubric and attach labels in code.
+- **Derive vocabularies from authoritative sources, stay data-agnostic.** Labels, categories, and allowed values should come from the governing data description (schema, taxonomy, RDD), not hard-coded lists or model inference. Config carries only agnostic knobs (rates, limits, namespace prefixes).
+- **Verify semantics on real artifacts.** Models produce plausible-but-wrong output that passes schema and unit checks. Always open a real generated result and confirm the content actually carries what it claims.
+- **Ground with verified examples where fidelity matters.** Prefer retrieval of vetted examples (RAG/similarity) over free generation when correctness is important.
+- **Guard diversity in code.** One-item-at-a-time generation can silently duplicate; batch generation or deterministically de-duplicate where variety is required.
+
+
 Update the app's README.md file and use it to provide an overview of the app and its capabilities, functionalities, and features. **`README.md` is a current-state overview, never a changelog:** edit the overview sections **in place** and do not add per-release/per-version/per-task entries. It must not contain `Highlights`, `Changelog`, `Release Notes`, or `What's New` sections, must not enumerate releases, and must not carry date- or version-stamped headings — all release history belongs only in `docs/readme/app.md` and `build/updates/app.json`. The advisory `WARN`-only test `test_readme_overview_only` flags drift back into a changelog.

@@ -17,6 +17,22 @@ Change the task's status from `ToDo` to `InProgress` when you start working on i
 Update the task list when significant progress is made on a task.
 Use the task comments to update progress details.
 
+
+## Working principles (apply to every task)
+
+These are cross-cutting habits that keep work coherent, traceable, and aligned with the end goal. Adapt them to the task at hand.
+
+1. **Define "done" and its check before writing code.** State, in one line, the outcome in user-visible terms and the concrete artifact or command that will prove it. Re-read it whenever scope feels ambiguous.
+2. **Freeze contracts before building on them.** Before you write code that consumes any shared or external structure (a data shape, schema, API, config, another module's output), inspect real samples and write down the contract — fields, cardinality, optionality, ownership. Validate the consumer against real fixtures first. Wrong assumptions about an interface are the most expensive class of rework.
+3. **Separate enablers, core, and polish up front.** Decompose the task into (a) prerequisite/enabling work, (b) the core deliverable, (c) UX/polish. Make prerequisites explicit sub-tasks so they are tracked work, not silent scope creep, and so their effort is visible in comments.
+4. **Defer open-ended polish and timebox iteration.** Work that can be refined indefinitely (UI tuning, wording, formatting) belongs at the end or in a follow-up task, off the critical path of the core deliverable.
+5. **Own invariants in code, not in unreliable dependencies.** Counts, ordering, identifiers, positions, and any correctness-critical constraint must be enforced deterministically by your code — never delegated to a component that can drift (an external service, a heuristic, a generative step).
+6. **Make silent failures loud.** Any fallback, "best-effort", or try/except path must log or assert when it is taken broadly. If nearly all inputs hit a fallback branch, treat that as a failure signal, not success. Prefer failing fast over silently degrading.
+7. **Verify against a real produced artifact, not only passing tests.** Green unit tests confirm shape, not meaning. Inspect at least one real output end-to-end before calling a task done.
+8. **Keep an unbroken trace.** Link each change to a requirement id, and each requirement to a test. Update task comments as you complete sub-tasks so the ledger reflects the actual breakdown.
+
+
+
 ## Task Status Updates: request via the `enqueue_status_update` tool
 
 The task ledger (`build/tasks/<app>.json`) is owned and written **only** by the Task Manager server, on the `main` branch. Because a task may be worked on in its own branch, any status change you commit on a branch would be invisible to the Task Manager (which tracks `main`). Therefore:
