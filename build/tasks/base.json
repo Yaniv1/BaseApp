@@ -2892,7 +2892,7 @@
                 "we want to track how much time the session was open from the moment it was generated till the moment it was closed."
             ],
             "priority": "Medium",
-            "status": "Ready",
+            "status": "CodeApproved",
             "comments": [
                 {
                     "author": "Yaniv Mordecai <ymordecai@gmail.com>",
@@ -2948,6 +2948,11 @@
                     "author": "BASE-TASK-260717-0004 worker",
                     "content": "Renamed the task-list timing column display label from Time to Duration. The internal time sort key remains unchanged for compatibility. Task remains Ready for review.",
                     "timestamp": "2026-08-24T23:48:17Z"
+                },
+                {
+                    "author": "BASE-TASK-260717-0004 worker",
+                    "content": "Engineer approved the simplified task-duration implementation for deployment. Finalizing version 26.08.24.01, release documentation, deployment report, and task-branch validation before commit and push.",
+                    "timestamp": "2026-08-24T23:52:16Z"
                 }
             ],
             "worker_session": {
@@ -2965,7 +2970,8 @@
                         "InProgress": 8412,
                         "Specified": 57284,
                         "SpecApproved": 2172,
-                        "Ready": 45646
+                        "Ready": 45646,
+                        "CodeApproved": 0
                     }
                 },
                 "elapsed": {
