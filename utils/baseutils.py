@@ -270,7 +270,7 @@ class Config:
         self.base_dir = os.path.abspath(path_join(os.path.dirname(self.base_config_path), ".."))
 
         self.overrides = {
-            a.split("=")[0].strip("-"): tryeval(a.split("=")[1])
+            a.split("=", 1)[0].strip("-"): tryeval(a.split("=", 1)[1])
             for a in self.args
             if "=" in a
         }
