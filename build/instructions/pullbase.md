@@ -13,6 +13,25 @@ Task Description:
 
 This is a **PullBase** task: a managed, reviewable consumption of the latest BaseApp updates into this instance app. Your job is to pull the BaseApp changes into the task branch, review and summarize them for the engineer, and then — only on explicit approval — deploy and merge them under the supervised-merge model described in `base.md`. Do not implement features or fixes here; the only changes you introduce are those produced by the pull itself plus the version/changelog finalization that accompanies a deploy.
 
+## Worker Session Traceability
+
+At the start of every worker session, enqueue a task comment with the current
+Copilot session ID and absolute task worktree path for future retrieval. Use
+`enqueue_status_update(comment="Copilot worker session ID: <current-session-id>. Task worktree: <absolute-worktree-path>.")`.
+Use the actual session ID supplied by the session context; never invent one or
+reuse a prior worker's ID. If it is unavailable, explicitly record that fact.
+Repeat this for a new or replacement session; do not edit the task ledger directly.
+If the enqueue tool is unavailable, use the documented status-update fallback.
+
+## Interactive Review Companion
+
+Run the repository-owned review companion according to
+`build/instructions/task.md` when available and enabled. The worker launcher
+normally owns it; do not duplicate or borrow another worker's listener.
+Review pulled requirement/architecture changes and source mappings in that
+companion, keep specification and code decisions independent, and preserve
+TaskReport's canonical and lifecycle reports.
+
 ## Branch & Worktree
 
 Work this task on its own short-lived, ad-hoc branch (e.g. `{id}`) created off the latest `main`, never directly on `main`. The Task Manager launches you inside a **dedicated git worktree** for this task — a separate checkout directory that is a sibling of `main` under the `{APP}` container (`{APP}/<task-id>`), sharing the repository's bare object store but isolated from `main` and from other tasks' worktrees. Your `{workspace_root}` above is that worktree directory: run the pull, make all edits, and commit there, then push the branch. After approval the task is finalized and pushed to that branch (the `Deployed` status); it is later merged into `main` and the branch and its worktree are dissolved when the task is fully integrated (the `Done` status), under the integration engineer's supervision.

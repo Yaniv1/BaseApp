@@ -37,7 +37,9 @@ You use BaseApp in two roles:
   base updates into existing apps, both manifest-driven.
 - **Task & requirements management.** A local web-based Task Manager and a spec-driven
   workflow (requirements → architecture → design → implementation → tests → deploy)
-  that integrates with git and GitHub Copilot to drive work task-by-task.
+  that integrates with git and GitHub Copilot to drive work task-by-task. A persistent
+  interactive review companion shows requirement threads, implementing architecture
+  components, source mappings, and diffs, with separate specification and code approvals.
 
 ## Project structure
 
@@ -177,6 +179,36 @@ How a task flows through the system:
   stage** (`{task_id} - {Status}.html`, mirrored to a canonical `{task_id}.html`),
   alongside an evolving `{task_id} - Summary.html` that keeps a per-stage highlights
   timeline of the task's progress.
+- **Interactive specification and code review.** Every enabled worker starts its own
+  localhost review companion. Requirement threads and architecture components have
+  independent **Approve Spec** and **Approve Code** gates; revisions, removals, comments,
+  and OS-detected reviewer identity persist in the task worktree across restarts.
+  Explicit code approval needs available selected implementation source, not Ready/Revised
+  status or spec approval. Thread **Approve Code** atomically approves all remaining
+  requirement-linked features, including hidden cards, without changing spec decisions;
+  active revisions and missing source/discovery block the batch.
+  Status filters and whole-thread display retain stable numbering, and static HTML
+  downloads preserve the review without a running server. The companion serves a cached
+  report before refreshing it in the background, shows refresh failures, and shuts down
+  only its own listener when the worker ends. Its `Spec Review` and `Code Review` reports
+  never overwrite the standard task-stage reports.
+
+  From the task branch root or its `scripts` folder, run `python code_review.py`.
+  Both entrypoints activate the same review. Explicit context is supported, for example:
+
+  ```powershell
+  python scripts\code_review.py --task-id BASE-TASK-261011-0001 --layer base
+  python scripts\validate_code_review.py --task-id BASE-TASK-261011-0001 --layer base
+  ```
+
+  Review settings inherit layered `APP.TASK_MANAGER.review` configuration and the
+  existing `result_store` and `status_queue`; CLI overrides can select another root,
+  task, manifest layer, architecture, requirements, result store, queue, or Git baseline.
+  The runtime and generator are repository-owned and propagate through PullBase without
+  borrowing another task's decisions or Copilot session artifacts.
+  `python scripts\review_data.py populate --render` regenerates the persistent
+  review data and reports; `python scripts\review_data.py validate` checks their
+  freshness, hashes, baseline, and coverage.
 - **Isolation per task.** The repository uses a bare shared object store with every
   branch — including `main` — checked out as its own git worktree under one container.
   Each task is worked on a short-lived `task/<id>` branch in its own dedicated worktree,

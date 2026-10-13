@@ -26,6 +26,7 @@ import urllib.request
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from utils.baseutils import Config, Params
+from utils.reviewutils import FeatureStatus, ReviewStore, code_eligible, fingerprint, spec_eligible
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -1020,6 +1021,56 @@ def _resolve_task_manager_path(store, key):
     return path.resolve()
 
 
+def _review_launch_options(store, task, mode="work"):
+    """Feature 3.6.19: pass portable review context to the worker-owned companion."""
+    config = getattr(store, "config", None)
+    if hasattr(config, "get_dict"):
+        config = config.get_dict()
+    if not isinstance(config, dict):
+        return None
+    manager = config.get("APP", {}).get("TASK_MANAGER", {})
+    review = manager.get("review") or {}
+    if not review.get("enabled", False):
+        return None
+    root = _get_store_base_dir(store)
+    if not (root / "scripts" / "code_review.py").is_file():
+        return None
+    if mode == "review":
+        session = task.get("worker_session") or {}
+        worktree = Path(session.get("worktree") or _worktree_path_for_task(store, task["id"]))
+        if not (worktree / "scripts" / "code_review.py").is_file():
+            return None
+    options = {"enabled": True, "python": sys.executable,
+        "layer": review.get("layer") or ("base" if str(task.get("id", "")).startswith("BASE-") else "app"),
+        "mode": "spec" if task.get("status") in {"InProgress", "Specified"} else "code",
+        "baseline_ref": review.get("baseline_ref") or "main"}
+    for key in ("architecture", "requirements"):
+        if review.get(key):
+            options[key] = str(review[key])
+    for source, target in (("result_store", "results_root"), ("status_queue", "status_queue")):
+        path = _resolve_task_manager_path(store, source)
+        if path:
+            options[target] = str(path)
+    return options
+
+
+def _activate_interactive_review(store, task):
+    options = _review_launch_options(store, task, "review")
+    if not options:
+        return False
+    session = task.get("worker_session") or {}
+    root = Path(session.get("worktree") or _worktree_path_for_task(store, task["id"])).resolve()
+    if not (root / "scripts" / "code_review.py").is_file():
+        return False
+    command = [sys.executable, str(root / "scripts" / "code_review.py"), "--root", str(root),
+               "--task-id", task["id"], "--layer", options["layer"], "--mode", options["mode"], "--open-existing"]
+    try:
+        completed = subprocess.run(command, cwd=str(root), capture_output=True, text=True, check=False)
+        return completed.returncode == 0
+    except OSError:
+        return False
+
+
 def _resolve_status_store_paths(store):
     """Resolve the task status queue layout (pending/processed/failed) from config.
 
@@ -1276,6 +1327,20 @@ def _apply_status_request_file(store, request_file):
     update_tasks = document["TASKS"]
     if not update_tasks:
         raise ValueError("update request contains no tasks")
+
+    review_context = document.get("REVIEW") or {}
+    if review_context.get("root"):
+        for update_task in update_tasks:
+            status = update_task.get("status")
+            if status not in {FeatureStatus.SPEC_APPROVED, FeatureStatus.CODE_APPROVED}:
+                raise ValueError("Interactive review requests may only queue review approval states.")
+            review_store = ReviewStore(review_context["root"], update_task["id"],
+                review_context.get("architecture"), review_context.get("requirements"),
+                review_context.get("baseline_ref") or "main", review_context.get("layer"))
+            ledger = review_store.load()
+            gate = spec_eligible if status == FeatureStatus.SPEC_APPROVED else code_eligible
+            if not gate(ledger) or fingerprint(ledger) != review_context.get("snapshot"):
+                raise ValueError("Interactive review source or decision changed; review and queue again.")
 
     tasks_path = store.tasks_path
     data = _load_tasks_store(tasks_path)
@@ -1563,6 +1628,9 @@ def _start_copilot_for_task(task, tasks_path, store, enable_full_read=False, ena
         launch_args.extend(["-TaskBranch", task_branch])
     if mcp_config_path is not None:
         launch_args.extend(["-McpConfig", str(mcp_config_path)])
+    review_options = _review_launch_options(store, task, mode)
+    if review_options:
+        launch_args.extend(["-ReviewConfig", json.dumps(review_options)])
     if enable_full_read:
         launch_args.extend(["-EnableFullRead"])
     if enable_full_edit:
@@ -2324,9 +2392,14 @@ class _TaskManagerHandler(BaseHTTPRequestHandler):
                 return
             payload = self._read_body()
 
+            if _activate_interactive_review(self.__class__.store, task):
+                self._send_json(200, {"task_id": task_id, "mode": "interactive-review",
+                    "message": "Opened the worker-owned interactive review.", "task": task})
+                return
+
             # First, try to bring an existing, still-running worker window to the
             # foreground so the engineer can review the modifications in place.
-            if _activate_copilot_window(task.get("worker_session")):
+            if (not task.get("worker_session") or not _review_launch_options(self.__class__.store, task, "review")) and _activate_copilot_window(task.get("worker_session")):
                 self._send_json(200, {
                     "task_id": task_id,
                     "mode": "activated",

@@ -1,3 +1,80 @@
+# BaseApp V-26.10.12.01
+
+## Interactive Review Framework
+
+The review capability from `APP-TASK-260820-0001` is imported under
+`BASE-REQ-014.24` in the Task Manager hierarchy. Source `APP-REQ-011` and its
+requirement-thread, component-approval, artifact-readiness, traceability, and
+interactive-review requirements are re-enumerated as `.24` and `.24.1` through
+`.24.5`. Source requirement and feature IDs remain provenance metadata, not
+runtime identifiers. The source task's unrelated token/cost accounting components
+`A1.T10_13` and `A1.T10_15` are not part of this review port; existing
+`BASE-REQ-014.22` accounting is unchanged.
+
+Framework review tooling lives in `scripts/code_review.py`, `review_server.py`,
+`review_report_generator.py`, and `validate_code_review.py`, with a shared
+`utils/reviewutils.py` model and `resources/templates/code_review.html` UI.
+The shared model owns lifecycle rules, context resolution, discovery, migration,
+stable numbering, atomic persistence, and task-specific report paths. The worker
+launcher starts the companion only in the task worktree and owns its cleanup;
+another worker's listener is never stopped or reused.
+
+Run `python code_review.py` from the task root or from `scripts`; the root
+entrypoint delegates to the same repository launcher. Pass `--task-id` when inference is ambiguous. CLI options
+`--root`, `--layer base|app`, `--architecture`, `--requirements`, `--results-root`,
+`--status-queue`, and `--baseline-ref` override layered configuration.
+`APP.TASK_MANAGER.review` holds review settings and reuses the Task Manager's
+result store and status queue. The review runtime does not search session-state
+or use hardcoded application-specific paths or IDs.
+
+Requirement and component **Approve Spec** decisions are independent of **Approve Code**.
+Any nonterminal task-owned feature with available selected implementation source/artifact
+can be explicitly code-approved, including Specified, SpecApproved, and InProgress;
+there is no Ready/Revised or specification-approval prerequisite. Active revisions,
+missing discovery, and missing source block approval. Thread-level **Approve Code**
+approves all features linked to that requirement, including filtered/hidden cards,
+skips CodeApproved/Removed features, and prevalidates the rest before one atomic
+transaction. Code approval never manufactures or changes a specification decision.
+`POST /api/review/features/<feature-id>` accepts `action: "approve"`;
+`POST /api/review/requirements/<requirement-id>/code` approves the thread.
+Both accept `comment` and require `expected_revision`; stale or blocked batches
+return HTTP 409 without partial approvals.
+Task-level approval requests go through the existing durable status queue;
+workers never edit the task ledger. Revision requests, claims, completed
+summaries, reviewer comments, OS identity, and events persist under
+`build/review/<task-id>/review.json`. Revisions are checked before mutations
+to reject stale writes. Explicit removed outcomes remain terminal; source
+changes invalidate affected approvals.
+
+Discovery uses task-scoped architecture metadata, precise paths/selectors,
+requirement solution links, source markers, and baseline/working-tree changes.
+`components.json` in the same review folder is reproducible output, not a
+permanent source map. The standalone validator rejects uncovered changed files
+and inconsistent report hashes.
+
+`build/review/` is gitignored: reviewer decisions, generated source snapshots,
+process locks, and listener metadata persist in the task worktree, not in the
+distributed framework. Keep these local records for audit; the committed
+producers regenerate report data without copying another task's approvals.
+
+The original worker's ephemeral data producers are persistent and callable:
+`python scripts\review_data.py populate --render` produces the stable component
+catalog, change/dependency metadata, diff map/snippets, and original review reports;
+`python scripts\review_data.py validate` verifies freshness, hashes, baseline, and
+coverage. Both accept the shared task/context CLI overrides. Generated artifacts
+are task-owned under `build/review/<task-id>/data/<hash>/`, including
+`requirement-review-components.json`, `review-diff-map.json`, and
+`review-diff-snippets/`. No original Copilot session is required.
+
+Review reports exclusively own `<task-id> - Spec Review.html` and
+`<task-id> - Code Review.html`. `TaskReport` retains ownership of its canonical
+`<task-id>.html`, lifecycle reports, and evolving summary. Cached review startup,
+background refresh with visible failure state, browser auto-refresh, status
+filters, full-thread display, and a self-contained static download preserve the
+source review workflow. PullBase distributes scripts/templates/base tests by
+their existing directory entries and explicitly distributes `utils/reviewutils.py`;
+it does not copy individual task review ledgers.
+
 # BaseApp V-26.07.17.01
 
 Task Manager no longer shuts itself down while its browser tab is still open.

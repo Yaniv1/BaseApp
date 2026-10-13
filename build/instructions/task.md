@@ -23,6 +23,49 @@ Please implement this task end-to-end in the workspace. Review the relevant inst
 (See "Working principles (apply to every task)" in `build/instructions/base.md` for the reasoning behind each.)
 
 
+## Worker Session Traceability
+
+At the start of every worker session, enqueue a task comment with the current
+Copilot session ID and absolute task worktree path for future retrieval. Use
+`enqueue_status_update(comment="Copilot worker session ID: <current-session-id>. Task worktree: <absolute-worktree-path>.")`.
+Use the actual session ID supplied by the session context; never invent one or
+reuse a prior worker's ID. If it is unavailable, explicitly record that fact.
+Repeat this for a new or replacement session; do not edit the task ledger directly.
+If the enqueue tool is unavailable, use the documented status-update fallback.
+
+## Interactive Review Companion
+
+When `scripts/review_server.py` is present and review is enabled, keep the
+repository-owned companion running for the lifetime of this task worker:
+`python code_review.py` from the task root or from `scripts` (the root entrypoint
+delegates to the same launcher). The Task Manager worker launcher starts it automatically;
+do not start a duplicate when this worker already owns a healthy companion.
+Use explicit `--root`, `--task-id`, `--layer`, `--architecture`, `--requirements`,
+`--results-root`, `--status-queue`, or `--baseline-ref` overrides when needed.
+Verify `/health` matches this task and worktree. Never reuse, stop, or replace
+another worker's listener; keep the launcher attached for worker cleanup.
+
+The review displays complete requirement text, implementing architecture
+features, and source-task provenance. Approve Spec independently for every
+requirement thread and component before requesting task-level SpecApproved.
+Approve Code applies independently to any nonterminal task-owned feature with
+available selected implementation source/artifact, including Specified and InProgress;
+neither Ready/Revised status nor specification approval is required. Thread-level
+Approve Code covers all features linked to that requirement, including filtered/hidden
+cards, skips CodeApproved/Removed features, and saves the batch atomically after
+prevalidation and a revision check. Active revisions, missing discovery, or missing
+source block approval; code approval never changes specification decisions.
+Complete CodeApproved/Removed coverage enables task-level
+CodeApproved. Reviewer identity comes from the OS, never a manual name field.
+Read revision requests from `build/review/<task-id>/review.json`, complete them
+with summaries, and regenerate with `scripts\review_report_generator.py` after
+review-affecting changes. Run `scripts\validate_code_review.py` before review.
+
+Review reports own `Spec Review.html` and `Code Review.html` filenames only;
+the canonical task report and lifecycle reports remain owned by TaskReport.
+If runtime support is absent, state that the companion is unavailable rather
+than borrowing another task's server or a session-state generator.
+
 ## Branch & Worktree
 
 Work this task on its own short-lived, ad-hoc branch (e.g. `{task_id}`) created off the latest `main`, never directly on `main`. The Task Manager launches you inside a **dedicated git worktree** for this task — a separate checkout directory that is a sibling of `main` under the `{APP}` container (`{APP}/<task-id>`), sharing the repository's bare object store but isolated from `main` and from other tasks' worktrees so that several task agents can run in parallel without colliding. Your `{workspace_root}` above is that worktree directory: do all of your file edits and commits there, and push the branch. After approval the task is finalized and pushed to that branch (the `Deployed` status); it is later merged into `main`, and the branch and its worktree are dissolved when the task is fully integrated (the `Done` status), under the integration engineer's supervision.

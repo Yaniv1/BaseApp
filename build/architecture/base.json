@@ -44,13 +44,23 @@
                     "name": "config.base.json",
                     "description": "Base runtime configuration covering COMMON placeholder values, logging, input loading, processing, and output artifacts.",
                     "type": "Folder.JsonFile.DataSet",
-                    "path": "config/base.json"
+                    "path": "config/base.json",
+                    "requirements": ["BASE-REQ-014.24.7"],
+                    "review": {"task_id": "BASE-TASK-261011-0001", "title": "Layered review configuration"}
                 },
                 "2.2": {
                     "name": "config.local.json",
                     "description": "Gitignored local override placeholder. Values deep-merge on top of base.json and app.json at load time. Deployed once via resources/manifests/once.json; never tracked in variant app repositories.",
                     "type": "Folder.JsonFile.DataSet",
                     "path": "config/local.json"
+                },
+                "2.3": {
+                    "name": "config.app-placeholder",
+                    "description": "BaseApp's variant configuration placeholder starts at the released base version with the A prefix; existing variant configuration is not overwritten by PullBase.",
+                    "type": "Folder.JsonFile.DataSet",
+                    "path": "config/app.json",
+                    "requirements": ["BASE-REQ-014.24.7"],
+                    "review": {"task_id": "BASE-TASK-261011-0001", "title": "Release variant configuration placeholder"}
                 }
             }
         },
@@ -456,6 +466,15 @@
                                 }
                             }
                         },
+                        "3.6.19": {
+                            "name": "scripts.task_manager.review_companion",
+                            "description": "Integrate shared review lifecycle and task-scoped companion activation through the worker launcher; surface durable revision requests and select specification or implementation review without duplicating approval rules.",
+                            "type": "Folder.PyFile.FeatureGroup",
+                            "path": "scripts/task_manager.py",
+                            "requirements": ["BASE-REQ-014.24.6"],
+                            "source": {"task": "APP-TASK-260820-0001", "features": ["A1.T10_6", "A1.T10_11"]},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "status": "Specified"}
+                        },
                         "3.6.18": {
                             "name": "scripts.task_manager.ServerLifecycle",
                             "description": "Couples the lifetime of the python server, the browser UI, and the helper background processes the server spawns so no orphaned servers, rogue background processes, or interrupted sessions linger. Provides: a single-instance guard (a <status_queue>/task_manager.lock file holding pid/host/port that makes a second launch refuse to start when a live instance already holds it, reclaiming a stale lock left by a dead pid and releasing on shutdown) combined with a fail-fast port bind (no more silent ephemeral-port fallback); a Windows kill-on-close process group (a Job Object with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE assigned to the server so helper children die with the chief even on a hard kill, while Copilot worker consoles and the browser break away and survive); a browser heartbeat channel (per-tab POST /api/heartbeat + an unload sendBeacon to POST /api/close, each carrying the tab's session id) watched by a lifecycle-monitor thread that shuts the server down only once every UI tab is gone (so a second launch can safely point a tab at the already-running server, and closing one tab never stops a server another tab still uses); an explicit Close control (POST /api/shutdown); UI self-shutdown when the server is unreachable; and a single orderly-shutdown path wired to SIGINT/SIGTERM, atexit, /api/shutdown, and the monitor; and deterministic per-app port bands so several apps (e.g. BaseApp, AI4EDG) can each run their own single server+browser concurrently without colliding (COMMON.APP_NAME hashed onto a non-overlapping band, scanned then forward-probed, failing loud when the pool is exhausted). Parametrised by APP.TASK_MANAGER.single_instance / shutdown_on_browser_close / browser_heartbeat_seconds / browser_heartbeat_timeout / port_base / port_band_width / port_pool_bands and the --no-single-instance / --no-auto-shutdown CLI flags (with --port as an explicit port override).",
@@ -520,6 +539,113 @@
                     "type": "Folder.Ps1File",
                     "path": "scripts/sync_task_repo.ps1"
                 },
+                "3.9": {
+                    "name": "scripts.code_review",
+                    "description": "Repository-owned review launcher: resolve shared CLI context, serve cached reports first, regenerate in background, bind an isolated localhost listener, verify task health, open a browser, and clean up only the worker-owned listener.",
+                    "type": "Folder.PyFile",
+                    "path": "scripts/code_review.py",
+                    "requirements": ["BASE-REQ-014.24.6"],
+                    "source": {"task": "APP-TASK-260820-0001", "features": ["A1.T10_11"]},
+                    "review": {"task_id": "BASE-TASK-261011-0001", "status": "Specified"},
+                    "features": {
+                        "3.9.1": {
+                            "name": "scripts.code_review.main",
+                            "description": "One-command activation infers task context, serves cached review before regeneration, verifies its own loopback listener, opens a new browser window, and owns cleanup.",
+                            "type": "Review.Component",
+                            "path": "scripts/code_review.py::main",
+                            "selector": {"kind": "function", "value": "main"},
+                            "requirements": ["BASE-REQ-014.24.6"],
+                            "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_11"},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "One-command task-local activation"}
+                        }
+                    }
+                },
+                "3.10": {
+                    "name": "scripts.review_server",
+                    "description": "Interactive review HTTP service: shared-model-backed actions, OS reviewer identity, optimistic revision conflicts, specification and code gates, status queue requests, health and refresh state, and static snapshot download.",
+                    "type": "Folder.PyFile",
+                    "path": "scripts/review_server.py",
+                    "requirements": ["BASE-REQ-014.24.5"],
+                    "source": {"task": "APP-TASK-260820-0001", "features": ["A1.T10_1", "A1.T10_3", "A1.T10_5", "A1.T10_7", "A1.T10_10"]},
+                    "review": {"task_id": "BASE-TASK-261011-0001", "status": "Specified"},
+                    "features": {
+                        "3.10.1": {
+                            "name": "scripts.review_server.CodeApprovalQueue",
+                            "description": "Revalidate complete nonempty feature review and the earlier specification gate before idempotently queuing CodeApproved through the existing durable status channel.",
+                            "type": "Review.Component",
+                            "path": "scripts/review_server.py::CodeApprovalQueue",
+                            "selector": {"kind": "class", "value": "CodeApprovalQueue"},
+                            "requirements": ["BASE-REQ-014.24.5"],
+                            "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_3"},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Task-level code approval queue"}
+                        },
+                        "3.10.2": {
+                            "name": "scripts.review_server.SpecApprovalQueue",
+                            "description": "Revalidate independent requirement and component specification approvals before idempotently queuing SpecApproved; never substitute a code decision for specification approval.",
+                            "type": "Review.Component",
+                            "path": "scripts/review_server.py::SpecApprovalQueue",
+                            "selector": {"kind": "class", "value": "SpecApprovalQueue"},
+                            "requirements": ["BASE-REQ-014.24.5"],
+                            "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_7"},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Task-level specification approval queue"}
+                        },
+                        "3.10.3": {
+                            "name": "scripts.review_server.save_static_review_snapshot",
+                            "description": "Export a timestamped, self-contained snapshot of current status, source diffs, and comments with live scripts and interactive controls removed.",
+                            "type": "Review.Component",
+                            "path": "scripts/review_server.py::save_static_review_snapshot",
+                            "selector": {"kind": "function", "value": "save_static_review_snapshot"},
+                            "requirements": ["BASE-REQ-014.24.5"],
+                            "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_5"},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Static review snapshot"}
+                        },
+                        "3.10.4": {
+                            "name": "scripts.review_server.ReviewHandler",
+                            "description": "Serve task-scoped review state/actions and deliver static HTML as a browser attachment without accepting manually supplied reviewer identities.",
+                            "type": "Review.Component",
+                            "path": "scripts/review_server.py::ReviewHandler",
+                            "selector": {"kind": "class", "value": "ReviewHandler"},
+                            "requirements": ["BASE-REQ-014.24.5"],
+                            "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_10"},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Static browser download and HTTP actions"}
+                        }
+                    }
+                },
+                "3.11": {
+                    "name": "scripts.review_report_generator",
+                    "description": "Reproducible repository-owned review report generator: render full task requirements, implementing components, source-task provenance, diffs, stable numbering, and hashes into exclusive Spec Review and Code Review files without modifying TaskReport outputs.",
+                    "type": "Folder.PyFile",
+                    "path": "scripts/review_report_generator.py",
+                    "requirements": ["BASE-REQ-014.24.1", "BASE-REQ-014.24.3", "BASE-REQ-014.24.9"],
+                    "source": {"task": "APP-TASK-260820-0001", "requirement": "APP-REQ-011", "adaptation": "Move the source task's session-only generator into the repository."},
+                    "review": {"task_id": "BASE-TASK-261011-0001", "status": "Specified"}
+                },
+                "3.12": {
+                    "name": "scripts.validate_code_review",
+                    "description": "Standalone validator: check requirement/component links, review coverage for baseline and working-tree changes, lifecycle eligibility, and generated report content hashes with explicit nonzero failure.",
+                    "type": "Folder.PyFile",
+                    "path": "scripts/validate_code_review.py",
+                    "requirements": ["BASE-REQ-014.24.4", "BASE-REQ-014.24.8"],
+                    "review": {"task_id": "BASE-TASK-261011-0001", "status": "Specified"}
+                },
+                "3.14": {
+                    "name": "scripts.review_data",
+                    "description": "Persistent callable review-data producer: discover components, retain stable numbering, populate original change/dependency metadata and diff snippets/map, and validate freshness, hashes, baseline, and coverage without source-session artifacts.",
+                    "type": "Folder.PyFile",
+                    "path": "scripts/review_data.py",
+                    "requirements": ["BASE-REQ-014.24.7", "BASE-REQ-014.24.8"],
+                    "source": {"task": "APP-TASK-260820-0001", "assets": ["requirement-review-components.json", "review-diff-map.json", "review-diff-snippets"], "adaptation": "Persist the original catalog/diff producer routines as a callable repository pipeline."},
+                    "review": {"task_id": "BASE-TASK-261011-0001", "title": "Persistent callable review-data pipeline"}
+                },
+                "3.13": {
+                    "name": "scripts.launch_task_agent",
+                    "description": "Task worker launcher starts a repository-owned review companion in the isolated worktree, verifies task-specific health, and stops only that worker's child listener on exit or interruption.",
+                    "type": "Folder.Ps1File",
+                    "path": "scripts/launch_task_agent.ps1",
+                    "requirements": ["BASE-REQ-014.24.6"],
+                    "source": {"task": "APP-TASK-260820-0001", "features": ["A1.T10_6", "A1.T10_11"], "adaptation": "Lifecycle-bind the proven companion command to the task worker."},
+                    "review": {"task_id": "BASE-TASK-261011-0001", "title": "Worker-owned interactive review companion"}
+                },
                 "3.8": {
                     "name": "scripts.init_worktree",
                     "description": "Machine-agnostic, idempotent PowerShell script that provisions the multi-branch bare/worktree layout for BaseApp or any variant app, auto-selecting between two modes from the state of the resolved {APP} container. Clone mode (target empty/new) bare-clones -baseRepo into {APP}/.bare, writes a rename-safe relative .git pointer (gitdir: ./.bare), normalizes the fetch refspec and fetches all branches, then checks the default branch out as the {APP}/<default-branch> worktree and optionally adds a -taskBranch worktree. Migration mode (target already has app content but no {APP}/.bare) converts that existing branch-agnostic single-tree deployment in place into the same canonical layout (see Convert-ExistingDeployment), preserving history and untracked/gitignored files. Parametrized by -baseRepo with optional -root/-appName/-branch/-taskBranch/-taskFolder, so the same script serves BaseApp and any variant app; the Add-Worktree helper adds each branch worktree idempotently. Distributed to variant apps automatically because the whole scripts/ folder is propagated via resources/manifests/pull.json.",
@@ -558,7 +684,9 @@
                             "name": "docs.readme.base",
                             "description": "Base-layer readme document.",
                             "type": "Folder.Folder.MdFile",
-                            "path": "docs/readme/base.md"
+                            "path": "docs/readme/base.md",
+                            "requirements": ["BASE-REQ-014.24.9"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Review framework usage and source mapping"}
                         },
                         "4.3.2": {
                             "name": "docs.readme.app",
@@ -834,6 +962,8 @@
                                     "description": "Prep test for the local task manager web interface (features 3.6.1, 3.6.2).",
                                     "type": "Folder.Folder.Folder.PyFile",
                                     "path": "test/tests/base/task_manager.py",
+                                    "requirements": ["BASE-REQ-014.24.8"],
+                                    "review": {"task_id": "BASE-TASK-261011-0001", "title": "Task Manager review integration tests"},
                                     "features": {
                                         "5.3.1.7.1": {
                                             "name": "test.tests.base.task_manager.test_task_manager_interface",
@@ -848,6 +978,14 @@
                                             "path": "test/tests/base/task_manager.py::test_sync_task_repo_isolates_ledger_commit_from_worker_tree"
                                         }
                                     }
+                                },
+                                "5.3.1.9": {
+                                    "name": "test.tests.base.code_review",
+                                    "description": "Review runtime acceptance tests for portable context, source discovery, spec/code gates, revision conflicts and migration, restart persistence, report hashing and ownership, cached refresh, isolated listener lifecycle, and PullBase propagation.",
+                                    "type": "Folder.Folder.Folder.PyFile",
+                                    "path": "test/tests/base/code_review.py",
+                                    "requirements": ["BASE-REQ-014.24.8"],
+                                    "review": {"task_id": "BASE-TASK-261011-0001", "title": "Interactive review acceptance tests"}
                                 },
                                 "5.3.1.8": {
                                     "name": "test.tests.base.init_bare_worktree_repo",
@@ -1305,6 +1443,79 @@
                         }
                     }
                 },
+                "6.4": {
+                    "name": "utils.reviewutils",
+                    "description": "Shared review model: layered context resolution, FeatureStatus and lifecycle ranks, gate eligibility, task-scoped discovery, stable numbering, ledger schema, cross-process persistence locking and revision checks, legacy migration, architecture reconciliation, and exclusive report paths.",
+                    "type": "Folder.PyFile",
+                    "path": "utils/reviewutils.py",
+                    "requirements": ["BASE-REQ-014.24.1", "BASE-REQ-014.24.2", "BASE-REQ-014.24.3", "BASE-REQ-014.24.4", "BASE-REQ-014.24.5", "BASE-REQ-014.24.7"],
+                    "source": {"task": "APP-TASK-260820-0001", "features": ["A1.T10_1", "A1.T10_2", "A1.T10_4", "A1.T10_6", "A1.T10_8", "A1.T10_14", "A1.T10_16"], "adaptation": "Extract the reusable ReviewStore and lifecycle model from scripts/review_server.py; never import the source task's decisions."},
+                    "review": {"task_id": "BASE-TASK-261011-0001", "status": "Specified"},
+                    "features": {
+                        "6.4.1": {
+                            "name": "utils.reviewutils.FeatureStatus",
+                            "description": "Shared task-aligned feature lifecycle names, ranks, filter options, approval eligibility, and CodeApproved/Removed final states.",
+                            "type": "Review.Component",
+                            "path": "utils/reviewutils.py::FeatureStatus",
+                            "selector": {"kind": "class", "value": "FeatureStatus"},
+                            "requirements": ["BASE-REQ-014.24.5"],
+                            "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_8"},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Shared feature lifecycle"}
+                        },
+                        "6.4.2": {
+                            "name": "utils.reviewutils.ReviewStore",
+                            "description": "Portable task-scoped review ledger, atomic persistence, revision conflicts, architecture reconciliation, and durable reviewer/revision history.",
+                            "type": "Review.Component",
+                            "path": "utils/reviewutils.py::ReviewStore",
+                            "selector": {"kind": "class", "value": "ReviewStore"},
+                            "requirements": ["BASE-REQ-014.24.2", "BASE-REQ-014.24.5"],
+                            "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_1"},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Persistent review model"},
+                            "features": {
+                                "6.4.2.1": {
+                                    "name": "utils.reviewutils.ReviewStore.initialize",
+                                    "description": "Initialize and migrate the task ledger without importing source-task decisions; reconcile implemented architecture states while preserving active revisions, removals, and independent spec/code approvals.",
+                                    "type": "Review.Component",
+                                    "path": "utils/reviewutils.py::ReviewStore.initialize",
+                                    "selector": {"kind": "method", "value": "ReviewStore.initialize"},
+                                    "requirements": ["BASE-REQ-014.24.5"],
+                                    "source": {"task": "APP-TASK-260820-0001", "features": ["A1.T10_2", "A1.T10_16"], "adaptation": "Generalize ledger ownership and schema rather than importing build/review/APP-TASK-260820-0001/review.json."},
+                                    "review": {"task_id": "BASE-TASK-261011-0001", "title": "Ledger initialization and implementation reconciliation"}
+                                },
+                                "6.4.2.2": {
+                                    "name": "utils.reviewutils.ReviewStore.update_feature",
+                                    "description": "Persist independent feature specification/code approvals, visible comments, removal decisions, and revision requests with optimistic revision checks and separate lifecycle gates.",
+                                    "type": "Review.Component",
+                                    "path": "utils/reviewutils.py::ReviewStore.update_feature",
+                                    "selector": {"kind": "method", "value": "ReviewStore.update_feature"},
+                                    "requirements": ["BASE-REQ-014.24.5"],
+                                    "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_14"},
+                                    "review": {"task_id": "BASE-TASK-261011-0001", "title": "Feature-level specification and code actions"}
+                                }
+                            }
+                        },
+                        "6.4.3": {
+                            "name": "utils.reviewutils.review_action_comment",
+                            "description": "Record a visible standard approval comment when the reviewer approves with an empty textbox, preserving explicitly supplied comments.",
+                            "type": "Review.Component",
+                            "path": "utils/reviewutils.py::review_action_comment",
+                            "selector": {"kind": "function", "value": "review_action_comment"},
+                            "requirements": ["BASE-REQ-014.24.5"],
+                            "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_4"},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Visible approval comment history"}
+                        },
+                        "6.4.4": {
+                            "name": "utils.reviewutils.system_reviewer_identity",
+                            "description": "Attribute review actions to the operating-system user without requiring or accepting a manually entered reviewer name.",
+                            "type": "Review.Component",
+                            "path": "utils/reviewutils.py::system_reviewer_identity",
+                            "selector": {"kind": "function", "value": "system_reviewer_identity"},
+                            "requirements": ["BASE-REQ-014.24.5"],
+                            "source": {"task": "APP-TASK-260820-0001", "feature": "A1.T10_6"},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Operating-system reviewer identity"}
+                        }
+                    }
+                },
                 "6.3": {
                     "name": "utils.testutils",
                     "description": "Testing framework utilities for prep, live, and post runtime validation.",
@@ -1394,11 +1605,29 @@
                 }
             }
         },
+        "12": {
+            "name": "code_review",
+            "description": "Task-branch root entrypoint delegates to the repository review launcher so python code_review.py activates the original interactive review without specifying scripts.",
+            "type": "PyFile",
+            "path": "code_review.py",
+            "requirements": ["BASE-REQ-014.24.6"],
+            "review": {"task_id": "BASE-TASK-261011-0001", "title": "One-command review from task branch root"}
+        },
+        "13": {
+            "name": "gitignore",
+            "description": "Exclude machine-local generated review ledgers, snapshots, locks, and listener metadata from commits while retaining them persistently in the task worktree.",
+            "type": "DataFile",
+            "path": ".gitignore",
+            "requirements": ["BASE-REQ-014.24.7"],
+            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Keep task review decisions out of framework distribution"}
+        },
         "8": {
             "name": "README",
             "description": "Top-level repository readme.",
             "type": "MdFile",
-            "path": "README.md"
+            "path": "README.md",
+            "requirements": ["BASE-REQ-014.24.9"],
+            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Current review capability overview"}
         },
         "9": {
             "name": "dependencies",
@@ -1436,13 +1665,41 @@
                             "name": "build.instructions.base",
                             "description": "Base-layer agent and developer instructions.",
                             "type": "Folder.Folder.MdFile",
-                            "path": "build/instructions/base.md"
+                            "path": "build/instructions/base.md",
+                            "requirements": ["BASE-REQ-014.24.6"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Base worker review contract"}
                         },
                         "10.1.2": {
                             "name": "build.instructions.pullbase",
                             "description": "Dedicated instruction file for PullBase tasks: using the task details, run pullbase on the task branch (auto-detecting the BaseApp source unless the task description specifies otherwise), collect and review the incoming BaseApp updates, summarize them to the user as an HTML report, reach Ready, then deploy and merge under explicit engineer approval following base.md's supervised-merge model (deploy+merge, or deploy-only then merge after a separate approval).",
                             "type": "Folder.Folder.MdFile",
-                            "path": "build/instructions/pullbase.md"
+                            "path": "build/instructions/pullbase.md",
+                            "requirements": ["BASE-REQ-014.24.6"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "PullBase worker review contract"}
+                        },
+                        "10.1.3": {
+                            "name": "build.instructions.task",
+                            "description": "Task worker instructions for session traceability, attached interactive review, independent spec/code approval gates, and stage reports.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "build/instructions/task.md",
+                            "requirements": ["BASE-REQ-014.24.6"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Task worker review contract"}
+                        },
+                        "10.1.4": {
+                            "name": "build.instructions.task_review",
+                            "description": "Dedicated review-session instructions showing full requirements, implementing features, source mappings, and gated deployment.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "build/instructions/task-review.md",
+                            "requirements": ["BASE-REQ-014.24.5"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Interactive engineering review instructions"}
+                        },
+                        "10.1.5": {
+                            "name": "build.instructions.app",
+                            "description": "Variant worker instructions inheriting the independent specification and implementation review gates.",
+                            "type": "Folder.Folder.MdFile",
+                            "path": "build/instructions/app.md",
+                            "requirements": ["BASE-REQ-014.24.6"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Variant review lifecycle"}
                         }
                     }
                 },
@@ -1476,7 +1733,9 @@
                             "name": "build.requirements.base",
                             "description": "Base-layer requirements with breakdown and solution traceability.",
                             "type": "Folder.Folder.JsonFile",
-                            "path": "build/requirements/base.json"
+                            "path": "build/requirements/base.json",
+                            "requirements": ["BASE-REQ-014.24.4"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Imported source review requirements"}
                         },
                         "10.3.2": {
                             "name": "build.requirements.req-eng-instructions",
@@ -1496,7 +1755,9 @@
                             "name": "build.architecture.base",
                             "description": "Structured base feature inventory for the reusable architecture.",
                             "type": "Folder.Folder.JsonFile",
-                            "path": "build/architecture/base.json"
+                            "path": "build/architecture/base.json",
+                            "requirements": ["BASE-REQ-014.24.4"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Re-enumerated source review features"}
                         },
                         "10.4.2": {
                             "name": "build.architecture.app",
@@ -1516,7 +1777,9 @@
                             "name": "build.updates.base",
                             "description": "Base-layer update payload consumed by pullbase tooling.",
                             "type": "Folder.Folder.JsonFile",
-                            "path": "build/updates/base.json"
+                            "path": "build/updates/base.json",
+                            "requirements": ["BASE-REQ-014.24.9"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Review import update record"}
                         }
                     }
                 }
@@ -1602,6 +1865,15 @@
                             "type": "Folder.Folder.HtmlFile",
                             "path": "resources/templates/report_integration.html"
                         },
+                        "11.2.8": {
+                            "name": "resources.templates.code_review",
+                            "description": "Persistent interactive review UI: full requirement and architecture/source metadata, independent thread/component spec and code approvals, revision/comments history, status filters, full-thread display, final-feature progress, visible refresh errors, automatic reload, and static download.",
+                            "type": "Folder.Folder.HtmlFile",
+                            "path": "resources/templates/code_review.html",
+                            "requirements": ["BASE-REQ-014.24.5", "BASE-REQ-014.24.9"],
+                            "source": {"task": "APP-TASK-260820-0001", "features": ["A1.T10_9", "A1.T10_10", "A1.T10_12"], "adaptation": "Repository-owned UI replaces session-generated inline review controls."},
+                            "review": {"task_id": "BASE-TASK-261011-0001", "status": "Specified"}
+                        },
                         "11.2.7": {
                             "name": "resources.templates.report_summary",
                             "description": "Summative evolving overview template used by utils.baseutils.TaskReport (mapped to '*' / all statuses). Renders the accumulated per-stage highlights timeline into '{task_id} - Summary.html'.",
@@ -1626,7 +1898,9 @@
                             "name": "resources.manifests.pull",
                             "description": "Manifest of files refreshed on every base pull.",
                             "type": "Folder.Folder.JsonFile",
-                            "path": "resources/manifests/pull.json"
+                            "path": "resources/manifests/pull.json",
+                            "requirements": ["BASE-REQ-014.24.7"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Review runtime PullBase propagation"}
                         },
                         "11.3.3": {
                             "name": "resources.manifests.drop",
@@ -1646,7 +1920,17 @@
                             "name": "resources.version.base",
                             "description": "Base version record that should be updated with each pull of base updates.",
                             "type": "Folder.Folder.TxtFile",
-                            "path": "resources/version/base.txt"
+                            "path": "resources/version/base.txt",
+                            "requirements": ["BASE-REQ-014.24.7"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Review framework release version"}
+                        },
+                        "11.4.3": {
+                            "name": "resources.version.app-placeholder",
+                            "description": "Variant version placeholder for new BaseApp instantiations matches the released base version with the A prefix.",
+                            "type": "Folder.Folder.TxtFile",
+                            "path": "resources/version/app.txt",
+                            "requirements": ["BASE-REQ-014.24.7"],
+                            "review": {"task_id": "BASE-TASK-261011-0001", "title": "Release variant version placeholder"}
                         }
                     }
                 }

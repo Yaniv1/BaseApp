@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{UPSTREAM_001}} Requirement and Architecture Review</title>
+<style>
+:root{--bg:#09101e;--panel:#111b2f;--panel2:#172540;--line:#2d4164;--text:#e9f0ff;--muted:#a8b7d2;--blue:#75b5ff;--green:#55dc95;--orange:#ffc064;--red:#ff7484;--violet:#bba5ff}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(135deg,#080d18,#10192c);color:var(--text);font:15px/1.55 "Segoe UI",system-ui,sans-serif}
+.layout{display:grid;grid-template-columns:340px minmax(0,1fr);min-height:100vh} aside{position:sticky;top:0;height:100vh;overflow:auto;padding:24px 18px;background:#080e1b;border-right:1px solid var(--line)}
+aside h1{font-size:18px;margin:0 0 4px} aside .generated{color:var(--muted);font-size:12px;margin-bottom:8px} .sidebar-approval{margin:9px 0 13px} .sidebar-approval-track{height:11px;overflow:hidden;border:1px solid #315071;border-radius:999px;background:#111d30} .sidebar-approval-fill{height:100%;min-width:0;background:linear-gradient(90deg,#3187ff,#36c87a,#78e7a6);box-shadow:0 0 12px rgba(75,216,144,.45);transition:width .25s ease} .sidebar-approval-label{display:flex;justify-content:space-between;gap:8px;margin-top:4px;color:#b9cbe5;font-size:11px} .thread-sort{display:grid;gap:5px;margin:14px 0} .thread-sort label,.status-filter legend,.display-mode legend{font-size:11px;font-weight:800;color:#bcd8ff;text-transform:uppercase} .thread-sort select{width:100%;background:#101d32;color:var(--text);border:1px solid #3c587f;border-radius:7px;padding:7px} .status-filter,.display-mode{display:grid;gap:5px 9px;margin:12px 0 15px;padding:9px;border:1px solid #2f4668;border-radius:8px} .status-filter{grid-template-columns:1fr 1fr} .status-filter legend,.display-mode legend{padding:0 5px} .status-filter label,.display-mode label{display:flex;align-items:center;gap:5px;font-size:11px;color:#d5e2f5} .status-filter input,.display-mode input{accent-color:#55dc95} nav a{display:flex;gap:9px;padding:9px;border:1px solid transparent;border-radius:8px;text-decoration:none;color:var(--muted)} nav a:hover{background:var(--panel2);color:var(--text)} nav a.thread-approved{background:#102d21;border-color:#286848} nav a.thread-removed{background:#252a33;border-color:#66707f} nav a.thread-pending{background:#30230f;border-color:#76521d} nav a.thread-approved>span{background:#1f7149} nav a.thread-removed>span{background:#5e6877} nav a.thread-pending>span{background:#8b5b18} nav a>span{display:grid;place-items:center;min-width:25px;height:25px;border-radius:50%;background:#28446f;color:white;font-weight:800} nav strong{display:block;color:#dbeaff} nav small{display:block;font-size:11px} .thread-nav-metrics{display:flex;gap:8px;margin-top:3px} .thread-nav-metrics em{font-style:normal;color:#d7e4f8} [hidden]{display:none!important}
+main{max-width:1320px;width:100%;padding:36px 42px 80px} .hero,.thread,.artifact-gate,.policy{border:1px solid var(--line);border-radius:16px;background:rgba(17,27,47,.94)} .hero{padding:28px;background:linear-gradient(135deg,#1a2c4d,#101a2e)} .hero h1{font-size:31px;margin:4px 0 10px} .hero p{color:var(--muted)} .eyebrow{color:var(--blue);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.13em}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:20px} .stat{padding:13px;background:#0b1425;border:1px solid var(--line);border-radius:9px} .stat strong{display:block;font-size:21px} .stat span{font-size:11px;color:var(--muted)} .approval-mix{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px} .approval-metric{padding:12px;border:1px solid var(--line);border-radius:9px;background:#0b1425} .approval-metric strong{display:block;font-size:19px} .approval-metric span{color:var(--muted);font-size:11px} .approval-metric.approved{border-color:#286848} .approval-metric.removed{border-color:#66707f} .approval-metric.revise{border-color:#6a4f8b} .approval-metric.pending{border-color:#76521d} .toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:18px} button{background:#193052;color:#e6f0ff;border:1px solid #42628e;border-radius:7px;padding:7px 11px;cursor:pointer} button:disabled{cursor:not-allowed;opacity:.45} .code-approved-button{margin-left:auto;background:#15462f;border-color:#3a9a68;color:#bdf4d3;font-weight:800} .task-status-message{font-size:12px;color:var(--muted)} .task-status-message.error{color:#ff9baa}
+.policy,.artifact-gate{margin-top:24px;padding:22px} .policy p{color:var(--muted)} table{width:100%;border-collapse:collapse;font-size:12px} th,td{border:1px solid var(--line);padding:8px 9px;vertical-align:top} th{background:#1a2a46} .commit,.approval,.thread-status{display:inline-block;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800} .commit.ready,.approval.codeapproved{background:#143d2b;color:#83eab0} .commit.removed,.approval.removed{background:#303640;color:#d6dde8} .commit.blocked,.approval.ready,.approval.specified{background:#4b3211;color:#ffd18a} .approval.inprogress{background:#263b5d;color:#b6d5ff} .approval.specapproved{background:#203e55;color:#9bdcff}
+.thread{margin-top:28px;padding:23px} .thread>header{display:flex;justify-content:space-between;gap:18px;border-bottom:1px solid var(--line);padding-bottom:16px} .thread h2{margin:3px 0 7px;font-size:23px} .thread header p{margin:0;color:var(--muted);max-width:940px} .thread-actions{display:grid;justify-items:end;gap:6px;align-self:start} .thread-status{white-space:nowrap;background:#243b60;color:#c7dcff} .spec-status{display:inline-block;border-radius:999px;padding:4px 9px;font-size:11px;font-weight:800} .spec-status.approved{background:#143d2b;color:#83eab0} .spec-status.pending{background:#4b3211;color:#ffd18a} .sequence-note{margin:14px 0;color:var(--muted);font-size:13px}
+.component{display:grid;grid-template-columns:44px 1fr;gap:13px;padding:17px 0;border-top:1px solid #263957} .component-index{display:grid;place-items:center;align-self:start;height:36px;border-radius:9px;background:#233e67;font-weight:800} .component-heading{display:flex;justify-content:space-between;gap:12px} .component h3{margin:0;font-size:17px} .trace-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px;color:var(--muted);font-size:12px} .architecture-description{color:#c8d4e8!important;margin:8px 0!important}
+.architecture-record{display:grid;grid-template-columns:105px 1fr;gap:5px 10px;margin:10px 0;padding:12px;background:#0c1526;border:1px solid #2a3e60;border-radius:9px} .architecture-record dt{font-weight:800;color:#91c2ff} .architecture-record dd{margin:0;color:#c3d0e4} .path{font:12px/1.5 Consolas,monospace;color:#8ebcff}
+code{font-family:Consolas,"Courier New",monospace;color:#dceeff;background:#1b2d4b;border:1px solid #38557f;border-radius:4px;padding:.08em .32em;box-decoration-break:clone;-webkit-box-decoration-break:clone} .change-vector,.dependency-map{margin:12px 0;padding:11px;border:1px solid #304666;border-radius:9px;background:#0c1525} .change-vector h4,.dependency-map h4{margin:0 0 8px;font-size:12px;text-transform:uppercase} .change-vector article{padding:9px;border-left:3px solid var(--violet);background:#121e32} .change-vector article+article{margin-top:8px} .change-vector h5{margin:0 0 6px} .change-vector dl,.dependency-map dl{display:grid;grid-template-columns:150px 1fr;gap:6px 10px;margin:0} .change-vector dt,.dependency-map dt{font-weight:800;color:#8ebcff} .change-vector dd,.dependency-map dd{margin:0} .behavior-steps{margin:0;padding-left:22px} .behavior-steps li{padding-left:4px} .behavior-steps li+li{margin-top:6px} .behavior-steps li::marker{color:#89bfff;font-weight:800} .dependency-map{border-color:#365a66;background:#0b191e} .dependency-map ul{margin:0;padding-left:18px} .thread-change-vector,.thread-dependency-map{margin:14px 0;background:#101d31} .thread-change-vector article{border-left-color:var(--blue)}
+.inline-diff{margin-top:12px;border:1px solid #304666;border-radius:9px;background:#08101e;overflow:hidden} .inline-diff>summary{display:flex;justify-content:space-between;padding:9px 12px;cursor:pointer;background:#101d32;font-weight:700} .diff-scroll{overflow:auto;max-height:680px;border-top:1px solid #30415f} .inline-diff-table{width:max-content;min-width:100%;border-collapse:separate;border-spacing:0;background:#0a1120;font:12px/1.45 Consolas,"Courier New",monospace} .inline-diff-table th{position:sticky;top:0;z-index:2;min-width:420px;padding:7px 10px;background:#182640;color:#dbe8ff;border:0;border-bottom:1px solid #354867;text-align:left} .inline-diff-table td{padding:0;border:0;border-bottom:1px solid rgba(43,58,89,.35);vertical-align:top} .diff-number{width:48px;min-width:48px;padding:1px 8px!important;text-align:right!important;color:#687995;background:#0d1729;user-select:none;border-right:1px solid #263653!important} .diff-code{min-width:420px;max-width:760px} .diff-code pre{margin:0;padding:1px 10px;white-space:pre;overflow:visible;font:inherit;color:#cbd7eb} .diff-code.removed,.diff-number.removed{background:#351821} .diff-code.removed pre{color:#ffd4d9} .diff-code.added,.diff-number.added{background:#123122} .diff-code.added pre{color:#c9f7dc} .diff-code.empty,.diff-number.empty{background:#080e19} .diff-identical{padding:16px!important;color:var(--muted);text-align:center!important}
+.approval.revise-requested{background:#4a2030;color:#ffb8c2} .approval.revised{background:#3d315a;color:#d9c7ff} .component.review-focus{outline:2px solid var(--blue);outline-offset:6px;border-radius:8px} .review-controls{margin-top:13px;padding:13px;border:1px solid #365075;border-radius:9px;background:#0d1729} .review-controls label{display:grid;gap:6px;font-weight:800;color:#bcd8ff} .review-controls textarea{width:100%;resize:vertical;background:#07101e;color:var(--text);border:1px solid #41618d;border-radius:7px;padding:9px;font:inherit} .review-actions{display:flex;align-items:center;gap:8px;margin-top:9px} .approve-button{background:#17452f;border-color:#33845c} .revise-button{background:#512231;border-color:#9a465d} .review-message{font-size:12px;color:var(--muted)} .review-message.error{color:#ff9daa} .comment-history{display:grid;gap:7px;margin-top:11px} .comment-history article{padding:8px 10px;border-left:3px solid #547eb8;background:#101e33} .comment-history strong{margin-right:8px} .comment-history span,.no-comments{color:var(--muted);font-size:12px} .comment-history p{margin:4px 0 0}
+@media(max-width:950px){.layout{display:block}aside{position:relative;height:auto}main{padding:22px 14px}.stats{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+<div class="layout">
+<aside>
+  <h1>{{UPSTREAM_003}}</h1>
+  <div class="sidebar-approval" aria-label="Task reviewed share">
+    <div class="sidebar-approval-track">
+      <div class="sidebar-approval-fill" data-sidebar-approval-fill style="width:{{UPSTREAM_005}}%"></div>
+    </div>
+    <div class="sidebar-approval-label">
+      <strong data-sidebar-approval-share>{{UPSTREAM_007}}% reviewed</strong>
+      <span data-sidebar-approval-count>{{UPSTREAM_009}}/{{UPSTREAM_011}}</span>
+    </div>
+  </div>
+  <div class="generated">Generated {{UPSTREAM_013}}</div>
+  <div class="generated">Task baseline {{UPSTREAM_015}}</div>
+  <div class="thread-sort">
+    <label for="thread-sort-order">Sort threads</label>
+    <select id="thread-sort-order">
+      <option value="number">Review number</option>
+      <option value="steps-asc">Steps: fewest first</option>
+      <option value="steps-desc">Steps: most first</option>
+      <option value="approval-asc">Approval: lowest first</option>
+      <option value="approval-desc">Approval: highest first</option>
+    </select>
+  </div>
+  <fieldset class="status-filter" id="status-filter">
+    <legend>Show feature statuses</legend>
+    {{UPSTREAM_017}}
+  </fieldset>
+  <fieldset class="display-mode" id="feature-display-mode">
+    <legend>Features in matching threads</legend>
+    <label><input type="radio" name="feature-display-mode" data-feature-display-mode value="matching-features" checked> Matching features only</label>
+    <label><input type="radio" name="feature-display-mode" data-feature-display-mode value="all-thread-features"> All thread features</label>
+  </fieldset>
+  <nav id="thread-navigation">{{UPSTREAM_019}}</nav>
+</aside>
+<main>
+  <section class="hero">
+    <div class="eyebrow">Requirement-driven feature approval</div>
+    <h1>{{REVIEW_TITLE}}</h1>
+    <p>Threads follow requirements; thread components are precise architecture features. Before comparisons use task baseline <code>{{UPSTREAM_021}}</code>, so approved commits remain visible in the complete task change vector. Approval is feature-scoped, and an artifact becomes committable only after every task-owned feature in that artifact is approved.</p>
+    <div class="stats">
+      <div class="stat"><strong>{{UPSTREAM_023}}</strong><span>requirement threads</span></div>
+      <div class="stat"><strong>{{UPSTREAM_025}}</strong><span>architecture components</span></div>
+      <div class="stat"><strong>{{UPSTREAM_027}}</strong><span>artifacts</span></div>
+      <div class="stat"><strong id="ready-artifact-count">{{UPSTREAM_029}}</strong><span>ready to commit</span></div>
+      <div class="stat"><strong>+{{UPSTREAM_031}} / -{{UPSTREAM_033}}</strong><span>working-tree lines</span></div>
+    </div>
+    <div class="approval-mix" aria-label="Task review status distribution">
+      <div class="approval-metric approved" data-task-status="approved">
+        <strong>{{UPSTREAM_035}} / {{UPSTREAM_037}} · {{UPSTREAM_039}}%</strong>
+        <span>CodeApproved steps</span>
+      </div>
+      <div class="approval-metric removed" data-task-status="removed">
+        <strong>{{UPSTREAM_041}} / {{UPSTREAM_043}} · {{UPSTREAM_045}}%</strong>
+        <span>Removed steps</span>
+      </div>
+      <div class="approval-metric revise" data-task-status="revise">
+        <strong>{{UPSTREAM_047}} / {{UPSTREAM_049}} · {{UPSTREAM_051}}%</strong>
+        <span>InProgress steps</span>
+      </div>
+      <div class="approval-metric pending" data-task-status="pending">
+        <strong>{{UPSTREAM_053}} / {{UPSTREAM_055}} · {{UPSTREAM_057}}%</strong>
+        <span>Ready or earlier steps</span>
+      </div>
+    </div>
+    <div class="toolbar">
+      <button type="button" onclick="document.querySelectorAll('details.inline-diff').forEach(x=>x.open=true)">Expand all diffs</button>
+      <button type="button" onclick="document.querySelectorAll('details.inline-diff').forEach(x=>x.open=false)">Collapse all diffs</button>
+      <button type="button" id="save-static-html-button">Save Static HTML</button>
+      <span id="static-html-message" class="task-status-message"></span>
+      <button type="button" id="spec-approved-button" class="code-approved-button" disabled>Approve Spec</button>
+      <span id="spec-status-message" class="task-status-message">Approve every requirement thread to enable this action.</span>
+      <button type="button" id="code-approved-button" class="code-approved-button" disabled>Code Approved</button>
+      <span id="task-status-message" class="task-status-message">Approve or remove every review item to enable this action.</span>
+    </div>
+  </section>
+  <section class="policy">
+    <h2>Traceability and approval policy</h2>
+    <p>Interactive decisions and comments are retained in <code>build/review/{{UPSTREAM_059}}/review.json</code> alongside the source records in <code>{{ARCHITECTURE_PATH}}</code> for commit gating. Every architecture component records its requirement, exact artifact path, structural selector, source provenance, and approval state. Non-data source markers carry requirement and exact component IDs. The {{UPSTREAM_061}} JSON/CSV/TXT components remain comment-free and are controlled only through metadata.</p>
+    {{EMPTY_COMPONENTS}}
+    <details><summary>Uncovered baseline changes (block code approval)</summary><ul>{{UNCOVERED_CHANGES}}</ul></details>
+  </section>
+  <section class="artifact-gate">
+    <h2>Artifact commit gate</h2>
+    <table><thead><tr><th>Artifact</th><th>Features</th><th>CodeApproved</th><th>Commit state</th><th>Pending features</th></tr></thead><tbody>{{UPSTREAM_063}}</tbody></table>
+  </section>
+  {{UPSTREAM_065}}
+</main>
+</div>
+<script id="review-data" type="application/json">{{REVIEW_LEDGER}}</script>
+<script>
+const REVIEW_TASK_ID = {{UPSTREAM_067}};
+const REVIEW_API_BASE = '';
+const LAST_REVIEW_FEATURE_KEY = `baseapp-review:${REVIEW_TASK_ID}:last-feature`;
+const STATUS_FILTER_KEY = `baseapp-review:${REVIEW_TASK_ID}:status-filter`;
+const FEATURE_DISPLAY_MODE_KEY = `baseapp-review:${REVIEW_TASK_ID}:feature-display-mode`;
+const INITIAL_REVIEW_LEDGER = JSON.parse(document.getElementById('review-data').textContent);
+const RENDERED_SNAPSHOT_HASH = '{{SNAPSHOT_HASH}}';
+let reviewRevision = null;
+let reviewReportVersion = null;
+let reviewRefreshInProgress = false;
+let currentReviewLedger = null;
+
+function reviewStatusSlug(status) {
+  return String(status || {{UPSTREAM_069}}).toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+function featureStatus(ledger, featureId) {
+  return ledger.features?.[featureId]?.status || {{UPSTREAM_071}};
+}
+function statusBucket(status) {
+  if (status === {{UPSTREAM_073}}) return 'approved';
+  if (status === {{UPSTREAM_075}}) return 'removed';
+  if (status === {{UPSTREAM_077}}) return 'revise';
+  return 'pending';
+}
+function percent(value, total) {
+  return total ? Math.round(value * 1000 / total) / 10 : 0;
+}
+function sortThreadNavigation(order) {
+  const navigation = document.getElementById('thread-navigation');
+  const links = Array.from(navigation.querySelectorAll(':scope > a'));
+  const value = link => {
+    if (order.startsWith('steps')) return Number(link.dataset.threadSteps);
+    if (order.startsWith('approval')) return Number(link.dataset.threadApproval);
+    return Number(link.dataset.threadNumber);
+  };
+  const descending = order.endsWith('-desc');
+  links.sort((left, right) => {
+    const difference = value(left) - value(right);
+    if (difference) return descending ? -difference : difference;
+    return Number(left.dataset.threadNumber) - Number(right.dataset.threadNumber);
+  });
+  links.forEach(link => navigation.appendChild(link));
+  localStorage.setItem(`baseapp-review:${REVIEW_TASK_ID}:thread-sort`, order);
+}
+function rememberReviewFeature(featureId) {
+  if (featureId) localStorage.setItem(LAST_REVIEW_FEATURE_KEY, featureId);
+}
+function selectedFeatureStatuses() {
+  return new Set(
+    Array.from(document.querySelectorAll('[data-status-filter]:checked'))
+      .map(input => input.value)
+  );
+}
+function selectedFeatureDisplayMode() {
+  return document.querySelector('[data-feature-display-mode]:checked')?.value ||
+    'matching-features';
+}
+function applyStatusFilter() {
+  const selected = selectedFeatureStatuses();
+  const displayMode = selectedFeatureDisplayMode();
+  const showAllThreadFeatures = displayMode === 'all-thread-features';
+  document.querySelectorAll('.thread[data-feature-ids]').forEach(thread => {
+    const cards = Array.from(
+      thread.querySelectorAll('.component[data-feature-id]')
+    );
+    const hasMatchingFeature = cards.some(
+      card => selected.has(
+        currentReviewLedger
+          ? featureStatus(currentReviewLedger, card.dataset.featureId)
+          : (card.dataset.featureStatus || {{UPSTREAM_079}})
+      )
+    );
+    cards.forEach(card => {
+      const status = currentReviewLedger
+        ? featureStatus(currentReviewLedger, card.dataset.featureId)
+        : (
+          card.dataset.featureStatus || {{UPSTREAM_081}}
+        );
+      const show = hasMatchingFeature && (
+        showAllThreadFeatures || selected.has(status)
+      );
+      card.hidden = !show;
+      card.style.display = show ? '' : 'none';
+    });
+    thread.hidden = !hasMatchingFeature;
+    thread.style.display = hasMatchingFeature ? '' : 'none';
+    const link = document.querySelector(`nav a[href="#${thread.id}"]`);
+    if (link) {
+      link.hidden = !hasMatchingFeature;
+      link.style.display = hasMatchingFeature ? '' : 'none';
+    }
+  });
+  localStorage.setItem(
+    STATUS_FILTER_KEY,
+    JSON.stringify(Array.from(selected))
+  );
+  localStorage.setItem(FEATURE_DISPLAY_MODE_KEY, displayMode);
+}
+function restoreStatusFilter() {
+  let selected = null;
+  try {
+    selected = JSON.parse(localStorage.getItem(STATUS_FILTER_KEY));
+  } catch (_error) {
+    selected = null;
+  }
+  if (Array.isArray(selected)) {
+    document.querySelectorAll('[data-status-filter]').forEach(input => {
+      input.checked = selected.includes(input.value);
+    });
+  }
+  const displayMode =
+    localStorage.getItem(FEATURE_DISPLAY_MODE_KEY) || 'matching-features';
+  document.querySelectorAll('[data-feature-display-mode]').forEach(input => {
+    input.checked = input.value === displayMode;
+  });
+  applyStatusFilter();
+}
+function navigateToFilteredThread(event, link) {
+  const threadId = link.getAttribute('href').replace(/^#/, '');
+  const thread = document.getElementById(threadId);
+  if (!thread) return;
+  event.preventDefault();
+  applyStatusFilter();
+  if (thread.hidden || thread.style.display === 'none') return;
+  const matchingOnly =
+    selectedFeatureDisplayMode() === 'matching-features';
+  const visibleCard = Array.from(
+    thread.querySelectorAll('.component[data-feature-id]')
+  ).find(card => !card.hidden && card.style.display !== 'none');
+  const target = matchingOnly && visibleCard ? visibleCard : thread;
+  history.pushState(null, '', link.getAttribute('href'));
+  target.scrollIntoView({block: 'start'});
+}
+function restoreReviewFeature() {
+  const featureId = localStorage.getItem(LAST_REVIEW_FEATURE_KEY);
+  if (!featureId) return;
+  const card = Array.from(
+    document.querySelectorAll('.component[data-feature-id]')
+  ).find(value => value.dataset.featureId === featureId);
+  if (!card) return;
+  document.querySelectorAll('.component.review-focus').forEach(
+    value => value.classList.remove('review-focus')
+  );
+  card.classList.add('review-focus');
+  card.scrollIntoView({block: 'start'});
+}
+function renderReviewComments(container, comments) {
+  container.innerHTML = '';
+  if (!comments?.length) {
+    const empty = document.createElement('p');
+    empty.className = 'no-comments';
+    empty.textContent = 'No review comments yet.';
+    container.appendChild(empty);
+    return;
+  }
+  comments.forEach(comment => {
+    const article = document.createElement('article');
+    const action = document.createElement('strong');
+    action.textContent = String(comment.action || 'comment')
+      .replace(/^./, value => value.toUpperCase());
+    const created = document.createElement('span');
+    const actor = comment.actor === 'assistant'
+      ? 'Copilot'
+      : (comment.actor_name || 'Reviewer');
+    created.textContent = `${actor} · ${comment.created_at || ''}`;
+    const text = document.createElement('p');
+    text.textContent = comment.text || '';
+    article.append(action, created, text);
+    container.appendChild(article);
+  });
+}
+function applyReviewLedger(ledger) {
+  currentReviewLedger = ledger;
+  reviewRevision = ledger.revision;
+  document.querySelectorAll('.component[data-feature-id]').forEach(card => {
+    const entry = ledger.features?.[card.dataset.featureId] || {};
+    const status = entry.status || {{UPSTREAM_083}};
+    card.dataset.featureStatus = status;
+    const badge = card.querySelector('[data-review-status]');
+    badge.className = `approval ${reviewStatusSlug(status)}`;
+    badge.textContent = status;
+    renderReviewComments(
+      card.querySelector('[data-review-comments]'),
+      entry.comments || []
+    );
+    card.querySelector('[data-review-action="approve_spec"]').disabled =
+      status === 'Removed' || ['pending', 'processing'].includes(entry.revision_request?.state);
+    card.querySelector('[data-review-action="approve"]').disabled =
+      entry.can_approve_code !== true;
+  });
+  document.querySelectorAll('.thread[data-feature-ids]').forEach(thread => {
+    const specReview = ledger.spec_reviews?.[thread.dataset.requirementId] || {};
+    const specApproved =
+      specReview.status === {{UPSTREAM_089}};
+    const specBadge = thread.querySelector('[data-spec-status]');
+    specBadge.className = `spec-status ${specApproved ? 'approved' : 'pending'}`;
+    specBadge.textContent = specApproved ? 'Spec Approved' : 'Spec Pending';
+    const specButton = thread.querySelector('[data-spec-action]');
+    specButton.disabled = specApproved;
+    thread.querySelector('[data-code-action]').disabled =
+      specReview.can_approve_code !== true;
+    const featureIds = specReview.code_feature_ids || JSON.parse(thread.dataset.featureIds);
+    const approved = featureIds.filter(
+      featureId => featureStatus(ledger, featureId) === {{UPSTREAM_091}}
+    ).length;
+    const removed = featureIds.filter(
+      featureId => featureStatus(ledger, featureId) === {{UPSTREAM_093}}
+    ).length;
+    thread.querySelector('.thread-status').textContent =
+      `${approved}/${featureIds.length} code approved` +
+      (removed ? ` · ${removed} removed` : '');
+    const navigationLink = document.querySelector(
+      `nav a[href="#${thread.id}"]`
+    );
+    if (navigationLink) {
+      const allRemoved = featureIds.length > 0 && removed === featureIds.length;
+      const ready = featureIds.length > 0 && approved + removed === featureIds.length && !allRemoved;
+      navigationLink.classList.toggle('thread-approved', ready);
+      navigationLink.classList.toggle('thread-removed', allRemoved);
+      navigationLink.classList.toggle('thread-pending', !ready && !allRemoved);
+      const approval = percent(approved, featureIds.length);
+      navigationLink.dataset.threadApproval = approval;
+      navigationLink.querySelector('[data-thread-step-count]').textContent =
+        `${featureIds.length} steps`;
+      navigationLink.querySelector('[data-thread-approval-share]').textContent =
+        `${approval}% approved` + (removed ? ` · ${removed} removed` : '');
+    }
+  });
+  const statusCounts = {approved: 0, removed: 0, revise: 0, pending: 0};
+  const featureIds = Array.from(
+    document.querySelectorAll('.component[data-feature-id]')
+  ).map(card => card.dataset.featureId);
+  featureIds.forEach(featureId => {
+    statusCounts[statusBucket(featureStatus(ledger, featureId))] += 1;
+  });
+  Object.entries(statusCounts).forEach(([bucket, count]) => {
+    document.querySelector(
+      `[data-task-status="${bucket}"] strong`
+    ).textContent = `${count} / ${featureIds.length} · ` +
+      `${percent(count, featureIds.length)}%`;
+  });
+  const reviewedCount = statusCounts.approved + statusCounts.removed;
+  const reviewedShare = percent(reviewedCount, featureIds.length);
+  document.querySelector('[data-sidebar-approval-fill]').style.width =
+    `${reviewedShare}%`;
+  document.querySelector('[data-sidebar-approval-share]').textContent =
+    `${reviewedShare}% reviewed`;
+  document.querySelector('[data-sidebar-approval-count]').textContent =
+    `${reviewedCount}/${featureIds.length}`;
+  const fullyReviewed = ledger.can_code === true;
+  const codeApprovedButton = document.getElementById('code-approved-button');
+  codeApprovedButton.disabled = !fullyReviewed;
+  codeApprovedButton.title = fullyReviewed
+    ? 'Queue the task status transition to CodeApproved.'
+    : 'Every review item must be Approved or Removed first.';
+  if (!fullyReviewed) {
+    document.getElementById('task-status-message').textContent =
+      'Approve or remove every review item to enable this action.';
+  }
+  const requirementThreads = Array.from(
+    document.querySelectorAll('.thread[data-requirement-id]')
+  );
+  const allSpecsApproved = ledger.can_spec === true && requirementThreads.length > 0 && requirementThreads.every(
+    thread => ledger.spec_reviews?.[thread.dataset.requirementId]?.status ===
+      {{UPSTREAM_095}}
+  );
+  const specApprovedButton = document.getElementById('spec-approved-button');
+  specApprovedButton.disabled = !allSpecsApproved;
+  specApprovedButton.title = allSpecsApproved
+    ? 'Queue the task status transition to SpecApproved.'
+    : 'Every requirement thread must be specification-approved first.';
+  if (!allSpecsApproved) {
+    document.getElementById('spec-status-message').textContent =
+      'Approve every requirement thread to enable this action.';
+  }
+  sortThreadNavigation(
+    document.getElementById('thread-sort-order').value
+  );
+  let readyArtifacts = 0;
+  document.querySelectorAll(
+    '.artifact-gate tr[data-feature-ids]'
+  ).forEach(row => {
+    const featureIds = JSON.parse(row.dataset.featureIds);
+    const removed = featureIds.filter(
+      featureId => featureStatus(ledger, featureId) ===
+        {{UPSTREAM_097}}
+    );
+    const pending = featureIds.filter(
+      featureId => !{{UPSTREAM_099}}.includes(
+        featureStatus(ledger, featureId)
+      )
+    );
+    const approved = featureIds.length - pending.length - removed.length;
+    const removedArtifact = removed.length === featureIds.length;
+    const ready = ledger.artifacts?.[row.dataset.artifact]?.ready_to_commit === true && !removedArtifact;
+    readyArtifacts += Number(ready);
+    row.querySelector('[data-approved-count]').textContent = approved;
+    const commit = row.querySelector('[data-commit-status]');
+    commit.className = `commit ${
+      removedArtifact ? 'removed' : (ready ? 'ready' : 'blocked')
+    }`;
+    commit.textContent = removedArtifact
+      ? 'Removed from task'
+      : (ready ? 'Ready to commit' : 'Blocked');
+    const pendingCell = row.querySelector('[data-pending-features]');
+    pendingCell.innerHTML = '';
+    if (ready) pendingCell.textContent = 'None';
+    else pending.forEach(featureId => {
+      const value = document.createElement('code');
+      value.textContent = featureId;
+      pendingCell.append(value, document.createTextNode(' '));
+    });
+  });
+  document.getElementById('ready-artifact-count').textContent =
+    readyArtifacts;
+  applyStatusFilter();
+}
+async function loadReviewLedger() {
+  const response = await fetch(
+    `${REVIEW_API_BASE}/api/review`,
+    {cache: 'no-store'}
+  );
+  if (!response.ok) throw new Error(`Review service returned ${response.status}`);
+  const ledger = await response.json();
+  applyReviewLedger(ledger);
+  requestAnimationFrame(restoreReviewFeature);
+}
+async function refreshReviewPageState() {
+  if (reviewRefreshInProgress) return;
+  reviewRefreshInProgress = true;
+  try {
+    const [ledgerResponse, reportResponse] = await Promise.all([
+      fetch(`${REVIEW_API_BASE}/api/review`, {cache: 'no-store'}),
+      fetch(
+        `${REVIEW_API_BASE}/api/review/report-state`,
+        {cache: 'no-store'}
+      ),
+    ]);
+    if (!ledgerResponse.ok || !reportResponse.ok) return;
+    const ledger = await ledgerResponse.json();
+    const report = await reportResponse.json();
+    applyReviewLedger(ledger);
+    const refreshMessage = document.getElementById('task-status-message');
+    if (report.refresh_error) {
+      refreshMessage.className = 'task-status-message error';
+      refreshMessage.textContent = `Background refresh failed; serving the last valid report: ${report.refresh_error}`;
+    }
+    if (report.snapshot_hash && report.snapshot_hash !== RENDERED_SNAPSHOT_HASH) {
+      location.reload();
+      return;
+    }
+    if (reviewReportVersion === null) {
+      reviewReportVersion = report.version;
+      return;
+    }
+    if (report.version !== reviewReportVersion) {
+      const activeFeature = localStorage.getItem(LAST_REVIEW_FEATURE_KEY);
+      const target = new URL(location.href);
+      target.searchParams.set('review_report', report.version);
+      if (activeFeature) target.hash = `feature-${activeFeature}`;
+      location.replace(target.toString());
+    }
+  } finally {
+    reviewRefreshInProgress = false;
+  }
+}
+async function submitReviewAction(button) {
+  const card = button.closest('.component');
+  const comment = card.querySelector('[data-review-comment]');
+  const message = card.querySelector('[data-review-message]');
+  const action = button.dataset.reviewAction;
+  const reviewComment = comment.value.trim() || (
+    action === 'approve'
+      ? 'Approved by reviewer.'
+      : (
+        action === 'approve_spec'
+          ? 'Specification approved by reviewer.'
+          : ''
+      )
+  );
+  rememberReviewFeature(card.dataset.featureId);
+  if (action === 'revise' && !reviewComment) {
+    message.className = 'review-message error';
+    message.textContent = 'Add a comment describing what to revise.';
+    comment.focus();
+    return;
+  }
+  card.querySelectorAll('[data-review-action]').forEach(
+    value => value.disabled = true
+  );
+  message.className = 'review-message';
+  message.textContent = 'Saving...';
+  try {
+    const response = await fetch(
+      `${REVIEW_API_BASE}/api/review/features/${encodeURIComponent(card.dataset.featureId)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Review-Task': REVIEW_TASK_ID,
+        },
+        body: JSON.stringify({
+          action,
+          comment: reviewComment,
+          expected_revision: reviewRevision,
+        }),
+      }
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+    message.textContent = action === 'approve'
+      ? 'Code approval saved.'
+      : (
+        action === 'approve_spec'
+          ? 'Specification approval saved.'
+          : 'Revision request saved for monitoring.'
+      );
+    location.reload();
+  } catch (error) {
+    message.className = 'review-message error';
+    message.textContent = error.message;
+  } finally {
+    card.querySelectorAll('[data-review-action]').forEach(
+      value => value.disabled = false
+    );
+    if (currentReviewLedger) applyReviewLedger(currentReviewLedger);
+  }
+}
+async function submitSpecApproval(button) {
+    const thread = button.closest('.thread');
+    const message = thread.querySelector('[data-spec-message]');
+    button.disabled = true;
+    message.className = 'review-message';
+    message.textContent = 'Saving specification approval...';
+    try {
+      const response = await fetch(
+        `${REVIEW_API_BASE}/api/review/requirements/${encodeURIComponent(thread.dataset.requirementId)}/spec`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Review-Task': REVIEW_TASK_ID,
+          },
+          body: JSON.stringify({
+            comment: 'Specification approved by reviewer.',
+            expected_revision: reviewRevision,
+          }),
+        }
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+      applyReviewLedger(payload);
+      message.textContent = 'Specification approval saved.';
+    } catch (error) {
+      message.className = 'review-message error';
+      message.textContent = error.message;
+      button.disabled = false;
+    }
+}
+async function submitThreadCodeApproval(button) {
+  const thread = button.closest('.thread');
+  const message = thread.querySelector('[data-code-message]');
+  button.disabled = true;
+  message.className = 'review-message';
+  message.textContent = 'Saving code approval for all remaining thread features...';
+  try {
+    const response = await fetch(
+      `${REVIEW_API_BASE}/api/review/requirements/${encodeURIComponent(thread.dataset.requirementId)}/code`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Review-Task': REVIEW_TASK_ID,
+        },
+        body: JSON.stringify({
+          comment: 'Approved by reviewer.',
+          expected_revision: reviewRevision,
+        }),
+      }
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+    applyReviewLedger(payload);
+    message.textContent = 'Code approval saved for all remaining thread features.';
+  } catch (error) {
+    message.className = 'review-message error';
+    message.textContent = error.message;
+    try {
+      await loadReviewLedger();
+    } catch (_error) {
+      if (currentReviewLedger) applyReviewLedger(currentReviewLedger);
+    }
+  }
+}
+async function submitTaskSpecApproved() {
+    const button = document.getElementById('spec-approved-button');
+    const message = document.getElementById('spec-status-message');
+    button.disabled = true;
+    message.className = 'task-status-message';
+    message.textContent = 'Queuing SpecApproved status update...';
+    try {
+      const response = await fetch(
+        `${REVIEW_API_BASE}/api/review/task-status/spec-approved`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Review-Task': REVIEW_TASK_ID,
+          },
+          body: JSON.stringify({expected_revision: reviewRevision}),
+        }
+      );
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+      message.textContent = payload.message || 'SpecApproved status update queued.';
+    } catch (error) {
+      message.className = 'task-status-message error';
+      message.textContent = error.message;
+      button.disabled = false;
+    }
+}
+async function submitCodeApproved() {
+  const button = document.getElementById('code-approved-button');
+  const message = document.getElementById('task-status-message');
+  button.disabled = true;
+  message.className = 'task-status-message';
+  message.textContent = 'Queuing CodeApproved status update...';
+  try {
+    const response = await fetch(
+      `${REVIEW_API_BASE}/api/review/task-status/code-approved`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Review-Task': REVIEW_TASK_ID,
+        },
+        body: JSON.stringify({expected_revision: reviewRevision}),
+      }
+    );
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || `HTTP ${response.status}`);
+    message.textContent = payload.message || 'CodeApproved status update queued.';
+  } catch (error) {
+    message.className = 'task-status-message error';
+    message.textContent = error.message;
+    button.disabled = false;
+  }
+}
+async function saveStaticHtml() {
+  const button = document.getElementById('save-static-html-button');
+  const message = document.getElementById('static-html-message');
+  button.disabled = true;
+  message.className = 'task-status-message';
+  message.textContent = 'Saving static HTML...';
+  try {
+    const response = await fetch(
+      `${REVIEW_API_BASE}/api/review/report/static/download`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Review-Task': REVIEW_TASK_ID,
+        },
+        body: JSON.stringify({expected_revision: reviewRevision}),
+      }
+    );
+    if (!response.ok) {
+      throw new Error((await response.text()) || `HTTP ${response.status}`);
+    }
+    const blob = await response.blob();
+    const filename = response.headers.get('X-Review-File') ||
+      `${REVIEW_TASK_ID} - Code Review Static.html`;
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(downloadUrl);
+    message.textContent =
+      `Downloaded ${filename}. Check the browser's Downloads folder, ` +
+      `or its Save As prompt when "Ask where to save" is enabled.`;
+  } catch (error) {
+    message.className = 'task-status-message error';
+    message.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+document.querySelectorAll('[data-review-action]').forEach(button => {
+  button.addEventListener('click', () => submitReviewAction(button));
+});
+document.querySelectorAll('[data-spec-action]').forEach(button => {
+  button.addEventListener('click', () => submitSpecApproval(button));
+});
+document.querySelectorAll('[data-code-action]').forEach(button => {
+  button.addEventListener('click', () => submitThreadCodeApproval(button));
+});
+document.getElementById('spec-approved-button').addEventListener(
+  'click', submitTaskSpecApproved
+);
+document.getElementById('code-approved-button').addEventListener(
+  'click', submitCodeApproved
+);
+document.getElementById('save-static-html-button').addEventListener(
+  'click', saveStaticHtml
+);
+const threadSort = document.getElementById('thread-sort-order');
+threadSort.value =
+  localStorage.getItem(`baseapp-review:${REVIEW_TASK_ID}:thread-sort`) ||
+  'number';
+threadSort.addEventListener(
+  'change', event => sortThreadNavigation(event.target.value)
+);
+sortThreadNavigation(threadSort.value);
+document.querySelectorAll('[data-status-filter]').forEach(input => {
+  input.addEventListener('change', applyStatusFilter);
+});
+document.querySelectorAll('[data-feature-display-mode]').forEach(input => {
+  input.addEventListener('change', applyStatusFilter);
+});
+document.querySelectorAll('#thread-navigation > a').forEach(link => {
+  link.addEventListener(
+    'click',
+    event => navigateToFilteredThread(event, link)
+  );
+});
+applyReviewLedger(INITIAL_REVIEW_LEDGER);
+restoreStatusFilter();
+document.querySelectorAll('.component[data-feature-id]').forEach(card => {
+  card.addEventListener('focusin', () => rememberReviewFeature(card.dataset.featureId));
+  card.addEventListener('click', () => rememberReviewFeature(card.dataset.featureId));
+});
+loadReviewLedger().catch(error => {
+  document.querySelectorAll('[data-review-message]').forEach(message => {
+    message.className = 'review-message error';
+    message.textContent =
+      `Start scripts/review_server.py to enable review updates: ${error.message}`;
+  });
+});
+refreshReviewPageState().catch(() => {});
+setInterval(() => {
+  refreshReviewPageState().catch(() => {});
+}, {{POLL_INTERVAL}});
+</script>
+</body>
+</html>

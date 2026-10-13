@@ -20,6 +20,15 @@ Use the task comments to update progress details.
 
 ## Working principles (apply to every task)
 
+Follow the worker-session traceability and interactive review companion contract
+in `build/instructions/task.md` for every task. Record the current session ID
+through the status queue. Use the repository-owned review command, inspect full
+requirements, implementing architecture features, and source-task provenance,
+and keep Approve Spec separate from Approve Code. Review state belongs in the
+task worktree; task status requests belong in the shared queue. Never borrow a
+different worker's listener or let the review generator overwrite TaskReport's
+canonical or lifecycle reports.
+
 These are cross-cutting habits that keep work coherent, traceable, and aligned with the end goal. Adapt them to the task at hand.
 
 1. **Define "done" and its check before writing code.** State, in one line, the outcome in user-visible terms and the concrete artifact or command that will prove it. Re-read it whenever scope feels ambiguous.

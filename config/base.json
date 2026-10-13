@@ -8,7 +8,7 @@
             "app.json": true
         },
         "APP_NAME": "BaseApp",
-        "VERSION": "26.07.17.01",
+        "VERSION": "26.10.12.01",
         "DATE_FORMAT": "%Y%m%d",
         "DATETIME_FORMAT": "%Y%m%dT%H%M%SZ",
         "START_TIME": "dt.datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')",
@@ -62,6 +62,15 @@
                     "resources/templates/report_integration.html": ["Done"],
                     "resources/templates/report_summary.html": ["*"]
                 }
+            },
+            "review": {
+                "enabled": true,
+                "baseline_ref": "main",
+                "layer": null,
+                "architecture": null,
+                "requirements": null,
+                "template": "resources/templates/code_review.html",
+                "refresh_interval_seconds": 3
             },
             "views": [
                 {

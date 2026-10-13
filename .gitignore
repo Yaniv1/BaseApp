@@ -5,3 +5,4 @@ __pycache__/
 .pytest_cache/
 config/local.json
 config/machine.json
+build/review/

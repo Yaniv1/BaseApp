@@ -9,6 +9,7 @@ param(
     [string]$TaskBranch,
     [string]$Worktree,
     [string]$McpConfig,
+    [string]$ReviewConfig,
     [switch]$EnableFullRead,
     [switch]$EnableFullEdit,
     [switch]$EnableFullExecution
@@ -84,6 +85,9 @@ elseif (-not [string]::IsNullOrWhiteSpace($TaskBranch)) {
             if ($currentBranch -eq $TaskBranch) {
                 Write-Host "Already on task branch '$TaskBranch'." -ForegroundColor Green
             }
+            elseif (-not [string]::IsNullOrWhiteSpace($Worktree) -and (Test-Path -LiteralPath $Worktree)) {
+                $sessionRoot = $Worktree
+            }
             else {
                 & git rev-parse --verify --quiet $TaskBranch *> $null
                 if ($LASTEXITCODE -eq 0) {
@@ -113,6 +117,89 @@ elseif (-not [string]::IsNullOrWhiteSpace($TaskBranch)) {
 # so all of its file edits, commits, and tool invocations are scoped to the
 # isolated checkout rather than the shared main working tree.
 Set-Location -LiteralPath $sessionRoot
+
+$reviewProcess = $null
+$reviewJob = $null
+if (-not [string]::IsNullOrWhiteSpace($ReviewConfig)) {
+    $review = $ReviewConfig | ConvertFrom-Json
+    $reviewScript = Join-Path $sessionRoot "scripts\code_review.py"
+    if ($review.enabled -and (Test-Path -LiteralPath $reviewScript)) {
+        # The console owns this job, not the Task Manager server. Closing or
+        # forcibly terminating this worker console also terminates its companion.
+        if ($IsWindows) {
+            if (-not ('TaskReviewJob' -as [type])) {
+                Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public sealed class TaskReviewJob : IDisposable {
+    [DllImport("kernel32.dll", CharSet=CharSet.Unicode)] static extern IntPtr CreateJobObject(IntPtr a, string n);
+    [DllImport("kernel32.dll")] static extern bool SetInformationJobObject(IntPtr j, int c, IntPtr p, uint s);
+    [DllImport("kernel32.dll")] static extern bool AssignProcessToJobObject(IntPtr j, IntPtr p);
+    [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+    [StructLayout(LayoutKind.Sequential)] struct Basic {
+        public long processTime, jobTime; public uint flags; public UIntPtr min, max;
+        public uint active; public UIntPtr affinity; public uint priority, scheduling;
+    }
+    [StructLayout(LayoutKind.Sequential)] struct Extended {
+        public Basic basic; public ulong readOps, writeOps, otherOps, readBytes, writeBytes, otherBytes;
+        public UIntPtr processLimit, jobLimit, peakProcess, peakJob;
+    }
+    IntPtr handle;
+    public TaskReviewJob() {
+        handle=CreateJobObject(IntPtr.Zero,null);
+        var info=new Extended(); info.basic.flags=0x2000;
+        int size=Marshal.SizeOf(info); IntPtr p=Marshal.AllocHGlobal(size);
+        try {
+            Marshal.StructureToPtr(info,p,false);
+            if(handle==IntPtr.Zero || !SetInformationJobObject(handle,9,p,(uint)size) ||
+               !AssignProcessToJobObject(handle,System.Diagnostics.Process.GetCurrentProcess().Handle))
+                throw new InvalidOperationException("Unable to establish worker-owned review job.");
+        } finally { Marshal.FreeHGlobal(p); }
+    }
+    public void Dispose() { if(handle!=IntPtr.Zero){CloseHandle(handle);handle=IntPtr.Zero;} }
+}
+'@
+            }
+            $reviewJob = [TaskReviewJob]::new()
+        }
+        $healthFile = Join-Path $sessionRoot "build\review\$TaskId\server.json"
+        $instanceId = [guid]::NewGuid().ToString("N")
+        $python = if ($review.python) { [string]$review.python } else { "python" }
+        $reviewArgs = @($reviewScript, "--root", $sessionRoot, "--task-id", $TaskId,
+            "--port", "0", "--worker-pid", "$PID", "--instance-id", $instanceId,
+            "--health-file", $healthFile, "--mode", [string]$review.mode)
+        foreach ($entry in @(@("layer","--layer"), @("architecture","--architecture"),
+            @("requirements","--requirements"), @("results_root","--results-root"),
+            @("status_queue","--status-queue"), @("baseline_ref","--baseline-ref"))) {
+            $value = $review.($entry[0])
+            if ($value) { $reviewArgs += @($entry[1], [string]$value) }
+        }
+        $quotedReviewArgs = $reviewArgs | ForEach-Object { '"' + ([string]$_ -replace '"', '\"') + '"' }
+        $reviewProcess = Start-Process -FilePath $python -ArgumentList $quotedReviewArgs -WorkingDirectory $sessionRoot -PassThru -NoNewWindow
+        $healthy = $false
+        for ($attempt = 0; $attempt -lt 120; $attempt++) {
+            if ($reviewProcess.HasExited) { break }
+            if (Test-Path -LiteralPath $healthFile) {
+                try {
+                    $state = Get-Content -LiteralPath $healthFile -Raw | ConvertFrom-Json
+                    if ($state.instance_id -eq $instanceId) {
+                        $health = Invoke-RestMethod -Uri ($state.url + "health") -TimeoutSec 1
+                        if ($health.task_id -eq $TaskId -and $health.root -eq $sessionRoot -and
+                            $health.worker_pid -eq $PID -and $health.instance_id -eq $instanceId) {
+                            $healthy = $true
+                            break
+                        }
+                    }
+                } catch { }
+            }
+            Start-Sleep -Milliseconds 250
+        }
+        if (-not $healthy) {
+            if (-not $reviewProcess.HasExited) { Stop-Process -Id $reviewProcess.Id -Force }
+            throw "Interactive review companion failed health verification for $TaskId."
+        }
+    }
+}
 
 # Keep a deterministic console window title (the task title) so the task
 # manager can trace and re-focus this window when the task later moves to the
@@ -212,7 +299,16 @@ if ($EnableFullExecution) {
 }
 $quotedArgs = $copilotArgs | ForEach-Object { if ($_ -match '\s') { '"' + ($_ -replace '"', '\"') + '"' } else { $_ } }
 Write-Host ("Executing: {0} {1}" -f $CopilotCli, ($quotedArgs -join ' ')) -ForegroundColor Yellow
-& $CopilotCli @copilotArgs
+try {
+    & $CopilotCli @copilotArgs
+}
+finally {
+    if ($null -ne $reviewProcess -and -not $reviewProcess.HasExited) {
+        Stop-Process -Id $reviewProcess.Id -Force -ErrorAction SilentlyContinue
+    }
+    # Do not dispose the job while its owner (this console) is still running:
+    # the OS releases the handle on console exit, including hard shutdown.
+}
 
 Write-Host ""
 Write-Host "Copilot CLI session ended." -ForegroundColor Yellow
